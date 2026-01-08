@@ -1,0 +1,98 @@
+import { useState, useEffect } from "react";
+import axios from "axios";
+
+export default function MaterialManagement() {
+  const [materials, setMaterials] = useState([]);
+  const [name, setName] = useState("");
+  const [qty, setQty] = useState("");
+  const [unit, setUnit] = useState("Kg");
+  const [shelfLife, setShelfLife] = useState("");
+  const [loading, setLoading] = useState(false);  // ✅ Loading state
+
+  useEffect(() => {
+    fetchMaterials();
+  }, []);
+
+  const fetchMaterials = async () => {
+    try {
+      const res = await axios.get("http://localhost:5000/api/materials");
+      setMaterials(res.data);
+    } catch (err) {
+      console.error("Fetch error:", err);
+      alert("Failed to load materials. Check if backend is running.");
+    }
+  };
+
+  const addMaterial = async () => {
+    if (!name || !qty || !shelfLife) {
+      alert("Name, Quantity, and Shelf Life are required");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await axios.post("http://localhost:5000/api/materials", {
+        name,
+        qty: Number(qty),
+        unit,
+        shelfLife: Number(shelfLife),
+        issueType: "FIFO"
+      });
+      
+      fetchMaterials();  // Reload
+      setName(""); setQty(""); setUnit("Kg"); setShelfLife("");
+    } catch (err) {
+      console.error("Add error:", err.response?.data || err.message);
+      alert(`Error: ${err.response?.data?.error || "Failed to add material"}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="container">
+      <h2>Material Master</h2>
+      
+      <div>
+        <input type="text" placeholder="Material Name" value={name} 
+          onChange={(e) => setName(e.target.value)} />
+        <input type="number" placeholder="Quantity" value={qty} 
+          onChange={(e) => setQty(e.target.value)} />
+        <select value={unit} onChange={(e) => setUnit(e.target.value)}>
+          <option value="Kg">Kg</option>
+          <option value="Liters">Liters</option>
+        </select>
+        <input type="number" placeholder="Shelf Life (Days)" value={shelfLife} 
+          onChange={(e) => setShelfLife(e.target.value)} />
+        <button onClick={addMaterial} disabled={loading}>
+          {loading ? "Adding..." : "Add Material"}
+        </button>
+      </div>
+
+      <br />
+
+      {materials.length === 0 ? (
+        <p>No materials added</p>
+      ) : (
+        <table border="1" cellPadding="5">
+          <thead>
+            <tr>
+              <th>ID</th><th>Material</th><th>Quantity</th><th>Unit</th><th>Shelf Life</th>
+            </tr>
+          </thead>
+          <tbody>
+            {materials.map((m) => (
+              <tr key={m.id}>
+                <td>{m.id}</td>
+                <td>{m.name}</td>
+                <td>{m.qty}</td>
+                <td>{m.unit}</td>
+                <td>{m.shelf_life}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </div>
+  );
+}
