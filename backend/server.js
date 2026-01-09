@@ -9,9 +9,9 @@ import stockRoutes from "./routes/stockRoutes.js";
 
 const app = express();
 
-// 🔥 REQUIRED
+
 app.use(cors());
-app.use(express.json());   // ❗ without this DB will be empty
+app.use(express.json());   
 
 app.use("/api/customers", customerRoutes);
 app.use("/api/farmers", farmerRoutes);

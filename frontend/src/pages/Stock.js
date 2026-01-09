@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
-import "./Stock.css";  // Import external CSS [web:23][web:28]
+import "./Stock.css";  
 
 export default function Stock() {
   const [materials, setMaterials] = useState([]);

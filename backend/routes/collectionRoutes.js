@@ -3,7 +3,7 @@ import db from "../config/db.js";
 
 const router = express.Router();
 
-// GET /api/collections - Join with names (existing)
+
 router.get("/", (req, res) => {
   const query = `
     SELECT c.*, 
@@ -30,7 +30,7 @@ router.get("/", (req, res) => {
   });
 });
 
-// POST /api/collections (existing)
+
 router.post("/", (req, res) => {
   const { partyType, partyId, materialId, qty, mfgDate, expiryDate } = req.body;
   
@@ -63,7 +63,7 @@ router.post("/", (req, res) => {
   }
 });
 
-// 🔹 NEW: PATCH /api/collections/:id - Update status
+
 router.patch("/:id", (req, res) => {
   const { id } = req.params;
   const { status } = req.body;

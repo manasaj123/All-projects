@@ -7,7 +7,7 @@ export default function CustomerOnboarding() {
   const [address, setAddress] = useState("");
   const [contact, setContact] = useState("");
 
-  // 🔹 Load customers from DB
+  
   useEffect(() => {
     fetchCustomers();
   }, []);
@@ -17,7 +17,7 @@ export default function CustomerOnboarding() {
     setCustomers(res.data);
   };
 
-  // 🔹 Add customer to DB
+  
   const addCustomer = async () => {
     if (!customerName || !address || !contact) return;
 
@@ -27,10 +27,10 @@ export default function CustomerOnboarding() {
       contact,
     });
 
-    // reload customers from DB
+    
     fetchCustomers();
 
-    // clear inputs
+    
     setCustomerName("");
     setAddress("");
     setContact("");

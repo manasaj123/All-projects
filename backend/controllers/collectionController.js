@@ -1,8 +1,6 @@
 import db from "../db.js";
 
-/**
- * CREATE COLLECTION (Farmer gives materials)
- */
+
 export const createCollection = (req, res) => {
   const {
     farmerId,

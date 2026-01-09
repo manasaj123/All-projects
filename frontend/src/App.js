@@ -12,7 +12,7 @@ import WeeklyMarket from  "./pages/WeeklyMarket";
 
 export default function App() {
 
-  // ✅ STATES
+ 
   const [customers, setCustomers] = useState([]);
   const [farmers, setFarmers] = useState([]);
   const [materials, setMaterials] = useState([]);

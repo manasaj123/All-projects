@@ -3,7 +3,7 @@ import db from "../config/db.js";
 
 const router = express.Router();
 
-// GET /api/materials
+
 router.get("/", (req, res) => {
   db.query("SELECT * FROM materials ORDER BY id DESC", (err, result) => {
     if (err) {
@@ -14,7 +14,7 @@ router.get("/", (req, res) => {
   });
 });
 
-// POST /api/materials
+
 router.post("/", (req, res) => {
   const { name, qty, unit, shelfLife, issueType } = req.body;
   

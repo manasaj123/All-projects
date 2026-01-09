@@ -7,7 +7,7 @@ export default function FarmerOnboarding() {
   const [address, setAddress] = useState("");
   const [contact, setContact] = useState("");
 
-  // 🔹 Load farmers from DB
+ 
   useEffect(() => {
     fetchFarmers();
   }, []);
@@ -17,7 +17,7 @@ export default function FarmerOnboarding() {
     setFarmers(res.data);
   };
 
-  // 🔹 Add farmer to DB
+  
   const addFarmer = async () => {
     if (!farmerName || !address || !contact) return;
 
@@ -27,10 +27,10 @@ export default function FarmerOnboarding() {
       contact,
     });
 
-    // reload farmers from DB
+    
     fetchFarmers();
 
-    // clear inputs
+    
     setFarmerName("");
     setAddress("");
     setContact("");

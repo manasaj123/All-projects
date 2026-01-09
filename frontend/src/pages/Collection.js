@@ -7,14 +7,14 @@ export default function Collection() {
   const [materials, setMaterials] = useState([]);
   const [collections, setCollections] = useState([]);
 
-  const [partyType, setPartyType] = useState(""); // farmer | customer
+  const [partyType, setPartyType] = useState(""); 
   const [partyId, setPartyId] = useState("");
   const [materialId, setMaterialId] = useState("");
   const [qty, setQty] = useState("");
   const [mfgDate, setMfgDate] = useState("");
   const [expiryDate, setExpiryDate] = useState("");
 
-  // 🔹 Load all data from DB on mount
+ 
   useEffect(() => {
     fetchFarmers();
     fetchCustomers();
@@ -68,10 +68,10 @@ export default function Collection() {
         expiryDate,
       });
 
-      // Reload collections from DB
+      
       fetchCollections();
 
-      // Reset fields
+      
       setPartyType("");
       setPartyId("");
       setMaterialId("");
@@ -88,7 +88,7 @@ export default function Collection() {
     <div className="container">
       <h2>Collection App</h2>
 
-      {/* Party Type */}
+      
       <label>
         <input
           type="radio"
@@ -117,7 +117,7 @@ export default function Collection() {
 
       <br /><br />
 
-      {/* Farmer / Customer dropdown */}
+      
       {partyType === "farmer" && (
         <select value={partyId} onChange={e => setPartyId(e.target.value)}>
           <option value="">Select Farmer</option>
@@ -136,7 +136,7 @@ export default function Collection() {
         </select>
       )}
 
-      {/* Material dropdown */}
+      
       <select value={materialId} onChange={e => setMaterialId(e.target.value)}>
         <option value="">Select Material</option>
         {materials.map(m => (
@@ -151,7 +151,7 @@ export default function Collection() {
         onChange={e => setQty(e.target.value)}
       />
 
-      {/* MFG Date only for Farmer */}
+      
       {partyType === "farmer" && (
         <input
           type="date"
@@ -160,7 +160,7 @@ export default function Collection() {
         />
       )}
 
-      {/* Expiry Date always visible */}
+      
       <input
         type="date"
         value={expiryDate}
@@ -173,7 +173,7 @@ export default function Collection() {
 
       <br /><br />
 
-      {/* Display collections */}
+      
       {collections.length > 0 && (
         <table border="1" cellPadding="5">
           <thead>

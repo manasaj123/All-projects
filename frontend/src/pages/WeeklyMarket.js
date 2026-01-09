@@ -5,7 +5,7 @@ export default function WeeklyMarket() {
   const [weeklyData, setWeeklyData] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // 🔹 Load weekly market data from backend
+  
   useEffect(() => {
     fetchWeeklyMarket();
   }, []);
@@ -48,8 +48,8 @@ export default function WeeklyMarket() {
           <tbody>
             {weeklyData.map((item, index) => (
               <tr key={index}>
-                <td>{item.customerName || "-"}</td>    {/* ✅ Customer */}
-                <td>{item.partyName || item.farmerName || "-"}</td>  {/* ✅ Farmer */}
+                <td>{item.customerName || "-"}</td>   
+                <td>{item.partyName || item.farmerName || "-"}</td> 
                 <td>{item.materialName}</td>
                 <td>{item.totalQty}</td>
               </tr>

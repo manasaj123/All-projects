@@ -73,7 +73,7 @@ export default function Dashboard() {
   );
 }
 
-// Reusable card style function
+
 const cardStyle = (bgColor, gradientBg, iconEmoji, topBorder) => ({
   display: 'flex',
   flexDirection: 'column',

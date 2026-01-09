@@ -6,7 +6,7 @@ const router = express.Router();
 
 router.post("/", addCustomer);
 router.get("/", getCustomers);
-// Add this NEW function
+
 export const getCustomerCount = (req, res) => {
   db.query("SELECT COUNT(*) as count FROM customers", (err, result) => {
     if (err) {

@@ -7,7 +7,7 @@ export default function MaterialManagement() {
   const [qty, setQty] = useState("");
   const [unit, setUnit] = useState("Kg");
   const [shelfLife, setShelfLife] = useState("");
-  const [loading, setLoading] = useState(false);  // ✅ Loading state
+  const [loading, setLoading] = useState(false);  
 
   useEffect(() => {
     fetchMaterials();
