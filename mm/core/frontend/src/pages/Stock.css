@@ -1,0 +1,119 @@
+/* Container and layout */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.page-title {
+  margin-bottom: 30px;
+  color: #333;
+  text-align: center;
+}
+
+/* Grid for materials */
+.materials-grid {
+  display: grid;
+  gap: 30px;
+  margin-top: 20px;
+}
+
+/* Material cards */
+.material-card {
+  border-radius: 15px;
+  padding: 25px;
+  border: 3px solid;
+}
+
+.fifo {
+  border-color: #4facfe;
+  background: #f0f8ff;
+}
+
+.lifo {
+  border-color: #ff6b6b;
+  background: #fff5f5;
+}
+
+.material-header {
+  margin-bottom: 20px;
+  color: #333;
+}
+
+.issue-type {
+  margin-left: 15px;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-weight: bold;
+  font-size: 14px;
+  color: white;
+  display: inline-block;
+}
+
+.issue-type.fifo {
+  background: #4facfe;
+}
+
+.issue-type.lifo {
+  background: #ff6b6b;
+}
+
+/* Table styles */
+.stock-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.stock-table th {
+  background: #f8f9fa;
+  padding: 12px;
+  text-align: left;
+}
+
+.stock-table td {
+  padding: 12px;
+}
+
+.table-corner-left {
+  border-radius: 8px 0 0 0;
+}
+
+.table-corner-right {
+  border-radius: 0 8px 0 0;
+}
+
+.highlight-row {
+  background: #e3f2fd !important;
+  font-weight: bold;
+}
+
+.qty-cell {
+  font-weight: bold;
+}
+
+/* Utility classes */
+.loading, .no-data, .no-stock {
+  text-align: center;
+  color: #666;
+  font-style: italic;
+}
+
+.refresh-btn {
+  margin-top: 30px;
+  padding: 15px 30px;
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  color: white;
+  border: none;
+  border-radius: 25px;
+  font-size: 16px;
+  cursor: pointer;
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.refresh-btn:hover {
+  opacity: 0.9;
+  transform: translateY(-2px);
+  transition: all 0.2s ease;
+}
