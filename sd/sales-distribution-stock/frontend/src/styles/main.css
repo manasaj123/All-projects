@@ -1,0 +1,174 @@
+/* ===== Global ===== */
+
+html, body, #root {
+  margin: 0;
+  padding: 0;
+  font-family: sans-serif;
+  height: 100%;
+}
+
+/* Root layout: navbar on top, sidebar + content below */
+.app-root {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;          /* page can grow taller than viewport */
+}
+
+/* ===== Navbar ===== */
+
+.navbar {
+  height: 50px;
+  background: #02152a;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  box-sizing: border-box;
+}
+
+/* ===== Body: sidebar + content ===== */
+
+.app-body {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+}
+
+/* Sidebar covers full height of content */
+.sidebar {
+  width: 170px;
+  background: #018dea;
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+/* Links */
+.sidebar-link {
+  display: block;
+  padding: 10px 16px;
+  color: #e1e9fc;
+  text-decoration: none;
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sidebar-link:hover {
+  background: #669cf3;
+}
+
+.sidebar-link.active {
+  background: #a0aedb;
+  font-weight: 600;
+}
+
+
+
+
+
+
+
+/* ===== Main content ===== */
+
+/* Main content */
+.app-content {
+  flex: 1;
+  padding: 19px 0;      /* was 16px 24px – remove left/right padding */
+  overflow: auto;
+  background: #f5f7fb;
+  box-sizing: border-box;
+}
+
+/* Page wrapper */
+.page-container {
+  max-width: 100%;      /* no fixed width */
+  margin: 0;            /* remove left/right auto margin */
+}
+
+
+/* ===== Forms & tables (generic) ===== */
+
+.form-card {
+  background: #ffffff;
+  padding: 20px 24px;
+  border-radius: 6px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  margin-bottom: 20px;
+  box-sizing: border-box;
+}
+
+.form-card h4 {
+  margin: 12px 0 8px;
+  font-size: 15px;
+  color: #23344d;
+}
+
+.form-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.form-row label {
+  width: 220px;
+  font-size: 14px;
+  color: #333;
+}
+
+.form-row input,
+.form-row select {
+  flex: 1;
+  max-width: 260px;
+  padding: 4px 6px;
+  font-size: 14px;
+  box-sizing: border-box;
+}
+
+.form-actions {
+  margin-top: 16px;
+  display: flex;
+  gap: 8px;
+}
+
+.form-actions button {
+  padding: 6px 14px;
+  font-size: 14px;
+}
+
+/* Tables */
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #ffffff;
+  margin-top: 12px;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.data-table th,
+.data-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid #e2e6f0;
+  font-size: 13px;
+}
+
+.data-table th {
+  background: #f0f3fa;
+  text-align: left;
+}
+
+.data-table tr:hover td {
+  background: #f7f9ff;
+}
+

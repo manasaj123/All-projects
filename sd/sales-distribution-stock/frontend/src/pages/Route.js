@@ -1,0 +1,323 @@
+// frontend/src/pages/Route.js
+import React, { useEffect, useState } from 'react';
+import {
+  getRoutes,
+  getDeletedRoutes,
+  createRoute,
+  updateRoute,
+  softDeleteRoute,
+  restoreRoute,
+} from '../services/routeService';
+
+const initialForm = {
+  routeCode: '',
+  description: '',
+};
+
+const initialStage = {
+  stageName: '',
+  fromLocation: '',
+  toLocation: '',
+  transitTime: '',
+  legSequence: '',
+};
+
+const RoutePage = () => {
+  const [routes, setRoutes] = useState([]);
+  const [deletedRoutes, setDeletedRoutes] = useState([]);
+  const [showDeleted, setShowDeleted] = useState(false);
+
+  const [formData, setFormData] = useState(initialForm);
+  const [stages, setStages] = useState([]);
+  const [stageForm, setStageForm] = useState(initialStage);
+
+  const [editingId, setEditingId] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  const loadData = async () => {
+    setLoading(true);
+    try {
+      const [activeRes, deletedRes] = await Promise.all([
+        getRoutes(),
+        getDeletedRoutes(),
+      ]);
+      setRoutes(activeRes.data);
+      setDeletedRoutes(deletedRes.data);
+    } catch (err) {
+      console.error('Error loading routes', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const handleChange = e => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleStageChange = e => {
+    const { name, value } = e.target;
+    setStageForm(prev => ({ ...prev, [name]: value }));
+  };
+
+  const addStage = () => {
+    if (!stageForm.stageName || !stageForm.fromLocation || !stageForm.toLocation) {
+      alert('Enter stage name, from and to locations');
+      return;
+    }
+    setStages(prev => [...prev, { ...stageForm }]);
+    setStageForm(initialStage);
+  };
+
+  const removeStage = index => {
+    setStages(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleSubmit = async e => {
+    e.preventDefault();
+    if (!formData.routeCode) {
+      alert('Enter route code');
+      return;
+    }
+    if (stages.length === 0) {
+      alert('Add at least one stage');
+      return;
+    }
+    const payload = {
+      ...formData,
+      stagesJson: JSON.stringify(stages),
+    };
+    try {
+      if (editingId) {
+        await updateRoute(editingId, payload);
+      } else {
+        await createRoute(payload);
+      }
+      setFormData(initialForm);
+      setStages([]);
+      setStageForm(initialStage);
+      setEditingId(null);
+      loadData();
+    } catch (err) {
+      console.error('Error saving route', err);
+    }
+  };
+
+  const handleEdit = r => {
+    setEditingId(r.id);
+    setFormData({
+      routeCode: r.routeCode || '',
+      description: r.description || '',
+    });
+    let parsedStages = [];
+    try {
+      parsedStages = r.stagesJson ? JSON.parse(r.stagesJson) : [];
+    } catch {
+      parsedStages = [];
+    }
+    setStages(parsedStages);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingId(null);
+    setFormData(initialForm);
+    setStages([]);
+    setStageForm(initialStage);
+  };
+
+  const handleSoftDelete = async id => {
+    if (!window.confirm('Move this route to recycle bin?')) return;
+    try {
+      await softDeleteRoute(id);
+      loadData();
+    } catch (err) {
+      console.error('Error deleting route', err);
+    }
+  };
+
+  const handleRestore = async id => {
+    try {
+      await restoreRoute(id);
+      loadData();
+    } catch (err) {
+      console.error('Error restoring route', err);
+    }
+  };
+
+  const currentList = showDeleted ? deletedRoutes : routes;
+
+  const displayStagesSummary = r => {
+    try {
+      const arr = r.stagesJson ? JSON.parse(r.stagesJson) : [];
+      if (!Array.isArray(arr) || arr.length === 0) return '';
+      return arr
+        .map((s, idx) => {
+          const seq = s.legSequence || idx + 1;
+          return `${seq}. ${s.fromLocation} → ${s.toLocation} (${s.stageName})`;
+        })
+        .join(' | ');
+    } catch {
+      return '';
+    }
+  };
+
+  return (
+    <div className="page-container">
+      <h2>Route Determination</h2>
+
+      <form className="form-card" onSubmit={handleSubmit}>
+        <div className="form-row">
+          <label>Route Code</label>
+          <input
+            name="routeCode"
+            value={formData.routeCode}
+            onChange={handleChange}
+            required
+            disabled={!!editingId}
+          />
+        </div>
+        <div className="form-row">
+          <label>Description</label>
+          <input
+            name="description"
+            value={formData.description}
+            onChange={handleChange}
+          />
+        </div>
+
+        <h4>Stages</h4>
+        <div className="items-form-row">
+          <input
+            name="stageName"
+            placeholder="Stage Name"
+            value={stageForm.stageName}
+            onChange={handleStageChange}
+          />
+          <input
+            name="fromLocation"
+            placeholder="From"
+            value={stageForm.fromLocation}
+            onChange={handleStageChange}
+          />
+          <input
+            name="toLocation"
+            placeholder="To"
+            value={stageForm.toLocation}
+            onChange={handleStageChange}
+          />
+          <input
+            name="transitTime"
+            placeholder="Transit Time (hrs)"
+            value={stageForm.transitTime}
+            onChange={handleStageChange}
+          />
+          <input
+            name="legSequence"
+            placeholder="Sequence"
+            value={stageForm.legSequence}
+            onChange={handleStageChange}
+          />
+          <button type="button" onClick={addStage}>
+            Add Stage
+          </button>
+        </div>
+
+        {stages.length > 0 && (
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>Seq</th>
+                <th>Stage Name</th>
+                <th>From</th>
+                <th>To</th>
+                <th>Transit Time</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {stages.map((s, idx) => (
+                <tr key={idx}>
+                  <td>{s.legSequence || idx + 1}</td>
+                  <td>{s.stageName}</td>
+                  <td>{s.fromLocation}</td>
+                  <td>{s.toLocation}</td>
+                  <td>{s.transitTime}</td>
+                  <td>
+                    <button type="button" onClick={() => removeStage(idx)}>
+                      Remove
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+
+        <div className="form-actions">
+          <button type="submit">
+            {editingId ? 'Update Route' : 'Create Route'}
+          </button>
+          {editingId && (
+            <button type="button" onClick={handleCancelEdit}>
+              Cancel
+            </button>
+          )}
+        </div>
+      </form>
+
+      <div className="list-header">
+        <h3>{showDeleted ? 'Recycle Bin' : 'Active Routes'}</h3>
+        <button onClick={() => setShowDeleted(v => !v)}>
+          {showDeleted ? 'Show Active' : 'Show Recycle Bin'}
+        </button>
+      </div>
+
+      {loading ? (
+        <p>Loading...</p>
+      ) : currentList.length === 0 ? (
+        <p>No records.</p>
+      ) : (
+        <table className="data-table">
+          <thead>
+            <tr>
+              <th>Route Code</th>
+              <th>Description</th>
+              <th>Stages</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {currentList.map(r => (
+              <tr key={r.id}>
+                <td>{r.routeCode}</td>
+                <td>{r.description}</td>
+                <td>{displayStagesSummary(r)}</td>
+                <td>
+                  {!showDeleted && (
+                    <>
+                      <button onClick={() => handleEdit(r)}>Edit</button>
+                      <button onClick={() => handleSoftDelete(r.id)}>
+                        Delete
+                      </button>
+                    </>
+                  )}
+                  {showDeleted && (
+                    <button onClick={() => handleRestore(r.id)}>
+                      Restore
+                    </button>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </div>
+  );
+};
+
+export default RoutePage;
