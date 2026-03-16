@@ -4,7 +4,7 @@ import Header from "../components/qc/Header";
 import axios from "axios";
 import "./Pagestyles.css";
 
-const BASE_URL = "http://localhost:5000/api";
+const BASE_URL = "http://localhost:5003/api";
 
 export default function QCDashboardPage() {
   const [counts, setCounts] = useState({

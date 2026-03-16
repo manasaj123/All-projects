@@ -15,10 +15,23 @@ router.post(
   invoiceController.createInvoice
 );
 
+// Summary by party
+router.get(
+  '/summary/by-party',
+  roleMiddleware('ADMIN', 'ACCOUNTANT', 'AUDITOR', 'VIEWER'),
+  invoiceController.listInvoiceSummaryByParty
+);
+
 router.get(
   '/',
   roleMiddleware('ADMIN', 'ACCOUNTANT', 'AUDITOR', 'VIEWER'),
   invoiceController.listInvoices
+);
+
+router.get(
+  '/party/:partyName',
+  roleMiddleware('ADMIN', 'ACCOUNTANT', 'AUDITOR', 'VIEWER'),
+  invoiceController.listInvoicesByParty
 );
 
 router.get(

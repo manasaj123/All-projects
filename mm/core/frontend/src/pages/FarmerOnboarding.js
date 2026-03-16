@@ -13,7 +13,7 @@ export default function FarmerOnboarding() {
   }, []);
 
   const fetchFarmers = async () => {
-    const res = await axios.get("http://localhost:5000/api/farmers");
+    const res = await axios.get("http://localhost:5001/api/farmers");
     setFarmers(res.data);
   };
 
@@ -21,7 +21,7 @@ export default function FarmerOnboarding() {
   const addFarmer = async () => {
     if (!farmerName || !address || !contact) return;
 
-    await axios.post("http://localhost:5000/api/farmers", {
+    await axios.post("http://localhost:5001/api/farmers", {
       name: farmerName,
       address,
       contact,

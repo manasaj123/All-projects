@@ -1,6 +1,19 @@
 import db from "../config/db.js";
 import { PurchaseOrder } from "../models/PurchaseOrder.js";
 
+// Helper: generate next PO number like DB4-PO-001, DB4-PO-002, ...
+const generatePONumber = async () => {
+  const [rows] = await db.query(
+    `SELECT MAX(CAST(SUBSTRING(po_no, 8) AS UNSIGNED)) AS max_num
+     FROM purchase_orders
+     WHERE po_no LIKE 'DB4-PO-%'`
+  ); // [web:71][web:72]
+  const maxNum = rows[0]?.max_num || 0;
+  const nextNum = maxNum + 1;
+  const padded = String(nextNum).padStart(3, "0"); // 1 -> 001 [web:73][web:76]
+  return `DB4-PO-${padded}`;
+};
+
 export const getPOs = async (req, res, next) => {
   try {
     const [rows] = await PurchaseOrder.findAll();
@@ -27,17 +40,25 @@ export const createPO = async (req, res, next) => {
     const { header, items } = req.body;
     await conn.beginTransaction();
 
+    // If PO No empty in UI, auto-generate DB4-PO-XXX
+    const po_no =
+      header.po_no && header.po_no.trim()
+        ? header.po_no
+        : await generatePONumber();
+
     const [hRes] = await conn.query(
       `INSERT INTO purchase_orders
-       (po_no, po_date, vendor_id, status, payment_terms, currency)
-       VALUES (?, ?, ?, ?, ?, ?)`,
+       (po_no, po_date, vendor_id, status, payment_terms, currency, po_type, source_type)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       [
-        header.po_no,
-        header.po_date,
+        po_no,
+        header.po_date,                  // should be YYYY-MM-DD from frontend
         header.vendor_id,
         header.status || "OPEN",
         header.payment_terms,
-        header.currency || "INR"
+        header.currency || "INR",
+        header.po_type || "STOCK",
+        header.source_type || "DIRECT"
       ]
     );
     const poId = hRes.insertId;
@@ -53,13 +74,142 @@ export const createPO = async (req, res, next) => {
           item.qty,
           item.price,
           item.tax_percent || 0,
-          item.delivery_date
+          item.delivery_date || null     // YYYY-MM-DD or null
         ]
       );
     }
 
     await conn.commit();
-    res.status(201).json({ id: poId });
+    res.status(201).json({ id: poId, po_no });
+  } catch (err) {
+    await conn.rollback();
+    next(err);
+  } finally {
+    conn.release();
+  }
+};
+
+// Hard delete PO + all its children (invoice_items, po_items, vendor_invoices)
+export const deletePO = async (req, res, next) => {
+  const conn = await db.getConnection();
+  try {
+    const { id } = req.params;
+    await conn.beginTransaction();
+
+    // 1) delete invoice_items that reference po_items of this PO
+    await conn.query(
+      `DELETE ii FROM invoice_items ii
+       JOIN po_items pi ON ii.po_item_id = pi.id
+       WHERE pi.po_id = ?`,
+      [id]
+    );
+
+    // 2) delete grn_items that reference po_items of this PO
+    await conn.query(
+      `DELETE gi FROM grn_items gi
+       JOIN po_items pi ON gi.po_item_id = pi.id
+       WHERE pi.po_id = ?`,
+      [id]
+    );
+
+    // 3) delete po_items for this PO
+    await conn.query(
+      "DELETE FROM po_items WHERE po_id = ?",
+      [id]
+    );
+
+    // 4) delete vendor_invoices that reference this PO
+    await conn.query(
+      "DELETE FROM vendor_invoices WHERE po_id = ?",
+      [id]
+    );
+
+    // 5) delete GRN headers that reference this PO
+    await conn.query(
+      "DELETE FROM grn_headers WHERE po_id = ?",
+      [id]
+    );
+
+    // 6) delete the PO itself
+    const [result] = await conn.query(
+      "DELETE FROM purchase_orders WHERE id = ?",
+      [id]
+    );
+
+    if (result.affectedRows === 0) {
+      await conn.rollback();
+      return res.status(404).json({ error: "PO not found" });
+    }
+
+    await conn.commit();
+    res.json({ success: true });
+  } catch (err) {
+    await conn.rollback();
+    next(err);
+  } finally {
+    conn.release();
+  }
+};
+
+
+export const updatePO = async (req, res, next) => {
+  const conn = await db.getConnection();
+  try {
+    const { id } = req.params;
+    const { header, items } = req.body;
+    await conn.beginTransaction();
+
+    // optional safety: block items change when GRN exists
+    const [grnRows] = await conn.query(
+      `SELECT COUNT(*) AS cnt
+       FROM grn_items gi
+       JOIN po_items pi ON gi.po_item_id = pi.id
+       WHERE pi.po_id = ?`,
+      [id]
+    );
+    const hasGRN = grnRows[0].cnt > 0;
+
+    // 1) update header
+    await conn.query(
+      `UPDATE purchase_orders
+       SET po_no = ?, po_date = ?, vendor_id = ?, status = ?, payment_terms = ?, currency = ?, po_type = ?, source_type = ?
+       WHERE id = ?`,
+      [
+        header.po_no,
+        header.po_date,
+        header.vendor_id,
+        header.status || "OPEN",
+        header.payment_terms,
+        header.currency || "INR",
+        header.po_type || "STOCK",
+        header.source_type || "DIRECT",
+        id
+      ]
+    );
+
+    // 2) only replace items when no GRN exists
+    if (!hasGRN) {
+      await conn.query("DELETE FROM po_items WHERE po_id = ?", [id]);
+
+      for (const item of items || []) {
+        await conn.query(
+          `INSERT INTO po_items
+             (po_id, material_id, qty, price, tax_percent, delivery_date)
+           VALUES (?, ?, ?, ?, ?, ?)`,
+          [
+            id,
+            item.material_id,
+            item.qty,
+            item.price,
+            item.tax_percent || 0,
+            item.delivery_date || null
+          ]
+        );
+      }
+    }
+
+    await conn.commit();
+    res.json({ success: true, itemsUpdated: !hasGRN });
   } catch (err) {
     await conn.rollback();
     next(err);

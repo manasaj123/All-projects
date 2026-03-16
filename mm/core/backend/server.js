@@ -19,6 +19,6 @@ app.use("/api/materials", materialRoutes);
 app.use("/api/collections", collectionRoutes);
 app.use("/api/stock", stockRoutes);
 
-app.listen(5000, () => {
-  console.log("Backend running on port 5000");
+app.listen(5001, () => {
+  console.log("Backend running on port 5001");
 });

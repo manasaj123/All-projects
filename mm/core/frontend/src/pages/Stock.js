@@ -15,8 +15,8 @@ export default function Stock() {
     try {
       setLoading(true);
       const [materialsRes, collectionsRes] = await Promise.all([
-        axios.get("http://localhost:5000/api/materials"),
-        axios.get("http://localhost:5000/api/collections")
+        axios.get("http://localhost:5001/api/materials"),
+        axios.get("http://localhost:5001/api/collections")
       ]);
       setMaterials(materialsRes.data);
       setCollections(collectionsRes.data);

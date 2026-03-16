@@ -6,7 +6,7 @@ exports.createLot = (req, res) => {
 
   if (!lot_number || !product_name || !quantity || !unit) {
     return res.status(400).json({
-      message: "lot_number, product_name, quantity and unit are required"
+      message: "lot_number, product_name, quantity and unit are required",
     });
   }
 
@@ -22,7 +22,7 @@ exports.createLot = (req, res) => {
       lot_number.trim(),
       product_name.trim(),
       Number(quantity),
-      unit.trim()
+      unit.trim(),
     ],
     (err, result) => {
       if (err) {
@@ -32,7 +32,7 @@ exports.createLot = (req, res) => {
 
       res.status(201).json({
         message: "Lot created successfully",
-        id: result.insertId
+        id: result.insertId,
       });
     }
   );
@@ -40,13 +40,16 @@ exports.createLot = (req, res) => {
 
 /* ================= GET LOTS ================= */
 exports.getLots = (req, res) => {
-  db.query("SELECT * FROM lots ORDER BY created_at DESC", (err, results) => {
-    if (err) {
-      console.error("❌ Get lots error:", err);
-      return res.status(500).json({ error: err.message });
+  db.query(
+    "SELECT * FROM lots ORDER BY created_at DESC",
+    (err, results) => {
+      if (err) {
+        console.error("❌ Get lots error:", err);
+        return res.status(500).json({ error: err.message });
+      }
+      res.json(results);
     }
-    res.json(results);
-  });
+  );
 };
 
 /* ================= UPDATE STATUS + AUDIT ================= */

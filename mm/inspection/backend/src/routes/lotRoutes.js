@@ -7,3 +7,4 @@ router.post("/lots", lotController.createLot);
 router.put("/lots/:id/status", lotController.updateLotStatus);
 
 module.exports = router;
+

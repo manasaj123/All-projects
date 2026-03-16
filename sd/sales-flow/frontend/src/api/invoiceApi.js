@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_URL = "http://localhost:5000/api/invoices";
+const API_URL = "http://localhost:5007/api/invoices";
 
 export const getInvoicesApi = async (token) => {
   const res = await axios.get(API_URL, {

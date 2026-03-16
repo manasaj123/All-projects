@@ -1,6 +1,8 @@
 // backend/src/app.js
 import express from "express";
 import cors from "cors";
+app.use(require('./router'))
+
 
 import qcLotRoutes from "./routes/qcLotRoutes.js";
 import qcMasterRoutes from "./routes/qcMasterRoutes.js";

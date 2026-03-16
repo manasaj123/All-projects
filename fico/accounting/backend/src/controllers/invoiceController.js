@@ -1,5 +1,7 @@
+// controllers/invoiceController.js
 const db = require('../config/db');
 const { Invoice, Ledger } = db;
+const { fn, col } = db.sequelize;
 
 // helper: calculate GST/TDS and totals
 const computeInvoiceAmounts = ({ baseAmount, gstRate, tdsRate }) => {
@@ -8,11 +10,29 @@ const computeInvoiceAmounts = ({ baseAmount, gstRate, tdsRate }) => {
   const tdsR = Number(tdsRate) || 0;
 
   const gstAmount = base * gstR / 100;
-  // TDS is on value excluding GST. [web:35][web:38]
   const tdsAmount = base * tdsR / 100;
 
   const totalAmount = base + gstAmount - tdsAmount;
   return { gstAmount, tdsAmount, totalAmount };
+};
+
+// helper: generate invoice number DB4-INV-001, DB4-INV-002, ...
+const generateInvoiceNumber = async () => {
+  const last = await Invoice.findOne({
+    order: [['id', 'DESC']],
+  });
+
+  let nextSeq = 1;
+  if (last && last.invoiceNumber) {
+    const parts = String(last.invoiceNumber).split('-');
+    const lastSeq = parseInt(parts[parts.length - 1], 10);
+    if (!isNaN(lastSeq)) {
+      nextSeq = lastSeq + 1;
+    }
+  }
+
+  const seqStr = String(nextSeq).padStart(3, '0'); // 001, 002, 003
+  return `DB4-INV-${seqStr}`;
 };
 
 const postInvoiceLedger = async (invoice, transaction) => {
@@ -54,11 +74,6 @@ const postInvoiceLedger = async (invoice, transaction) => {
   };
 
   if (type === 'AR') {
-    // Customer Invoice:
-    // Debit AR: total
-    // Credit Revenue: base
-    // Credit GST Output: gst
-    // Debit TDS Receivable: tds
     await Ledger.bulkCreate([
       {
         ...common,
@@ -94,11 +109,6 @@ const postInvoiceLedger = async (invoice, transaction) => {
         : null
     ].filter(Boolean), { transaction });
   } else {
-    // Vendor Invoice:
-    // Debit Expense: base
-    // Debit GST Input: gst
-    // Credit AP: total
-    // Credit TDS Payable: tds
     await Ledger.bulkCreate([
       {
         ...common,
@@ -140,7 +150,7 @@ exports.createInvoice = async (req, res, next) => {
   const t = await db.sequelize.transaction();
   try {
     const {
-      invoiceNumber,
+      // invoiceNumber, // ignore from body – we generate it
       type,
       partyName,
       partyGSTIN,
@@ -160,26 +170,53 @@ exports.createInvoice = async (req, res, next) => {
       tdsRate
     });
 
-    const invoice = await Invoice.create({
-      invoiceNumber,
-      type,
-      partyName,
-      partyGSTIN,
-      date,
-      dueDate,
-      baseAmount,
-      gstRate,
-      gstAmount,
-      tdsRate,
-      tdsAmount,
-      totalAmount,
-      balanceAmount: totalAmount,
-      status: 'POSTED',
-      createdBy: req.user.id,
-      costCenterId,
-      profitCenterId,
-      narration
-    }, { transaction: t });
+    let invoice;
+    let lastError;
+
+    // Try up to 2 times to avoid rare duplicate invoiceNumber under concurrency
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const invoiceNumber = await generateInvoiceNumber();
+      try {
+        invoice = await Invoice.create({
+          invoiceNumber,
+          type,
+          partyName,
+          partyGSTIN,
+          date,
+          dueDate,
+          baseAmount,
+          gstRate,
+          gstAmount,
+          tdsRate,
+          tdsAmount,
+          totalAmount,
+          balanceAmount: totalAmount,
+          status: 'POSTED',
+          createdBy: req.user.id,
+          costCenterId,
+          profitCenterId,
+          narration
+        }, { transaction: t });
+        lastError = null;
+        break;
+      } catch (err) {
+        lastError = err;
+        if (
+          err.name === 'SequelizeUniqueConstraintError' &&
+          err.fields &&
+          err.fields.invoiceNumber &&
+          attempt === 0
+        ) {
+          // retry once with next number
+          continue;
+        }
+        throw err;
+      }
+    }
+
+    if (!invoice && lastError) {
+      throw lastError;
+    }
 
     await postInvoiceLedger(invoice, t);
 
@@ -207,6 +244,40 @@ exports.getInvoice = async (req, res, next) => {
     const invoice = await Invoice.findByPk(req.params.id);
     if (!invoice) return res.status(404).json({ message: 'Invoice not found' });
     res.json(invoice);
+  } catch (err) {
+    next(err);
+  }
+};
+
+// list all invoices for a given party name
+exports.listInvoicesByParty = async (req, res, next) => {
+  try {
+    const { partyName } = req.params;
+
+    const invoices = await Invoice.findAll({
+      where: { partyName },
+      order: [['date', 'DESC'], ['id', 'DESC']],
+    });
+
+    res.json(invoices);
+  } catch (err) {
+    next(err);
+  }
+};
+
+// Summary: one row per party with summed totals
+exports.listInvoiceSummaryByParty = async (req, res, next) => {
+  try {
+    const rows = await Invoice.findAll({
+      attributes: [
+        'partyName',
+        [fn('SUM', col('totalAmount')), 'totalAmount'],
+        [fn('SUM', col('balanceAmount')), 'balanceAmount'],
+      ],
+      group: ['partyName'],
+      order: [['partyName', 'ASC']],
+    });
+    res.json(rows);
   } catch (err) {
     next(err);
   }

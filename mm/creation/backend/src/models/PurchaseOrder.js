@@ -22,16 +22,19 @@ export const PurchaseOrder = {
   },
 
   findAll() {
-    return db.query(
-      `SELECT po.*, v.name AS vendor_name,
-              SUM(pi.qty * pi.price) AS gross_amount
-       FROM purchase_orders po
-       LEFT JOIN vendors v ON po.vendor_id = v.id
-       LEFT JOIN po_items pi ON po.id = pi.po_id
-       GROUP BY po.id
-       ORDER BY po.id DESC`
-    );
-  },
+  return db.query(
+    `SELECT
+       po.*,
+       v.name AS vendor_name,
+       IFNULL(SUM(pi.qty * pi.price), 0) AS gross_amount
+     FROM purchase_orders po
+     LEFT JOIN vendors v ON po.vendor_id = v.id
+     LEFT JOIN po_items pi ON po.id = pi.po_id
+     GROUP BY po.id
+     ORDER BY po.id DESC`
+  );
+}
+,
 
   findById(id) {
     return db.query(

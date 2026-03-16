@@ -13,7 +13,7 @@ export default function CallingApp() {
 
   const fetchCollections = async () => {
     try {
-      const res = await axios.get("http://localhost:5000/api/collections");
+      const res = await axios.get("http://localhost:5001/api/collections");
       setCollections(res.data);
     } catch (err) {
       console.error("Fetch collections error:", err);
@@ -30,7 +30,7 @@ export default function CallingApp() {
     setLoading(true);
     try {
       
-      await axios.patch(`http://localhost:5000/api/collections/${id}`, {
+      await axios.patch(`http://localhost:5001/api/collections/${id}`, {
         status: "Completed"
       });
       

@@ -4,7 +4,7 @@ import Sidebar from "../components/qc/Sidebar";
 import Header from "../components/qc/Header";
 import "./Pagestyles.css";
 
-const BASE_URL = "http://localhost:5000/api";
+const BASE_URL = "http://localhost:5003/api";
 
 export default function QCAuditReportsPage() {
   const [reports, setReports] = useState([]);

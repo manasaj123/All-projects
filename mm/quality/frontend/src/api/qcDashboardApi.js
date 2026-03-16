@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const client = axios.create({
-  baseURL: "http://localhost:5001/api"
+  baseURL: "http://localhost:5004/api"
 });
 
 const qcDashboardApi = {

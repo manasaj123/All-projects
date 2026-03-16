@@ -2,7 +2,7 @@ import axios from "axios";
 import { useEffect, useState } from "react";
 import "./componentstyles.css";
 
-const BASE_URL = "http://localhost:5000/api";
+const BASE_URL = "http://localhost:5003/api";
 
 export default function QCAuditReportTable() {
   const [reports, setReports] = useState([]);

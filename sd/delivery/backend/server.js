@@ -40,7 +40,7 @@ app.use("/api/revenue", require("./routes/revenue"));
 app.use("/api/complaints", require("./routes/complaints"));
 console.log("✅ Routes loaded!");
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5006;
 server.listen(PORT, '0.0.0.0', async () => {
   try {
     await pool.getConnection();

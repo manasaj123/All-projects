@@ -20,5 +20,5 @@ app.use('/api/cycle-counts', require('./routes/cyclecount.routes'));
 
 app.get('/api/health', (req, res) => res.json({ status: 'OK' }));
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5005;
 app.listen(PORT, () => console.log(`✅ WM Backend: http://localhost:${PORT}`));
