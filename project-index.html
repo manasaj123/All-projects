@@ -12,21 +12,17 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
 body{
 margin:0;
 font-family:Segoe UI;
-background: linear-gradient(270deg,#dbeafe,#b0ddfa,#c9faf8,#c5dbf9, #dbeafe,#95f6f9,#c9faf8,#c5dbf9);
+background: linear-gradient(270deg,#dbeafe,#b0ddfa,#c9faf8,#c5dbf9,#dbeafe,#95f6f9,#c9faf8,#c5dbf9);
 background-size:600% 600%;
 animation:gradientMove 5s ease infinite;
 min-height:100vh;
 }
-
-/* ANIMATION */
 
 @keyframes gradientMove{
 0%{ background-position:0% 50%; }
 50%{ background-position:100% 50%; }
 100%{ background-position:0% 50%; }
 }
-
-/* HEADER */
 
 .header{
 background:#111827;
@@ -36,8 +32,6 @@ display:flex;
 justify-content:space-between;
 align-items:center;
 }
-
-/* TITLE */
 
 .title{
 font-style: italic;
@@ -50,8 +44,6 @@ background:linear-gradient(45deg,#4c9cfd,#38bdf8,#22c55e);
 text-shadow:0 3px 6px rgba(0,0,0,0.2);
 }
 
-/* DASHBOARD BUTTON */
-
 .home{
 padding:8px 10px;
 background:#2563eb;
@@ -62,28 +54,21 @@ cursor:pointer;
 display:none;
 }
 
-/* MAIN */
-
 .main{
 padding:15px;
 }
 
-/* MODULE TITLE */
-
 .module-title{
-font-family: 'Courier New', Courier, monospace;
+font-family:'Courier New', Courier, monospace;
 font-size:22px;
-margin-left: 10px;
+margin-left:10px;
 margin-top:25px;
 margin-bottom:15px;
 font-weight:800;
-border-left:4px solid #2563eb;   /* Left color line */
-padding-left:3px;   
-border-radius: 3px;
-color: #430501;
+border-left:4px solid #2563eb;
+padding-left:5px;
+color:#430501;
 }
-
-/* CARDS */
 
 .dashboard{
 display:grid;
@@ -102,15 +87,11 @@ transition:0.35s;
 border:1px solid rgba(0,0,0,0.05);
 }
 
-/* IMAGE STYLE */
-
 .card img{
 width:35px;
 height:25px;
 margin-bottom:10px;
 }
-
-/* HOVER */
 
 .card:hover{
 background:linear-gradient(135deg,#9bc5fc,#7689a7);
@@ -122,12 +103,10 @@ box-shadow:0 12px 20px rgba(0,0,0,0.25);
 .card div{
 font-size:17px;
 font-weight:700;
-font-family: Georgia, 'Times New Roman', Times, serif;
+font-family:Georgia,'Times New Roman',Times,serif;
 color:#082482;
 letter-spacing:0.5px;
 }
-
-/* PROJECT FRAME */
 
 iframe{
 width:100%;
@@ -140,8 +119,6 @@ display:none;
 </head>
 
 <body>
-
-<!-- HEADER -->
 
 <div class="header">
 <div class="title">Db4hub</div>
@@ -227,11 +204,14 @@ display:none;
 <div>Sales Order</div>
 </div>
 
+<div class="card" onclick="openProject('http://localhost:3012')">
+<img src="https://cdn-icons-png.flaticon.com/512/2331/2331970.png">
+<div>Sales Distribution Stock</div>
 </div>
 
 </div>
 
-<!-- PROJECT FRAME -->
+</div>
 
 <iframe id="frame"></iframe>
 
