@@ -18,8 +18,8 @@ const initialForm = {
   salesOrg: '',
   distributionChannel: '',
   division: '',
-  referenceInquiryId: '',
-  referenceQuotationId: '',
+ salesOffice: '',
+  salesGroup: '',
   soldToPartyId: '',
   shipToPartyId: '',
 };
@@ -145,8 +145,8 @@ const SalesOrders = () => {
       salesOrg: order.salesOrg || '',
       distributionChannel: order.distributionChannel || '',
       division: order.division || '',
-      referenceInquiryId: order.referenceInquiryId || '',
-      referenceQuotationId: order.referenceQuotationId || '',
+      salesOffice: row.salesOffice || '',
+  salesGroup: row.salesGroup || '',
       soldToPartyId: order.soldToPartyId || '',
       shipToPartyId: order.shipToPartyId || '',
     });
@@ -220,114 +220,271 @@ const SalesOrders = () => {
 
   return (
     <div className="page-container">
-      <h2>Sales Orders</h2>
+      <style>{`
+        .page-container{
+          max-width:1100px;
+          margin:auto;
+          padding:20px;
+          font-family:Segoe UI, sans-serif;
+        }
+
+        h2{
+          margin-bottom:16px;
+        }
+
+        .form-card{
+          background:white;
+          padding:16px;
+          border-radius:6px;
+          box-shadow:0 2px 6px rgba(0,0,0,0.1);
+          margin-bottom:20px;
+        }
+
+        
+
+        /* 2-column grid for header/partner data */
+        .form-grid-2{
+          display:grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap:6px 10px;
+          margin-bottom:8px;
+        }
+
+        .form-row{
+          display:flex;
+          flex-direction:column;
+          margin-bottom:8px;
+        }
+
+        .form-row label{
+          font-size:14px;
+          margin-bottom:4px;
+          align-self:flex-start;
+        }
+
+        .form-row input,
+        .form-row select{
+          height:32px;
+          padding:3px 8px;
+          border:1px solid #cbd5e1;
+          border-radius:4px;
+          font-size:13px;
+          width:100%;
+          align-self:flex-start;
+        }
+
+        .items-form-row{
+          display:flex;
+          align-items:center;
+          gap:8px;
+          margin:8px 0 12px;
+        }
+
+        .items-form-row select,
+        .items-form-row input{
+          height:22px;
+          width:200px;
+          padding:3px 8px;
+          border:1px solid #cbd5e1;
+          border-radius:4px;
+          font-size:13px;
+        }
+
+        .items-form-row button{
+          padding:6px 12px;
+          border:none;
+          border-radius:4px;
+          cursor:pointer;
+          font-size:13px;
+          background:#16a34a;
+          color:white;
+        }
+
+        .form-actions{
+          margin-top:14px;
+          display:flex;
+          gap:8px;
+        }
+
+        .form-actions button{
+          padding:7px 14px;
+          border:none;
+          border-radius:4px;
+          cursor:pointer;
+          font-size:13px;
+          background:#2563eb;
+          color:white;
+        }
+
+        .form-actions button[type="button"]{
+          background:#6b7280;
+        }
+
+        .list-header{
+          display:flex;
+          justify-content:space-between;
+          align-items:center;
+          margin:16px 0;
+        }
+
+        .list-header button{
+          padding:7px 14px;
+          border:none;
+          border-radius:4px;
+          background:#6b7280;
+          color:white;
+          cursor:pointer;
+          font-size:13px;
+        }
+
+        .data-table{
+          width:100%;
+          border-collapse:collapse;
+          margin-top:8px;
+        }
+
+        .data-table th{
+          background:#e0f2fe;
+          padding:6px;
+          border:1px solid #ddd;
+          font-size:12px;
+        }
+
+        .data-table td{
+          padding:5px;
+          border:1px solid #ddd;
+          font-size:12px;
+        }
+
+        .data-table tr:nth-child(even){
+          background:#f9fafb;
+        }
+
+        .data-table button{
+          padding:3px 8px;
+          border:none;
+          border-radius:4px;
+          cursor:pointer;
+          font-size:11px;
+          background:#2563eb;
+          color:white;
+          margin-right:4px;
+        }
+
+        .data-table button:nth-child(2){
+          background:#f59e0b;
+        }
+
+        @media (max-width: 900px){
+          .form-grid-2{
+            grid-template-columns:1fr;
+          }
+          .items-form-row{
+            flex-direction:column;
+            align-items:stretch;
+          }
+        }
+      `}</style>
+
+      <h2>Creation of Sales Order</h2>
 
       <form className="form-card" onSubmit={handleSubmit}>
-        <h4>Header</h4>
-        <div className="form-row">
-          <label>Order Type</label>
-          <input
-            name="orderType"
-            value={formData.orderType}
-            onChange={handleChange}
-            placeholder="e.g. OR, SO"
-            required
-          />
-        </div>
+        
+        <div className="form-grid-2">
+          <div className="form-row">
+            <label>Order Type</label>
+            <input
+              name="orderType"
+              value={formData.orderType}
+              onChange={handleChange}
+              placeholder="e.g. OR, SO"
+              required
+            />
+          </div>
 
-        <h4>Organizational Data</h4>
-        <div className="form-row">
-          <label>Sales Organization</label>
-          <input
-            name="salesOrg"
-            value={formData.salesOrg}
-            onChange={handleChange}
-            required
-          />
-        </div>
-        <div className="form-row">
-          <label>Distribution Channel</label>
-          <input
-            name="distributionChannel"
-            value={formData.distributionChannel}
-            onChange={handleChange}
-            required
-          />
-        </div>
-        <div className="form-row">
-          <label>Division</label>
-          <input
-            name="division"
-            value={formData.division}
-            onChange={handleChange}
-            required
-          />
-        </div>
+          <div className="form-row">
+            <label>Sales Organization</label>
+            <input
+              name="salesOrg"
+              value={formData.salesOrg}
+              onChange={handleChange}
+              required
+            />
+          </div>
 
-        <h4>Reference</h4>
-        <div className="form-row">
-          <label>Reference Inquiry</label>
-          <select
-            name="referenceInquiryId"
-            value={formData.referenceInquiryId}
-            onChange={handleChange}
-          >
-            <option value="">None</option>
-            {inquiries.map(i => (
-              <option key={i.id} value={i.id}>
-                INQ-{i.id}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="form-row">
-          <label>Reference Quotation</label>
-          <select
-            name="referenceQuotationId"
-            value={formData.referenceQuotationId}
-            onChange={handleChange}
-          >
-            <option value="">None</option>
-            {quotations.map(q => (
-              <option key={q.id} value={q.id}>
-                QT-{q.id}
-              </option>
-            ))}
-          </select>
-        </div>
+          <div className="form-row">
+            <label>Distribution Channel</label>
+            <input
+              name="distributionChannel"
+              value={formData.distributionChannel}
+              onChange={handleChange}
+              required
+            />
+          </div>
 
-        <h4>Partner Functions</h4>
-        <div className="form-row">
-          <label>Sold-To Party</label>
-          <select
-            name="soldToPartyId"
-            value={formData.soldToPartyId}
-            onChange={handleChange}
-            required
-          >
-            <option value="">Select Sold-To Party</option>
-            {customers.map(c => (
-              <option key={c.id} value={c.id}>
-                {c.customerCode} - {c.name}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="form-row">
-          <label>Ship-To Party</label>
-          <select
-            name="shipToPartyId"
-            value={formData.shipToPartyId}
-            onChange={handleChange}
-            required
-          >
-            <option value="">Select Ship-To Party</option>
-            {customers.map(c => (
-              <option key={c.id} value={c.id}>
-                {c.customerCode} - {c.name}
-              </option>
-            ))}
-          </select>
+          <div className="form-row">
+            <label>Division</label>
+            <input
+              name="division"
+              value={formData.division}
+              onChange={handleChange}
+              required
+            />
+          </div>
+
+          <div className="form-row">
+            <label>Sales Office</label>
+            <input
+              name="salesOffice"
+              value={formData.salesOffice || ''}
+              onChange={handleChange}
+              placeholder="e.g. SO01"
+            />
+          </div>
+
+          <div className="form-row">
+            <label>Sales Group</label>
+            <input
+              name="salesGroup"
+              value={formData.salesGroup || ''}
+              onChange={handleChange}
+              placeholder="e.g. SG01"
+            />
+          </div>
+
+          <div className="form-row">
+            <label>Sold-To Party</label>
+            <select
+              name="soldToPartyId"
+              value={formData.soldToPartyId}
+              onChange={handleChange}
+              required
+            >
+              <option value="">Select Sold-To Party</option>
+              {customers.map(c => (
+                <option key={c.id} value={c.id}>
+                  {c.customerCode} - {c.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="form-row">
+            <label>Ship-To Party</label>
+            <select
+              name="shipToPartyId"
+              value={formData.shipToPartyId}
+              onChange={handleChange}
+              required
+            >
+              <option value="">Select Ship-To Party</option>
+              {customers.map(c => (
+                <option key={c.id} value={c.id}>
+                  {c.customerCode} - {c.name}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
         <h4>Items</h4>
@@ -430,8 +587,8 @@ const SalesOrders = () => {
               <th>Division</th>
               <th>Sold-To</th>
               <th>Ship-To</th>
-              <th>Ref Inquiry</th>
-              <th>Ref Quotation</th>
+              <th>Sales Office</th>
+              <th>Sales Group</th>
               <th>Items</th>
               <th>Actions</th>
             </tr>
@@ -445,14 +602,8 @@ const SalesOrders = () => {
                 <td>{order.division}</td>
                 <td>{displayCustomerName(order.soldToPartyId)}</td>
                 <td>{displayCustomerName(order.shipToPartyId)}</td>
-                <td>
-                  {order.referenceInquiryId &&
-                    displayInquiryRef(order.referenceInquiryId)}
-                </td>
-                <td>
-                  {order.referenceQuotationId &&
-                    displayQuotationRef(order.referenceQuotationId)}
-                </td>
+                <td>{order.salesOffice}</td>
+                <td>{order.salesGroup}</td>
                 <td>{displayItemsSummary(order)}</td>
                 <td>
                   {!showDeleted && (

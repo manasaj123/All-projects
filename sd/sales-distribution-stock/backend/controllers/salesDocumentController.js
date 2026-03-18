@@ -25,10 +25,22 @@ exports.getSalesDocumentById = asyncHandler(async (req, res) => {
 });
 
 // POST /api/sales-documents
+// backend/controllers/salesDocumentController.js
 exports.createSalesDocument = asyncHandler(async (req, res) => {
-  const doc = await db.SalesDocumentConfig.create(req.body);
-  res.status(201).json(doc);
+  try {
+    console.log('Create SalesDocument payload:', req.body);
+    const doc = await db.SalesDocumentConfig.create(req.body);
+    res.status(201).json(doc);
+  } catch (err) {
+    console.error('Create SalesDocument error:', err);
+    return res.status(500).json({
+      message: err.message,
+      sql: err.parent && err.parent.sql,
+      sqlMessage: err.parent && err.parent.sqlMessage,
+    });
+  }
 });
+
 
 // PUT /api/sales-documents/:id
 exports.updateSalesDocument = asyncHandler(async (req, res) => {

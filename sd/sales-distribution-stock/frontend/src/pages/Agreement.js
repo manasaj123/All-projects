@@ -131,63 +131,199 @@ const Agreement = () => {
 
   return (
     <div className="page-container">
+      <style>{`
+        .page-container{
+          max-width:1100px;
+          margin:auto;
+          padding:20px;
+          font-family:Segoe UI, sans-serif;
+        }
+
+        h2{
+          margin-bottom:16px;
+        }
+
+        .form-card{
+          background:white;
+          padding:16px;
+          border-radius:6px;
+          box-shadow:0 2px 6px rgba(0,0,0,0.1);
+          margin-bottom:20px;
+        }
+
+        /* 3 fields per row */
+        .form-row-3{
+          display:grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap:12px 16px;
+          margin-bottom:12px;
+        }
+
+        .form-field{
+          display:flex;
+          flex-direction:column;
+        }
+
+        .form-field label{
+          font-size:14px;
+          margin-bottom:4px;
+        }
+
+        .form-field input{
+          height:34px;
+          padding:4px 8px;
+          border:1px solid #cbd5e1;
+          border-radius:4px;
+          font-size:14px;
+        }
+
+        .form-field input:disabled{
+          background:#f3f4f6;
+        }
+
+        .form-actions{
+          margin-top:12px;
+          display:flex;
+          gap:8px;
+        }
+
+        .form-actions button{
+          padding:7px 14px;
+          border:none;
+          border-radius:4px;
+          cursor:pointer;
+          font-size:13px;
+          background:#2563eb;
+          color:white;
+        }
+
+        .form-actions button[type="button"]{
+          background:#6b7280;
+        }
+
+        .list-header{
+          display:flex;
+          justify-content:space-between;
+          align-items:center;
+          margin:16px 0;
+        }
+
+        .list-header button{
+          padding:7px 14px;
+          border:none;
+          border-radius:4px;
+          background:#6b7280;
+          color:white;
+          cursor:pointer;
+          font-size:13px;
+        }
+
+        .data-table{
+          width:100%;
+          border-collapse:collapse;
+        }
+
+        .data-table th{
+          background:#e0f2fe;
+          padding:8px;
+          border:1px solid #ddd;
+          font-size:13px;
+        }
+
+        .data-table td{
+          padding:6px;
+          border:1px solid #ddd;
+          font-size:13px;
+        }
+
+        .data-table tr:nth-child(even){
+          background:#f9fafb;
+        }
+
+        .data-table button{
+          padding:4px 10px;
+          border:none;
+          border-radius:4px;
+          cursor:pointer;
+          font-size:12px;
+          background:#2563eb;
+          color:white;
+          margin-right:6px;
+        }
+
+        .data-table button:nth-child(2){
+          background:#f59e0b;
+        }
+
+        @media (max-width: 900px){
+          .form-row-3{
+            grid-template-columns: 1fr;
+          }
+        }
+      `}</style>
+
       <h2>Purchase Agreements</h2>
 
       <form className="form-card" onSubmit={handleSubmit}>
-        <div className="form-row">
-          <label>Vendor Name</label>
-          <input
-            name="vendorName"
-            value={formData.vendorName}
-            onChange={handleChange}
-            required
-          />
+        <div className="form-row-3">
+          <div className="form-field">
+            <label>Vendor Name</label>
+            <input
+              name="vendorName"
+              value={formData.vendorName}
+              onChange={handleChange}
+              required
+            />
+          </div>
+          <div className="form-field">
+            <label>Contract Type</label>
+            <input
+              name="contractType"
+              value={formData.contractType}
+              onChange={handleChange}
+              placeholder="e.g. MK, WK"
+              required
+            />
+          </div>
+          <div className="form-field">
+            <label>Purchasing Organization</label>
+            <input
+              name="purchasingOrg"
+              value={formData.purchasingOrg}
+              onChange={handleChange}
+              required
+            />
+          </div>
         </div>
-        <div className="form-row">
-          <label>Contract Type</label>
-          <input
-            name="contractType"
-            value={formData.contractType}
-            onChange={handleChange}
-            placeholder="e.g. MK, WK"
-            required
-          />
-        </div>
-        <div className="form-row">
-          <label>Purchasing Organization</label>
-          <input
-            name="purchasingOrg"
-            value={formData.purchasingOrg}
-            onChange={handleChange}
-            required
-          />
-        </div>
-        <div className="form-row">
-          <label>Purchasing Group</label>
-          <input
-            name="purchasingGroup"
-            value={formData.purchasingGroup}
-            onChange={handleChange}
-          />
-        </div>
-        <div className="form-row">
-          <label>Plant</label>
-          <input
-            name="plant"
-            value={formData.plant}
-            onChange={handleChange}
-            required
-          />
-        </div>
-        <div className="form-row">
-          <label>Agreement Date</label>
-          <input
-            type="date"
-            name="agreementDate"
-            value={formData.agreementDate}
-            onChange={handleChange}
-            required
-          />
+
+        <div className="form-row-3">
+          <div className="form-field">
+            <label>Purchasing Group</label>
+            <input
+              name="purchasingGroup"
+              value={formData.purchasingGroup}
+              onChange={handleChange}
+            />
+          </div>
+          <div className="form-field">
+            <label>Plant</label>
+            <input
+              name="plant"
+              value={formData.plant}
+              onChange={handleChange}
+              required
+            />
+          </div>
+          <div className="form-field">
+            <label>Agreement Date</label>
+            <input
+              type="date"
+              name="agreementDate"
+              value={formData.agreementDate}
+              onChange={handleChange}
+              required
+            />
+          </div>
         </div>
 
         <div className="form-actions">

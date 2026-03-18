@@ -281,11 +281,11 @@ const MaterialSalesView = () => {
         }
 
         .msv-page .data-table td button:nth-of-type(2) {
-          background-color: #dc2626; /* Delete */
+          background-color: #f76437; /* Delete */
           color: #ffffff;
         }
         .msv-page .data-table td button:nth-of-type(2):hover {
-          background-color: #b91c1c;
+          background-color: #fc4646;
         }
       `}</style>
 

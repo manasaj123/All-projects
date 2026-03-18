@@ -48,11 +48,32 @@ exports.getSalesOrderById = asyncHandler(async (req, res) => {
 });
 
 // POST /api/sales-orders
-exports.createSalesOrder = asyncHandler(async (req, res) => {
-  const order = await db.SalesOrder.create(req.body);
-  res.status(201).json(order);
-});
 
+
+exports.createSalesOrder = async (req, res) => {
+  try {
+    const payload = { ...req.body };
+
+    // normalize optional integer fields
+    if (payload.referenceInquiryId === '') payload.referenceInquiryId = null;
+    if (payload.referenceQuotationId === '') payload.referenceQuotationId = null;
+
+    const order = await db.SalesOrder.create(payload);
+    return res.status(201).json(order);
+  } catch (err) {
+    console.error(
+      'DB error in createSalesOrder:',
+      err.message,
+      err.original?.sqlMessage,
+      err.original?.sql
+    );
+    return res.status(500).json({
+      error: err.message,
+      sqlMessage: err.original?.sqlMessage,
+      sql: err.original?.sql,
+    });
+  }
+};
 // PUT /api/sales-orders/:id
 exports.updateSalesOrder = asyncHandler(async (req, res) => {
   const order = await db.SalesOrder.findByPk(req.params.id);

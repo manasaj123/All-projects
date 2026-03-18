@@ -1,20 +1,21 @@
 const db = require("../config/db");
 
-exports.getAll = cb => db.query("SELECT * FROM item_categories", cb);
-exports.create = (data, cb) => db.query("INSERT INTO item_categories SET ?", data, cb);
-exports.update = (id, data, cb) => db.query("UPDATE item_categories SET ? WHERE id=?", [data, id], cb);
-exports.delete = (id, cb) => db.query("DELETE FROM item_categories WHERE id=?", [id], cb);
-const { Sequelize, DataTypes } = require('sequelize');
-const sequelize = require('../config/db');
+// backend/models/ItemCategoriesConfig.js
+module.exports = (sequelize, DataTypes) => {
+  const ItemCategoriesConfig = sequelize.define(
+    'ItemCategoriesConfig',
+    {
+      id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
+      salesDocumentType: { type: DataTypes.STRING(10), allowNull: false },
+      itemCategoryGroup: { type: DataTypes.STRING(10), allowNull: false },
+      itemUsage: { type: DataTypes.STRING(10) },
+      itemCategoryHighLevelItem: { type: DataTypes.STRING(10) },
+      defaultItemCategory: { type: DataTypes.STRING(4), allowNull: false },
+      manualItemCategory: { type: DataTypes.STRING(4) },
+      isDeleted: { type: DataTypes.BOOLEAN, defaultValue: false },
+    },
+    { tableName: 'item_categories_configs', timestamps: true }
+  );
 
-const ItemCategory = sequelize.define('ItemCategory', {
-  sales_document_type: { type: DataTypes.STRING, allowNull: false },
-  item_cat_group: { type: DataTypes.STRING, allowNull: false },
-  item_category: { type: DataTypes.STRING, allowNull: false },
-  manual_item_category: { type: DataTypes.STRING }
-}, {
-  tableName: 'item_category',
-  timestamps: true
-});
-
-module.exports = ItemCategory;
+  return ItemCategoriesConfig;
+};

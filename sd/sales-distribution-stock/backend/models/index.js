@@ -1,3 +1,4 @@
+// backend/models/index.js
 const { Sequelize, DataTypes } = require('sequelize');
 
 const sequelize = new Sequelize(
@@ -6,15 +7,15 @@ const sequelize = new Sequelize(
   process.env.DB_PASSWORD,
   {
     host: process.env.DB_HOST || 'localhost',
-    dialect: 'mysql', // or 'postgres'
-    logging: false
+    dialect: 'mysql',
+    logging: false,
   }
 );
 
 const db = {};
 db.sequelize = sequelize;
 
-// Material
+// ================= MATERIAL =================
 db.Material = sequelize.define(
   'Material',
   {
@@ -28,17 +29,16 @@ db.Material = sequelize.define(
     plant: { type: DataTypes.STRING(10) },
     storageLocation: { type: DataTypes.STRING(10) },
     movementType: { type: DataTypes.STRING(4) },
-    isDeleted: { type: DataTypes.BOOLEAN, defaultValue: false }
+    isDeleted: { type: DataTypes.BOOLEAN, defaultValue: false },
   },
   { tableName: 'materials', timestamps: true }
 );
 
-// Sales View for Material
+// ================= SALES VIEW =================
 db.SalesView = sequelize.define(
   'SalesView',
   {
     id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
-    // FK to Material
     materialId: { type: DataTypes.INTEGER, allowNull: false },
     salesOrg: { type: DataTypes.STRING(10), allowNull: false },
     distributionChannel: { type: DataTypes.STRING(10), allowNull: false },
@@ -51,12 +51,12 @@ db.SalesView = sequelize.define(
     priceList: { type: DataTypes.STRING(10) },
     availabilityCheck: { type: DataTypes.STRING(10) },
     transportationGroup: { type: DataTypes.STRING(10) },
-    isDeleted: { type: DataTypes.BOOLEAN, defaultValue: false }
+    isDeleted: { type: DataTypes.BOOLEAN, defaultValue: false },
   },
   { tableName: 'sales_views', timestamps: true }
 );
 
-// Customer Account Group
+// ================= CUSTOMER GROUP =================
 db.CustomerGroup = sequelize.define(
   'CustomerGroup',
   {
@@ -66,29 +66,75 @@ db.CustomerGroup = sequelize.define(
     fieldStatusGeneral: { type: DataTypes.STRING(20), defaultValue: 'optional' },
     fieldStatusCompanyCode: { type: DataTypes.STRING(20), defaultValue: 'optional' },
     fieldStatusSales: { type: DataTypes.STRING(20), defaultValue: 'optional' },
-    isDeleted: { type: DataTypes.BOOLEAN, defaultValue: false }
+    isDeleted: { type: DataTypes.BOOLEAN, defaultValue: false },
   },
   { tableName: 'customer_groups', timestamps: true }
 );
 
+// ================= CUSTOMER (ALIGNED WITH SQL) =================
+// CREATE TABLE customers (
+//   id INT AUTO_INCREMENT PRIMARY KEY,
+//   customer_code VARCHAR(20) NOT NULL UNIQUE,
+//   name VARCHAR(100) NOT NULL,
+//   city VARCHAR(100),
+//   country VARCHAR(100),
+//   credit_group VARCHAR(10),
+//   risk_category VARCHAR(10),
+//   is_deleted TINYINT(1) NOT NULL DEFAULT 0,
+//   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+//   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+// );
 // Customer
 db.Customer = sequelize.define(
   'Customer',
   {
     id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
-    customerCode: { type: DataTypes.STRING(20), allowNull: false, unique: true },
-    name: { type: DataTypes.STRING(150), allowNull: false },
-    accountGroup: { type: DataTypes.STRING(4), allowNull: false },
-    city: { type: DataTypes.STRING(100) },
-    country: { type: DataTypes.STRING(3) },
-    email: { type: DataTypes.STRING(120) },
-    phone: { type: DataTypes.STRING(30) },
-    isDeleted: { type: DataTypes.BOOLEAN, defaultValue: false }
+
+    customerCode: {
+      type: DataTypes.STRING(20),
+      allowNull: false,
+      unique: true,
+    },
+    name: {
+      type: DataTypes.STRING(150),
+      allowNull: false,
+    },
+    accountGroup: {
+      type: DataTypes.STRING(4),
+      allowNull: false,
+    },
+    city: {
+      type: DataTypes.STRING(100),
+      allowNull: true,
+    },
+    country: {
+      type: DataTypes.STRING(3),
+      allowNull: true,
+    },
+    creditGroup: { type: DataTypes.STRING(10) },
+    riskCategory: { type: DataTypes.STRING(10) },
+    isDeleted: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false,
+    },
+    createdAt: {
+      type: DataTypes.DATE,
+      allowNull: false,
+    },
+    updatedAt: {
+      type: DataTypes.DATE,
+      allowNull: false,
+    },
   },
-  { tableName: 'customers', timestamps: true }
+  {
+    tableName: 'customers',
+    timestamps: true, // uses createdAt / updatedAt
+  }
 );
 
-// Inquiry
+
+// ================= INQUIRY =================
 db.Inquiry = sequelize.define(
   'Inquiry',
   {
@@ -99,14 +145,15 @@ db.Inquiry = sequelize.define(
     division: { type: DataTypes.STRING(10), allowNull: false },
     soldToPartyId: { type: DataTypes.INTEGER, allowNull: false },
     shipToPartyId: { type: DataTypes.INTEGER, allowNull: false },
-    // for simplicity store items JSON (you can normalize later)
-    itemsJson: { type: DataTypes.TEXT }, // JSON string of items
-    isDeleted: { type: DataTypes.BOOLEAN, defaultValue: false }
+    materialCode: { type: DataTypes.STRING(20), allowNull: true },
+    quantity: { type: DataTypes.DECIMAL(15, 3), allowNull: true },
+    itemsJson: { type: DataTypes.TEXT },
+    isDeleted: { type: DataTypes.BOOLEAN, defaultValue: false },
   },
   { tableName: 'inquiries', timestamps: true }
 );
 
-// Quotation
+// ================= QUOTATION =================
 db.Quotation = sequelize.define(
   'Quotation',
   {
@@ -123,14 +170,14 @@ db.Quotation = sequelize.define(
     purchaseOrderNumber: { type: DataTypes.STRING(30) },
     validFrom: { type: DataTypes.DATEONLY },
     validTo: { type: DataTypes.DATEONLY },
-    itemsJson: { type: DataTypes.TEXT }, // items as JSON (material, qty, price)
+    itemsJson: { type: DataTypes.TEXT },
     referenceInquiryId: { type: DataTypes.INTEGER },
-    isDeleted: { type: DataTypes.BOOLEAN, defaultValue: false }
+    isDeleted: { type: DataTypes.BOOLEAN, defaultValue: false },
   },
   { tableName: 'quotations', timestamps: true }
 );
 
-// Sales Order
+// ================= SALES ORDER =================
 db.SalesOrder = sequelize.define(
   'SalesOrder',
   {
@@ -139,70 +186,79 @@ db.SalesOrder = sequelize.define(
     salesOrg: { type: DataTypes.STRING(10), allowNull: false },
     distributionChannel: { type: DataTypes.STRING(10), allowNull: false },
     division: { type: DataTypes.STRING(10), allowNull: false },
-    referenceInquiryId: { type: DataTypes.INTEGER },
-    referenceQuotationId: { type: DataTypes.INTEGER },
+    salesOffice: { type: DataTypes.STRING(10) },
+salesGroup: { type: DataTypes.STRING(10) },
     soldToPartyId: { type: DataTypes.INTEGER, allowNull: false },
     shipToPartyId: { type: DataTypes.INTEGER, allowNull: false },
     itemsJson: { type: DataTypes.TEXT },
-    isDeleted: { type: DataTypes.BOOLEAN, defaultValue: false }
+    isDeleted: { type: DataTypes.BOOLEAN, defaultValue: false },
   },
   { tableName: 'sales_orders', timestamps: true }
 );
 
-// Sales Document Config
+// ================= SALES DOCUMENT CONFIG =================
 db.SalesDocumentConfig = sequelize.define(
   'SalesDocumentConfig',
   {
     id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
     documentType: { type: DataTypes.STRING(4), allowNull: false, unique: true },
     description: { type: DataTypes.STRING(100), allowNull: false },
-    // general control
     referenceMandatory: { type: DataTypes.BOOLEAN, defaultValue: false },
     checkDivision: { type: DataTypes.BOOLEAN, defaultValue: false },
     probability: { type: DataTypes.INTEGER, defaultValue: 100 },
     checkCreditLimit: { type: DataTypes.BOOLEAN, defaultValue: false },
     creditGroup: { type: DataTypes.STRING(4) },
-    // transaction flow
     screenSequence: { type: DataTypes.STRING(10) },
     incompletionProcedure: { type: DataTypes.STRING(10) },
     transactionGroup: { type: DataTypes.STRING(10) },
     docPricingProcedure: { type: DataTypes.STRING(10) },
-    // shipping
     deliveryType: { type: DataTypes.STRING(4) },
     deliveryBlock: { type: DataTypes.STRING(4) },
     shippingConditions: { type: DataTypes.STRING(4) },
     shipCostInfoProfile: { type: DataTypes.STRING(10) },
-    // billing
     delvBillingType: { type: DataTypes.STRING(4) },
     orderRelBillingType: { type: DataTypes.STRING(4) },
     intercompanyBillingType: { type: DataTypes.STRING(4) },
-    isDeleted: { type: DataTypes.BOOLEAN, defaultValue: false }
+    isDeleted: { type: DataTypes.BOOLEAN, defaultValue: false },
   },
   { tableName: 'sales_document_configs', timestamps: true }
 );
 
-// Item Categories Config (mapping)
+// ================= ITEM CATEGORIES CONFIG =================
+// ================= ITEM CATEGORIES CONFIG =================
 db.ItemCategoriesConfig = sequelize.define(
   'ItemCategoriesConfig',
   {
     id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
-    configName: { type: DataTypes.STRING(100), allowNull: false },
-    salesDocumentType: { type: DataTypes.STRING(4), allowNull: false },
+
+    salesDocumentType: { type: DataTypes.STRING(10), allowNull: false },
     itemCategoryGroup: { type: DataTypes.STRING(10), allowNull: false },
+    itemUsage: { type: DataTypes.STRING(10) },
+    itemCategoryHighLevelItem: { type: DataTypes.STRING(10) },
+
     defaultItemCategory: { type: DataTypes.STRING(4), allowNull: false },
     manualItemCategory: { type: DataTypes.STRING(4) },
-    isDeleted: { type: DataTypes.BOOLEAN, defaultValue: false }
+    isDeleted: { type: DataTypes.BOOLEAN, defaultValue: false },
   },
   { tableName: 'item_categories_configs', timestamps: true }
 );
 
-// Schedule Line Category
+// ================= SCHEDULE LINE =================
 db.ScheduleLine = sequelize.define(
   'ScheduleLine',
   {
     id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
-    scheduleLineCategory: { type: DataTypes.STRING(3), allowNull: false, unique: true },
+    scheduleLineCategory: {
+      type: DataTypes.STRING(3),
+      allowNull: false,
+      unique: true,
+    },
     description: { type: DataTypes.STRING(100) },
+
+    // must exist and match DB column names
+    requirementRelevant: { type: DataTypes.STRING(1) },   // maps to requirementRelevant
+    availabilityCheck: { type: DataTypes.STRING(2) },     // maps to availabilityCheck
+
     deliveryBlock: { type: DataTypes.STRING(4) },
     movementType: { type: DataTypes.STRING(4) },
     orderType: { type: DataTypes.STRING(4) },
@@ -210,17 +266,16 @@ db.ScheduleLine = sequelize.define(
     updateScheduleLines: { type: DataTypes.BOOLEAN, defaultValue: true },
     mvtIssValSlt: { type: DataTypes.STRING(4) },
     specIssValSlt: { type: DataTypes.STRING(4) },
-    isDeleted: { type: DataTypes.BOOLEAN, defaultValue: false }
+    isDeleted: { type: DataTypes.BOOLEAN, defaultValue: false },
   },
   { tableName: 'schedule_lines', timestamps: true }
 );
-
-// Condition Record
+// ================= CONDITION =================
 db.Condition = sequelize.define(
   'Condition',
   {
     id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
-    conditionType: { type: DataTypes.STRING(4), allowNull: false }, // PR00 etc
+    conditionType: { type: DataTypes.STRING(4), allowNull: false },
     customerId: { type: DataTypes.INTEGER },
     materialId: { type: DataTypes.INTEGER },
     salesOrg: { type: DataTypes.STRING(10) },
@@ -229,12 +284,12 @@ db.Condition = sequelize.define(
     currency: { type: DataTypes.STRING(3), defaultValue: 'INR' },
     validFrom: { type: DataTypes.DATEONLY },
     validTo: { type: DataTypes.DATEONLY },
-    isDeleted: { type: DataTypes.BOOLEAN, defaultValue: false }
+    isDeleted: { type: DataTypes.BOOLEAN, defaultValue: false },
   },
   { tableName: 'conditions', timestamps: true }
 );
 
-// Agreement
+// ================= AGREEMENT =================
 db.Agreement = sequelize.define(
   'Agreement',
   {
@@ -245,12 +300,12 @@ db.Agreement = sequelize.define(
     purchasingGroup: { type: DataTypes.STRING(10), allowNull: false },
     plant: { type: DataTypes.STRING(10), allowNull: false },
     agreementDate: { type: DataTypes.DATEONLY, allowNull: false },
-    isDeleted: { type: DataTypes.BOOLEAN, defaultValue: false }
+    isDeleted: { type: DataTypes.BOOLEAN, defaultValue: false },
   },
   { tableName: 'agreements', timestamps: true }
 );
 
-// Quota
+// ================= QUOTA =================
 db.Quota = sequelize.define(
   'Quota',
   {
@@ -264,12 +319,12 @@ db.Quota = sequelize.define(
     validFrom: { type: DataTypes.DATEONLY },
     validTo: { type: DataTypes.DATEONLY },
     quotaUsage: { type: DataTypes.STRING(4) },
-    isDeleted: { type: DataTypes.BOOLEAN, defaultValue: false }
+    isDeleted: { type: DataTypes.BOOLEAN, defaultValue: false },
   },
   { tableName: 'quotas', timestamps: true }
 );
 
-// Shipping
+// ================= SHIPPING =================
 db.Shipping = sequelize.define(
   'Shipping',
   {
@@ -278,25 +333,25 @@ db.Shipping = sequelize.define(
     description: { type: DataTypes.STRING(100) },
     defaultRoute: { type: DataTypes.STRING(10) },
     planningRelevant: { type: DataTypes.BOOLEAN, defaultValue: true },
-    isDeleted: { type: DataTypes.BOOLEAN, defaultValue: false }
+    isDeleted: { type: DataTypes.BOOLEAN, defaultValue: false },
   },
   { tableName: 'shipping', timestamps: true }
 );
 
-// Route
+// ================= ROUTE =================
 db.Route = sequelize.define(
   'Route',
   {
     id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
     routeCode: { type: DataTypes.STRING(10), allowNull: false, unique: true },
     description: { type: DataTypes.STRING(100) },
-    stagesJson: { type: DataTypes.TEXT }, // JSON array of stages
-    isDeleted: { type: DataTypes.BOOLEAN, defaultValue: false }
+    stagesJson: { type: DataTypes.TEXT },
+    isDeleted: { type: DataTypes.BOOLEAN, defaultValue: false },
   },
   { tableName: 'routes', timestamps: true }
 );
 
-// Sales Order Delivery
+// ================= DELIVERY =================
 db.Delivery = sequelize.define(
   'Delivery',
   {
@@ -310,14 +365,14 @@ db.Delivery = sequelize.define(
     postGoodsIssueDate: { type: DataTypes.DATEONLY },
     status: {
       type: DataTypes.ENUM('OPEN', 'PICKED', 'PACKED', 'PGI_DONE'),
-      defaultValue: 'OPEN'
+      defaultValue: 'OPEN',
     },
-    isDeleted: { type: DataTypes.BOOLEAN, defaultValue: false }
+    isDeleted: { type: DataTypes.BOOLEAN, defaultValue: false },
   },
   { tableName: 'deliveries', timestamps: true }
 );
 
-// Picking
+// ================= PICKING =================
 db.Picking = sequelize.define(
   'Picking',
   {
@@ -328,12 +383,12 @@ db.Picking = sequelize.define(
     pickingStatus: { type: DataTypes.ENUM('OPEN', 'PICKED'), defaultValue: 'OPEN' },
     packingStatus: { type: DataTypes.ENUM('OPEN', 'PACKED'), defaultValue: 'OPEN' },
     postGoodsIssue: { type: DataTypes.BOOLEAN, defaultValue: false },
-    isDeleted: { type: DataTypes.BOOLEAN, defaultValue: false }
+    isDeleted: { type: DataTypes.BOOLEAN, defaultValue: false },
   },
   { tableName: 'pickings', timestamps: true }
 );
 
-// Billing
+// ================= BILLING =================
 db.Billing = sequelize.define(
   'Billing',
   {
@@ -344,12 +399,12 @@ db.Billing = sequelize.define(
     documentNumber: { type: DataTypes.STRING(20), allowNull: false, unique: true },
     totalAmount: { type: DataTypes.DECIMAL(15, 2), allowNull: false },
     currency: { type: DataTypes.STRING(3), defaultValue: 'INR' },
-    isDeleted: { type: DataTypes.BOOLEAN, defaultValue: false }
+    isDeleted: { type: DataTypes.BOOLEAN, defaultValue: false },
   },
   { tableName: 'billings', timestamps: true }
 );
 
-// Credit
+// ================= CREDIT =================
 db.Credit = sequelize.define(
   'Credit',
   {
@@ -359,24 +414,24 @@ db.Credit = sequelize.define(
     currency: { type: DataTypes.STRING(3), defaultValue: 'INR' },
     riskCategory: { type: DataTypes.STRING(4) },
     creditGroup: { type: DataTypes.STRING(4) },
-    isDeleted: { type: DataTypes.BOOLEAN, defaultValue: false }
+    isDeleted: { type: DataTypes.BOOLEAN, defaultValue: false },
   },
   { tableName: 'credits', timestamps: true }
 );
 
-// Pricing Config
+// ================= PRICING CONFIG =================
 db.PricingConfig = sequelize.define(
   'PricingConfig',
   {
     id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
     pricingProcedure: { type: DataTypes.STRING(10), allowNull: false, unique: true },
     description: { type: DataTypes.STRING(100) },
-    isDeleted: { type: DataTypes.BOOLEAN, defaultValue: false }
+    isDeleted: { type: DataTypes.BOOLEAN, defaultValue: false },
   },
   { tableName: 'pricing_configs', timestamps: true }
 );
 
-// Simple associations
+// ================= ASSOCIATIONS =================
 db.Material.hasMany(db.SalesView, { foreignKey: 'materialId' });
 db.SalesView.belongsTo(db.Material, { foreignKey: 'materialId' });
 

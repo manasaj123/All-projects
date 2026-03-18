@@ -15,9 +15,9 @@ import PricingConfig from './pages/PricingConfig';
 import ScheduleLine from './pages/ScheduleLine';
 import ItemCategoriesConfig from './pages/ItemCategoriesConfig';
 import SalesDocumentConfig from './pages/SalesDocumentConfig';
-import SalesOrders from './pages/SalesOrders';
+import CreationofSalesOrder from './pages/CreationofSalesOrder';
 import Billing from './pages/Billing';
-import Deliveries from './pages/Deliveries';
+import OutboundDelivery from './pages/OutboundDelivery';
 import Picking from './pages/Picking';
 import Shipping from './pages/Shipping';
 import Inquiry from './pages/Inquiry';
@@ -59,9 +59,9 @@ const App = () => {
               element={<SalesDocumentConfig />}
             />
 
-            <Route path="/sales-orders" element={<SalesOrders />} />
+            <Route path="/creation-of-sales-order" element={<CreationofSalesOrder />} />
             <Route path="/billing" element={<Billing />} />
-            <Route path="/deliveries" element={<Deliveries />} />
+            <Route path="/outbound-delivery" element={<OutboundDelivery />} />
             <Route path="/picking" element={<Picking />} />
             <Route path="/shipping" element={<Shipping />} />
 

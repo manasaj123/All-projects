@@ -10,11 +10,12 @@ import {
 } from '../services/itemCategoryService';
 
 const initialForm = {
-  itemCategory: '',
-  description: '',
-  scheduleLineAllowed: '',
-  billingRelevant: '',
-  creditActive: '',
+  salesDocumentType: '',
+  itemCategoryGroup: '',
+  itemUsage: '',
+  itemCategoryHighLevelItem: '',
+  defaultItemCategory: '',
+  manualItemCategory: '',
 };
 
 const ItemCategoriesConfig = () => {
@@ -36,7 +37,7 @@ const ItemCategoriesConfig = () => {
       setItems(activeRes.data);
       setDeletedItems(deletedRes.data);
     } catch (err) {
-      console.error('Error loading item categories', err);
+      console.error('Error loading item categories configs', err);
     } finally {
       setLoading(false);
     }
@@ -53,8 +54,16 @@ const ItemCategoriesConfig = () => {
 
   const handleSubmit = async e => {
     e.preventDefault();
-    if (!formData.itemCategory) {
-      alert('Enter item category');
+    if (!formData.salesDocumentType) {
+      alert('Enter sales document type');
+      return;
+    }
+    if (!formData.itemCategoryGroup) {
+      alert('Enter item category group');
+      return;
+    }
+    if (!formData.defaultItemCategory) {
+      alert('Enter default item category');
       return;
     }
 
@@ -70,18 +79,19 @@ const ItemCategoriesConfig = () => {
       setEditingId(null);
       loadData();
     } catch (err) {
-      console.error('Error saving item category', err);
+      console.error('Error saving item categories config', err);
     }
   };
 
   const handleEdit = row => {
     setEditingId(row.id);
     setFormData({
-      itemCategory: row.itemCategory || '',
-      description: row.description || '',
-      scheduleLineAllowed: row.scheduleLineAllowed || '',
-      billingRelevant: row.billingRelevant || '',
-      creditActive: row.creditActive || '',
+      salesDocumentType: row.salesDocumentType || '',
+      itemCategoryGroup: row.itemCategoryGroup || '',
+      itemUsage: row.itemUsage || '',
+      itemCategoryHighLevelItem: row.itemCategoryHighLevelItem || '',
+      defaultItemCategory: row.defaultItemCategory || '',
+      manualItemCategory: row.manualItemCategory || '',
     });
   };
 
@@ -91,12 +101,12 @@ const ItemCategoriesConfig = () => {
   };
 
   const handleSoftDelete = async id => {
-    if (!window.confirm('Move this item category to recycle bin?')) return;
+    if (!window.confirm('Move this configuration to recycle bin?')) return;
     try {
       await softDeleteItemCategory(id);
       loadData();
     } catch (err) {
-      console.error('Error deleting item category', err);
+      console.error('Error deleting item categories config', err);
     }
   };
 
@@ -105,7 +115,7 @@ const ItemCategoriesConfig = () => {
       await restoreItemCategory(id);
       loadData();
     } catch (err) {
-      console.error('Error restoring item category', err);
+      console.error('Error restoring item categories config', err);
     }
   };
 
@@ -113,58 +123,201 @@ const ItemCategoriesConfig = () => {
 
   return (
     <div className="page-container">
-      <h2>Item Categories Configuration</h2>
+      <style>{`
+        .page-container{
+          max-width:1100px;
+          margin:auto;
+          padding:20px;
+          font-family:Segoe UI, sans-serif;
+        }
+
+        h2{
+          margin-bottom:16px;
+        }
+
+        .form-card{
+          background:white;
+          padding:16px;
+          border-radius:6px;
+          box-shadow:0 2px 6px rgba(0,0,0,0.1);
+          margin-bottom:20px;
+        }
+
+        .form-row-3{
+          display:grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap:12px 16px;
+          margin-bottom:12px;
+        }
+
+        .form-field{
+          display:flex;
+          flex-direction:column;
+        }
+
+        .form-field label{
+          font-size:14px;
+          margin-bottom:4px;
+        }
+
+        .form-field input{
+          height:34px;
+          padding:4px 8px;
+          border:1px solid #cbd5e1;
+          border-radius:4px;
+          font-size:14px;
+        }
+
+        .form-actions{
+          margin-top:12px;
+          display:flex;
+          gap:8px;
+        }
+
+        .form-actions button{
+          padding:7px 14px;
+          border:none;
+          border-radius:4px;
+          cursor:pointer;
+          font-size:13px;
+          background:#2563eb;
+          color:white;
+        }
+
+        .form-actions button[type="button"]{
+          background:#6b7280;
+        }
+
+        .list-header{
+          display:flex;
+          justify-content:space-between;
+          align-items:center;
+          margin:16px 0;
+        }
+
+        .list-header button{
+          padding:7px 14px;
+          border:none;
+          border-radius:4px;
+          background:#6b7280;
+          color:white;
+          cursor:pointer;
+          font-size:13px;
+        }
+
+        .data-table{
+          width:100%;
+          border-collapse:collapse;
+        }
+
+        .data-table th{
+          background:#e0f2fe;
+          padding:8px;
+          border:1px solid #ddd;
+          font-size:13px;
+        }
+
+        .data-table td{
+          padding:6px;
+          border:1px solid #ddd;
+          font-size:13px;
+        }
+
+        .data-table tr:nth-child(even){
+          background:#f9fafb;
+        }
+
+        .data-table button{
+          padding:4px 10px;
+          border:none;
+          border-radius:4px;
+          cursor:pointer;
+          font-size:12px;
+          background:#2563eb;
+          color:white;
+          margin-right:6px;
+        }
+
+        .data-table button:nth-child(2){
+          background:#f59e0b;
+        }
+
+        @media (max-width: 900px){
+          .form-row-3{
+            grid-template-columns: 1fr;
+          }
+        }
+      `}</style>
+
+      <h2>Item Category Determination Config</h2>
 
       <form className="form-card" onSubmit={handleSubmit}>
-        <div className="form-row">
-          <label>Item Category</label>
-          <input
-            name="itemCategory"
-            value={formData.itemCategory}
-            onChange={handleChange}
-            required
-            disabled={!!editingId}
-          />
+        <div className="form-row-3">
+          <div className="form-field">
+            <label>Sales Document Type</label>
+            <input
+              name="salesDocumentType"
+              value={formData.salesDocumentType}
+              onChange={handleChange}
+              placeholder="sales-doc-type (e.g. OR)"
+              required
+            />
+          </div>
+          <div className="form-field">
+            <label>Item Category Group</label>
+            <input
+              name="itemCategoryGroup"
+              value={formData.itemCategoryGroup}
+              onChange={handleChange}
+              placeholder="item cat group"
+              required
+            />
+          </div>
+          <div className="form-field">
+            <label>Item Usage</label>
+            <input
+              name="itemUsage"
+              value={formData.itemUsage}
+              onChange={handleChange}
+              placeholder="item usage"
+            />
+          </div>
         </div>
-        <div className="form-row">
-          <label>Description</label>
-          <input
-            name="description"
-            value={formData.description}
-            onChange={handleChange}
-          />
-        </div>
-        <div className="form-row">
-          <label>Schedule Line Allowed</label>
-          <input
-            name="scheduleLineAllowed"
-            value={formData.scheduleLineAllowed}
-            onChange={handleChange}
-            placeholder="Y / N"
-          />
-        </div>
-        <div className="form-row">
-          <label>Billing Relevant</label>
-          <input
-            name="billingRelevant"
-            value={formData.billingRelevant}
-            onChange={handleChange}
-            placeholder="Y / N"
-          />
-        </div>
-        <div className="form-row">
-          <label>Credit Active</label>
-          <input
-            name="creditActive"
-            value={formData.creditActive}
-            onChange={handleChange}
-            placeholder="Y / N"
-          />
+
+        <div className="form-row-3">
+          <div className="form-field">
+            <label>High-Level ItemCat</label>
+            <input
+              name="itemCategoryHighLevelItem"
+              value={formData.itemCategoryHighLevelItem}
+              onChange={handleChange}
+              placeholder="itemcat-hgl-vitm"
+            />
+          </div>
+          <div className="form-field">
+            <label>Default Item Category</label>
+            <input
+              name="defaultItemCategory"
+              value={formData.defaultItemCategory}
+              onChange={handleChange}
+              placeholder="default itemcategory"
+              required
+            />
+          </div>
+          <div className="form-field">
+            <label>Manual Item Category</label>
+            <input
+              name="manualItemCategory"
+              value={formData.manualItemCategory}
+              onChange={handleChange}
+              placeholder="manualitemcat"
+            />
+          </div>
         </div>
 
         <div className="form-actions">
           <button type="submit">
-            {editingId ? 'Update Item Category' : 'Create Item Category'}
+            {editingId ? 'Update Config' : 'Create Config'}
           </button>
           {editingId && (
             <button type="button" onClick={handleCancelEdit}>
@@ -175,7 +328,7 @@ const ItemCategoriesConfig = () => {
       </form>
 
       <div className="list-header">
-        <h3>{showDeleted ? 'Recycle Bin' : 'Active Item Categories'}</h3>
+        <h3>{showDeleted ? 'Recycle Bin' : 'Active Configurations'}</h3>
         <button onClick={() => setShowDeleted(v => !v)}>
           {showDeleted ? 'Show Active' : 'Show Recycle Bin'}
         </button>
@@ -189,22 +342,24 @@ const ItemCategoriesConfig = () => {
         <table className="data-table">
           <thead>
             <tr>
-              <th>Item Category</th>
-              <th>Description</th>
-              <th>Schedule Line Allowed</th>
-              <th>Billing Relevant</th>
-              <th>Credit Active</th>
+              <th>Sales DocType</th>
+              <th>ItemCat Group</th>
+              <th>Item Usage</th>
+              <th>HighLev ItemCat</th>
+              <th>Default ItemCat</th>
+              <th>Manual ItemCat</th>
               <th>Actions</th>
             </tr>
           </thead>
           <tbody>
             {currentList.map(row => (
               <tr key={row.id}>
-                <td>{row.itemCategory}</td>
-                <td>{row.description}</td>
-                <td>{row.scheduleLineAllowed}</td>
-                <td>{row.billingRelevant}</td>
-                <td>{row.creditActive}</td>
+                <td>{row.salesDocumentType}</td>
+                <td>{row.itemCategoryGroup}</td>
+                <td>{row.itemUsage}</td>
+                <td>{row.itemCategoryHighLevelItem}</td>
+                <td>{row.defaultItemCategory}</td>
+                <td>{row.manualItemCategory}</td>
                 <td>
                   {!showDeleted && (
                     <>

@@ -130,7 +130,178 @@ const Credit = () => {
   };
 
   return (
+
+    
     <div className="page-container">
+      <style>{`
+
+.page-container{
+max-width:1100px;
+margin:auto;
+font-family:Segoe UI;
+}
+
+/* FORM */
+
+.form-card{
+background:white;
+padding:25px;
+border-radius:6px;
+border:1px solid #e5e7eb;
+box-shadow:0 2px 6px rgba(0,0,0,0.08);
+margin-bottom:25px;
+}
+
+/* HEADINGS */
+
+.form-card h4{
+margin-top:20px;
+margin-bottom:12px;
+font-size:16px;
+border-bottom:2px solid #e5e7eb;
+padding-bottom:6px;
+color:#1f2937;
+}
+
+/* FORM ROW */
+
+.form-row{
+display:flex;
+flex-direction:column;
+margin-bottom:14px;
+}
+
+.form-row label{
+font-size:13px;
+margin-bottom:4px;
+color:#374151;
+align-self:flex-start;
+}
+
+/* INPUT + SELECT */
+
+.form-row input,
+.form-row select{
+height:36px;
+padding:6px 10px;
+border:1px solid #3b82f6;
+border-radius:4px;
+font-size:14px;
+width:100%;
+box-sizing:border-box;
+align-self:flex-start;
+}
+
+/* BUTTONS */
+
+.form-actions{
+margin-top:20px;
+display:flex;
+gap:10px;
+}
+
+button{
+padding:7px 16px;
+border:none;
+border-radius:4px;
+cursor:pointer;
+font-size:14px;
+}
+
+/* CREATE BUTTON */
+
+button[type="submit"]{
+background:#2563eb;
+color:white;
+}
+
+button[type="submit"]:hover{
+background:#1d4ed8;
+}
+
+/* CANCEL BUTTON */
+
+.form-actions button[type="button"]{
+background:#9ca3af;
+color:white;
+}
+
+.form-actions button[type="button"]:hover{
+background:#6b7280;
+}
+
+/* HEADER */
+
+.list-header{
+display:flex;
+justify-content:space-between;
+align-items:center;
+margin-bottom:15px;
+}
+
+.list-header button{
+background:#f97316;
+color:white;
+padding:6px 14px;
+}
+
+.list-header button:hover{
+background:#ea580c;
+}
+
+/* TABLE */
+
+.data-table{
+width:100%;
+border-collapse:collapse;
+background:white;
+}
+
+.data-table th{
+background:#eef2ff;
+padding:8px;
+border:1px solid #e5e7eb;
+font-size:14px;
+}
+
+.data-table td{
+padding:8px;
+border:1px solid #e5e7eb;
+font-size:13px;
+}
+
+.data-table tr:nth-child(even){
+background:#f9fafb;
+}
+
+/* TABLE BUTTONS */
+
+.data-table button{
+margin-right:6px;
+padding:4px 10px;
+font-size:12px;
+}
+
+.data-table button:nth-child(1){
+background:#3b82f6;
+color:white;
+}
+
+.data-table button:nth-child(2){
+background:#ef4444;
+color:white;
+}
+
+.data-table button:nth-child(1):hover{
+background:#2563eb;
+}
+
+.data-table button:nth-child(2):hover{
+background:#dc2626;
+}
+
+`}</style>
+
       <h2>Credit Management</h2>
 
       <form className="form-card" onSubmit={handleSubmit}>

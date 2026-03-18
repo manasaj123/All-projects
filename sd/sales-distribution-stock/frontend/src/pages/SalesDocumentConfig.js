@@ -10,12 +10,24 @@ import {
 } from '../services/salesDocumentService';
 
 const initialForm = {
-  salesDocumentType: '',
+  documentType: '',
   description: '',
-  itemCategoryDetermination: '',
-  scheduleLineCategoryDetermination: '',
-  pricingProcedure: '',
-  creditCheck: '',
+  referenceMandatory: false,
+  checkDivision: false,
+  probability: 100,
+  checkCreditLimit: false,
+  creditGroup: '',
+  screenSequence: '',
+  incompletionProcedure: '',
+  transactionGroup: '',
+  docPricingProcedure: '',
+  deliveryType: '',
+  deliveryBlock: '',
+  shippingConditions: '',
+  shipCostInfoProfile: '',
+  delvBillingType: '',
+  orderRelBillingType: '',
+  intercompanyBillingType: '',
 };
 
 const SalesDocumentConfig = () => {
@@ -48,14 +60,24 @@ const SalesDocumentConfig = () => {
   }, []);
 
   const handleChange = e => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    const { name, value, type, checked } = e.target;
+    const val =
+      type === 'checkbox'
+        ? checked
+        : name === 'probability'
+        ? Number(value)
+        : value;
+    setFormData(prev => ({ ...prev, [name]: val }));
   };
 
   const handleSubmit = async e => {
     e.preventDefault();
-    if (!formData.salesDocumentType) {
-      alert('Enter sales document type');
+    if (!formData.documentType) {
+      alert('Enter document type');
+      return;
+    }
+    if (!formData.description) {
+      alert('Enter description');
       return;
     }
 
@@ -78,14 +100,24 @@ const SalesDocumentConfig = () => {
   const handleEdit = row => {
     setEditingId(row.id);
     setFormData({
-      salesDocumentType: row.salesDocumentType || '',
+      documentType: row.documentType || '',
       description: row.description || '',
-      itemCategoryDetermination:
-        row.itemCategoryDetermination || '',
-      scheduleLineCategoryDetermination:
-        row.scheduleLineCategoryDetermination || '',
-      pricingProcedure: row.pricingProcedure || '',
-      creditCheck: row.creditCheck || '',
+      referenceMandatory: !!row.referenceMandatory,
+      checkDivision: !!row.checkDivision,
+      probability: row.probability ?? 100,
+      checkCreditLimit: !!row.checkCreditLimit,
+      creditGroup: row.creditGroup || '',
+      screenSequence: row.screenSequence || '',
+      incompletionProcedure: row.incompletionProcedure || '',
+      transactionGroup: row.transactionGroup || '',
+      docPricingProcedure: row.docPricingProcedure || '',
+      deliveryType: row.deliveryType || '',
+      deliveryBlock: row.deliveryBlock || '',
+      shippingConditions: row.shippingConditions || '',
+      shipCostInfoProfile: row.shipCostInfoProfile || '',
+      delvBillingType: row.delvBillingType || '',
+      orderRelBillingType: row.orderRelBillingType || '',
+      intercompanyBillingType: row.intercompanyBillingType || '',
     });
   };
 
@@ -118,72 +150,372 @@ const SalesDocumentConfig = () => {
 
   return (
     <div className="page-container">
-      <h2>Sales Document Configuration</h2>
+      <style>{`
+        .page-container{
+          max-width:1100px;
+          margin:auto;
+          padding:20px;
+          font-family:Segoe UI, sans-serif;
+        }
+
+        h2{
+          margin-bottom:16px;
+        }
+
+        .form-card{
+          background:white;
+          padding:16px;
+          border-radius:6px;
+          box-shadow:0 2px 6px rgba(0,0,0,0.1);
+          margin-bottom:20px;
+        }
+
+        .form-row{
+          display:flex;
+          flex-direction:column;
+          margin-bottom:8px;
+        }
+
+        .form-row-inline{
+          display:flex;
+          align-items:center;
+          gap:8px;
+          margin-bottom:8px;
+          flex-wrap:wrap;
+        }
+
+        .form-row label{
+          font-size:14px;
+          margin-bottom:4px;
+          align-self:flex-start;
+        }
+
+        .form-row input,
+        .form-row select{
+          height:34px;
+          padding:4px 8px;
+          border:1px solid #cbd5e1;
+          border-radius:4px;
+          font-size:14px;
+          align-self:flex-start;
+        }
+
+        .form-row input[type="checkbox"]{
+          height:auto;
+        }
+
+        .form-row input:disabled{
+          background:#f3f4f6;
+        }
+
+        .form-actions{
+          margin-top:16px;
+          display:flex;
+          gap:8px;
+        }
+
+        .btn{
+          padding:7px 14px;
+          border:none;
+          border-radius:4px;
+          cursor:pointer;
+          font-size:13px;
+          
+        }
+
+        .btn-primary{
+          background:#2563eb;
+          color:white;
+          
+        }
+
+        .btn-secondary{
+          background:#6b7280;
+          color:white;
+          
+        }
+
+        .btn-warning{
+          background:#f59e0b;
+          color:white;
+
+        }
+
+        .btn-success{
+          background:#22c55e;
+          color:white;
+        }
+
+        .btn-small{
+          padding:4px 15px;
+          font-size:12px;
+          
+        }
+          .actions-cell{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  white-space:nowrap;      /* keep buttons on one line */
+}
+
+/* tighten buttons a bit so they fit easily */
+.data-table .btn-small{
+  padding:4px 10px;
+  font-size:12px;
+}
+
+        .list-header{
+          display:flex;
+          justify-content:space-between;
+          align-items:center;
+          margin:16px 0;
+        }
+
+        .data-table{
+          width:100%;
+          border-collapse:collapse;
+        }
+
+        .data-table th{
+          background:#e0f2fe;
+          padding:8px;
+          border:1px solid #ddd;
+          font-size:13px;
+        }
+
+        .data-table td{
+          padding:6px;
+          border:1px solid #ddd;
+          font-size:13px;
+        }
+
+        .data-table tr:nth-child(even){
+          background:#f9fafb;
+        }
+
+        /* 2-column layout for sections */
+        .sd-grid{
+          display:grid;
+          grid-template-columns: 1fr 1fr;
+          gap:16px;
+        }
+
+        .sd-section{
+          border:1px solid #e5e7eb;
+          border-radius:6px;
+          padding:12px;
+          background:#fafafa;
+        }
+
+        .sd-section h4{
+          margin-top:0;
+          margin-bottom:8px;
+          border-bottom:1px solid #e5e7eb;
+          padding-bottom:4px;
+          font-size:15px;
+        }
+
+        @media (max-width: 900px){
+          .sd-grid{
+            grid-template-columns: 1fr;
+          }
+        }
+      `}</style>
+
+      <h2>Defining a Sales Document</h2>
 
       <form className="form-card" onSubmit={handleSubmit}>
-        <div className="form-row">
-          <label>Sales Document Type</label>
-          <input
-            name="salesDocumentType"
-            value={formData.salesDocumentType}
-            onChange={handleChange}
-            required
-            disabled={!!editingId}
-          />
-        </div>
-        <div className="form-row">
-          <label>Description</label>
-          <input
-            name="description"
-            value={formData.description}
-            onChange={handleChange}
-          />
-        </div>
-        <div className="form-row">
-          <label>Item Category Determination</label>
-          <input
-            name="itemCategoryDetermination"
-            value={formData.itemCategoryDetermination}
-            onChange={handleChange}
-            placeholder="e.g. TAN, TAD"
-          />
-        </div>
-        <div className="form-row">
-          <label>Schedule Line Category Determination</label>
-          <input
-            name="scheduleLineCategoryDetermination"
-            value={formData.scheduleLineCategoryDetermination}
-            onChange={handleChange}
-            placeholder="e.g. CP, CN"
-          />
-        </div>
-        <div className="form-row">
-          <label>Pricing Procedure</label>
-          <input
-            name="pricingProcedure"
-            value={formData.pricingProcedure}
-            onChange={handleChange}
-            placeholder="e.g. RVAA01"
-          />
-        </div>
-        <div className="form-row">
-          <label>Credit Check</label>
-          <input
-            name="creditCheck"
-            value={formData.creditCheck}
-            onChange={handleChange}
-            placeholder="Y / N"
-          />
+        <div className="sd-grid">
+          {/* LEFT COLUMN */}
+          <div>
+            <div className="sd-section">
+              <h4>Basic Data</h4>
+              <div className="form-row">
+                <label>Document Type</label>
+                <input
+                  name="documentType"
+                  value={formData.documentType}
+                  onChange={handleChange}
+                  required
+                  disabled={!!editingId}
+                />
+              </div>
+              <div className="form-row">
+                <label>Description</label>
+                <input
+                  name="description"
+                  value={formData.description}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="sd-section">
+              <h4>Control Data</h4>
+              <div className="form-row-inline">
+                <label>
+                  <input
+                    type="checkbox"
+                    name="referenceMandatory"
+                    checked={formData.referenceMandatory}
+                    onChange={handleChange}
+                  />{' '}
+                  Reference Mandatory
+                </label>
+                <label>
+                  <input
+                    type="checkbox"
+                    name="checkDivision"
+                    checked={formData.checkDivision}
+                    onChange={handleChange}
+                  />{' '}
+                  Check Division
+                </label>
+                <label>
+                  <input
+                    type="checkbox"
+                    name="checkCreditLimit"
+                    checked={formData.checkCreditLimit}
+                    onChange={handleChange}
+                  />{' '}
+                  Check Credit Limit
+                </label>
+              </div>
+              <div className="form-row">
+                <label>Probability (%)</label>
+                <input
+                  type="number"
+                  name="probability"
+                  min="0"
+                  max="100"
+                  value={formData.probability}
+                  onChange={handleChange}
+                />
+              </div>
+              <div className="form-row">
+                <label>Credit Group</label>
+                <input
+                  name="creditGroup"
+                  value={formData.creditGroup}
+                  onChange={handleChange}
+                />
+              </div>
+              <div className="form-row">
+                <label>Screen Sequence</label>
+                <input
+                  name="screenSequence"
+                  value={formData.screenSequence}
+                  onChange={handleChange}
+                />
+              </div>
+              <div className="form-row">
+                <label>Incompletion Procedure</label>
+                <input
+                  name="incompletionProcedure"
+                  value={formData.incompletionProcedure}
+                  onChange={handleChange}
+                />
+              </div>
+              <div className="form-row">
+                <label>Transaction Group</label>
+                <input
+                  name="transactionGroup"
+                  value={formData.transactionGroup}
+                  onChange={handleChange}
+                />
+              </div>
+              <div className="form-row">
+                <label>Document Pricing Procedure</label>
+                <input
+                  name="docPricingProcedure"
+                  value={formData.docPricingProcedure}
+                  onChange={handleChange}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* RIGHT COLUMN */}
+          <div>
+            <div className="sd-section">
+              <h4>Shipping</h4>
+              <div className="form-row">
+                <label>Delivery Type</label>
+                <input
+                  name="deliveryType"
+                  value={formData.deliveryType}
+                  onChange={handleChange}
+                />
+              </div>
+              <div className="form-row">
+                <label>Delivery Block</label>
+                <input
+                  name="deliveryBlock"
+                  value={formData.deliveryBlock}
+                  onChange={handleChange}
+                />
+              </div>
+              <div className="form-row">
+                <label>Shipping Conditions</label>
+                <input
+                  name="shippingConditions"
+                  value={formData.shippingConditions}
+                  onChange={handleChange}
+                />
+              </div>
+              <div className="form-row">
+                <label>Shipment Cost Info Profile</label>
+                <input
+                  name="shipCostInfoProfile"
+                  value={formData.shipCostInfoProfile}
+                  onChange={handleChange}
+                />
+              </div>
+            </div>
+
+            <div className="sd-section">
+              <h4>Billing Types</h4>
+              <div className="form-row">
+                <label>Delivery-Related Billing Type</label>
+                <input
+                  name="delvBillingType"
+                  value={formData.delvBillingType}
+                  onChange={handleChange}
+                />
+              </div>
+              <div className="form-row">
+                <label>Order-Related Billing Type</label>
+                <input
+                  name="orderRelBillingType"
+                  value={formData.orderRelBillingType}
+                  onChange={handleChange}
+                />
+              </div>
+              <div className="form-row">
+                <label>Intercompany Billing Type</label>
+                <input
+                  name="intercompanyBillingType"
+                  value={formData.intercompanyBillingType}
+                  onChange={handleChange}
+                />
+              </div>
+            </div>
+          </div>
         </div>
 
         <div className="form-actions">
-          <button type="submit">
+          <button type="submit" className="btn btn-primary">
             {editingId
               ? 'Update Sales Document Type'
               : 'Create Sales Document Type'}
           </button>
           {editingId && (
-            <button type="button" onClick={handleCancelEdit}>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={handleCancelEdit}
+            >
               Cancel
             </button>
           )}
@@ -196,7 +528,10 @@ const SalesDocumentConfig = () => {
             ? 'Recycle Bin'
             : 'Active Sales Document Types'}
         </h3>
-        <button onClick={() => setShowDeleted(v => !v)}>
+        <button
+          className="btn btn-secondary"
+          onClick={() => setShowDeleted(v => !v)}
+        >
           {showDeleted ? 'Show Active' : 'Show Recycle Bin'}
         </button>
       </div>
@@ -209,35 +544,50 @@ const SalesDocumentConfig = () => {
         <table className="data-table">
           <thead>
             <tr>
-              <th>Sales Document Type</th>
+              <th>Document Type</th>
               <th>Description</th>
-              <th>Item Category Determination</th>
-              <th>Schedule Line Category Determination</th>
-              <th>Pricing Procedure</th>
-              <th>Credit Check</th>
+              <th>Probability</th>
+              <th>Credit Group</th>
+              <th>Delivery Type</th>
+              <th>Delv Billing Type</th>
+              <th>Order Rel. Billing Type</th>
+              <th>Intercompany Billing Type</th>
               <th>Actions</th>
             </tr>
           </thead>
           <tbody>
             {currentList.map(row => (
               <tr key={row.id}>
-                <td>{row.salesDocumentType}</td>
+                <td>{row.documentType}</td>
                 <td>{row.description}</td>
-                <td>{row.itemCategoryDetermination}</td>
-                <td>{row.scheduleLineCategoryDetermination}</td>
-                <td>{row.pricingProcedure}</td>
-                <td>{row.creditCheck}</td>
-                <td>
+                <td>{row.probability}</td>
+                <td>{row.creditGroup}</td>
+                <td>{row.deliveryType}</td>
+                <td>{row.delvBillingType}</td>
+                <td>{row.orderRelBillingType}</td>
+                <td>{row.intercompanyBillingType}</td>
+                <td className="actions-cell">
                   {!showDeleted && (
                     <>
-                      <button onClick={() => handleEdit(row)}>Edit</button>
-                      <button onClick={() => handleSoftDelete(row.id)}>
+                      <button
+                        className="btn btn-primary btn-small"
+                        onClick={() => handleEdit(row)}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        className="btn btn-warning btn-small"
+                        onClick={() => handleSoftDelete(row.id)}
+                      >
                         Delete
                       </button>
                     </>
                   )}
                   {showDeleted && (
-                    <button onClick={() => handleRestore(row.id)}>
+                    <button
+                      className="btn btn-success btn-small"
+                      onClick={() => handleRestore(row.id)}
+                    >
                       Restore
                     </button>
                   )}

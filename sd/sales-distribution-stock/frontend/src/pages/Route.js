@@ -167,6 +167,168 @@ const RoutePage = () => {
 
   return (
     <div className="page-container">
+      <style>{`
+        .page-container{
+          max-width:1100px;
+          margin:auto;
+          padding:20px;
+          font-family:Segoe UI, sans-serif;
+        }
+
+        h2{
+          margin-bottom:16px;
+        }
+
+        .form-card{
+          background:white;
+          padding:16px;
+          border-radius:6px;
+          box-shadow:0 2px 6px rgba(0,0,0,0.1);
+          margin-bottom:20px;
+        }
+
+        h4{
+          margin:10px 0 6px;
+          font-size:14px;
+        }
+
+        /* same label/input model as Pricing */
+        .form-row{
+          display:flex;
+          align-items:center;
+          gap:12px;
+          margin-bottom:8px;
+        }
+
+        .form-row label{
+          width:180px;
+          font-size:14px;
+        }
+
+        .form-row input{
+          flex:1;
+          height:32px;
+          padding:3px 8px;
+          border:1px solid #cbd5e1;
+          border-radius:4px;
+          font-size:13px;
+        }
+
+        .items-form-row{
+          display:flex;
+          align-items:center;
+          gap:8px;
+          margin:8px 0 12px;
+        }
+
+        .items-form-row input{
+          height:32px;
+          padding:3px 8px;
+          border:1px solid #cbd5e1;
+          border-radius:4px;
+          font-size:13px;
+        }
+
+        .items-form-row button{
+          padding:6px 12px;
+          border:none;
+          border-radius:4px;
+          cursor:pointer;
+          font-size:13px;
+          background:#16a34a;
+          color:white;
+        }
+
+        .form-actions{
+          margin-top:14px;
+          display:flex;
+          gap:8px;
+        }
+
+        .form-actions button{
+          padding:7px 14px;
+          border:none;
+          border-radius:4px;
+          cursor:pointer;
+          font-size:13px;
+          background:#2563eb;
+          color:white;
+        }
+
+        .form-actions button[type="button"]{
+          background:#6b7280;
+        }
+
+        .list-header{
+          display:flex;
+          justify-content:space-between;
+          align-items:center;
+          margin:16px 0;
+        }
+
+        .list-header button{
+          padding:7px 14px;
+          border:none;
+          border-radius:4px;
+          background:#6b7280;
+          color:white;
+          cursor:pointer;
+          font-size:13px;
+        }
+
+        .data-table{
+          width:100%;
+          border-collapse:collapse;
+          margin-top:8px;
+        }
+
+        .data-table th{
+          background:#e0f2fe;
+          padding:6px;
+          border:1px solid #ddd;
+          font-size:12px;
+        }
+
+        .data-table td{
+          padding:5px;
+          border:1px solid #ddd;
+          font-size:12px;
+        }
+
+        .data-table tr:nth-child(even){
+          background:#f9fafb;
+        }
+
+        .data-table button{
+          padding:3px 8px;
+          border:none;
+          border-radius:4px;
+          cursor:pointer;
+          font-size:11px;
+          background:#2563eb;
+          color:white;
+          margin-right:4px;
+        }
+
+        .data-table button:nth-child(2){
+          background:#f59e0b;
+        }
+
+        @media (max-width: 900px){
+          .form-row{
+            flex-direction:column;
+            align-items:flex-start;
+          }
+          .form-row label{
+            width:auto;
+          }
+          .items-form-row{
+            flex-direction:column;
+            align-items:stretch;
+          }
+        }
+      `}</style>
+
       <h2>Route Determination</h2>
 
       <form className="form-card" onSubmit={handleSubmit}>

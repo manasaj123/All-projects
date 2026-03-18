@@ -149,107 +149,248 @@ const Conditions = () => {
 
   return (
     <div className="page-container">
+      <style>{`
+        .page-container{
+          max-width:1200px;
+          margin:auto;
+          padding:20px;
+          font-family:Segoe UI, sans-serif;
+        }
+
+        h2{
+          margin-bottom:16px;
+        }
+
+        .form-card{
+          background:white;
+          padding:16px;
+          border-radius:6px;
+          box-shadow:0 2px 6px rgba(0,0,0,0.1);
+          margin-bottom:20px;
+        }
+
+        /* 3 fields per row */
+        .form-grid{
+          display:grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap:10px 16px;
+        }
+
+        .form-row{
+          display:flex;
+          flex-direction:column;
+          margin-bottom:8px;
+        }
+
+        .form-row label{
+          font-size:13px;
+          margin-bottom:3px;
+          align-self:flex-start;
+        }
+
+        .form-row input,
+        .form-row select{
+          height:32px;
+          padding:3px 8px;
+          border:1px solid #cbd5e1;
+          border-radius:4px;
+          font-size:13px;
+          width:100%;
+          margin-top:2px;
+          align-self:flex-start;
+        }
+
+        .form-row input[type="date"]{
+          padding:2px 6px;
+        }
+
+        .form-actions{
+          margin-top:14px;
+          display:flex;
+          gap:8px;
+        }
+
+        .form-actions button{
+          padding:7px 14px;
+          border:none;
+          border-radius:4px;
+          cursor:pointer;
+          font-size:13px;
+          background:#2563eb;
+          color:white;
+        }
+
+        .form-actions button[type="button"]{
+          background:#6b7280;
+        }
+
+        .list-header{
+          display:flex;
+          justify-content:space-between;
+          align-items:center;
+          margin:16px 0;
+        }
+
+        .list-header button{
+          padding:7px 14px;
+          border:none;
+          border-radius:4px;
+          background:#6b7280;
+          color:white;
+          cursor:pointer;
+          font-size:13px;
+        }
+
+        .data-table{
+          width:100%;
+          border-collapse:collapse;
+        }
+
+        .data-table th{
+          background:#e0f2fe;
+          padding:6px;
+          border:1px solid #ddd;
+          font-size:12px;
+        }
+
+        .data-table td{
+          padding:5px;
+          border:1px solid #ddd;
+          font-size:12px;
+        }
+
+        .data-table tr:nth-child(even){
+          background:#f9fafb;
+        }
+
+        .data-table button{
+          padding:3px 8px;
+          border:none;
+          border-radius:4px;
+          cursor:pointer;
+          font-size:11px;
+          background:#2563eb;
+          color:white;
+          margin-right:4px;
+        }
+
+        .data-table button:nth-child(2){
+          background:#f59e0b;
+        }
+
+        @media (max-width: 900px){
+          .form-grid{
+            grid-template-columns:1fr;
+          }
+        }
+      `}</style>
+
       <h2>Pricing Conditions</h2>
 
       <form className="form-card" onSubmit={handleSubmit}>
-        <h4>Key</h4>
-        <div className="form-row">
-          <label>Condition Type</label>
-          <input
-            name="conditionType"
-            value={formData.conditionType}
-            onChange={handleChange}
-            placeholder="PR00, K004, etc."
-            required
-          />
-        </div>
-        <div className="form-row">
-          <label>Customer (optional)</label>
-          <select
-            name="customerId"
-            value={formData.customerId}
-            onChange={handleChange}
-          >
-            <option value="">None</option>
-            {customers.map(c => (
-              <option key={c.id} value={c.id}>
-                {c.customerCode} - {c.name}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="form-row">
-          <label>Material (optional)</label>
-          <select
-            name="materialId"
-            value={formData.materialId}
-            onChange={handleChange}
-          >
-            <option value="">None</option>
-            {materials.map(m => (
-              <option key={m.id} value={m.id}>
-                {m.materialCode} - {m.description}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="form-row">
-          <label>Sales Organization</label>
-          <input
-            name="salesOrg"
-            value={formData.salesOrg}
-            onChange={handleChange}
-          />
-        </div>
-        <div className="form-row">
-          <label>Distribution Channel</label>
-          <input
-            name="distributionChannel"
-            value={formData.distributionChannel}
-            onChange={handleChange}
-          />
-        </div>
+        <div className="form-grid">
+          <div className="form-row">
+            <label>Condition Type</label>
+            <input
+              name="conditionType"
+              value={formData.conditionType}
+              onChange={handleChange}
+              placeholder="PR00, K004, etc."
+              required
+            />
+          </div>
 
-        <h4>Value</h4>
-        <div className="form-row">
-          <label>Price</label>
-          <input
-            type="number"
-            min="0"
-            step="0.01"
-            name="price"
-            value={formData.price}
-            onChange={handleChange}
-            required
-          />
-        </div>
-        <div className="form-row">
-          <label>Currency</label>
-          <input
-            name="currency"
-            value={formData.currency}
-            onChange={handleChange}
-          />
-        </div>
+          <div className="form-row">
+            <label>Customer</label>
+            <select
+              name="customerId"
+              value={formData.customerId}
+              onChange={handleChange}
+            >
+              <option value="">None</option>
+              {customers.map(c => (
+                <option key={c.id} value={c.id}>
+                  {c.customerCode} - {c.name}
+                </option>
+              ))}
+            </select>
+          </div>
 
-        <h4>Validity</h4>
-        <div className="form-row">
-          <label>Valid From</label>
-          <input
-            type="date"
-            name="validFrom"
-            value={formData.validFrom}
-            onChange={handleChange}
-          />
-        </div>
-        <div className="form-row">
-          <label>Valid To</label>
-          <input
-            type="date"
-            name="validTo"
-            value={formData.validTo}
-            onChange={handleChange}
-          />
+          <div className="form-row">
+            <label>Material (optional)</label>
+            <select
+              name="materialId"
+              value={formData.materialId}
+              onChange={handleChange}
+            >
+              <option value="">None</option>
+              {materials.map(m => (
+                <option key={m.id} value={m.id}>
+                  {m.materialCode} - {m.description}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="form-row">
+            <label>Sales Organization</label>
+            <input
+              name="salesOrg"
+              value={formData.salesOrg}
+              onChange={handleChange}
+            />
+          </div>
+
+          <div className="form-row">
+            <label>Distribution Channel</label>
+            <input
+              name="distributionChannel"
+              value={formData.distributionChannel}
+              onChange={handleChange}
+            />
+          </div>
+
+          <div className="form-row">
+            <label>Price</label>
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              name="price"
+              value={formData.price}
+              onChange={handleChange}
+              required
+            />
+          </div>
+
+          <div className="form-row">
+            <label>Currency</label>
+            <input
+              name="currency"
+              value={formData.currency}
+              onChange={handleChange}
+            />
+          </div>
+
+          <div className="form-row">
+            <label>Valid From</label>
+            <input
+              type="date"
+              name="validFrom"
+              value={formData.validFrom}
+              onChange={handleChange}
+            />
+          </div>
+
+          <div className="form-row">
+            <label>Valid To</label>
+            <input
+              type="date"
+              name="validTo"
+              value={formData.validTo}
+              onChange={handleChange}
+            />
+          </div>
         </div>
 
         <div className="form-actions">

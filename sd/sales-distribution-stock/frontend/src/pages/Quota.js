@@ -1,5 +1,6 @@
 // frontend/src/pages/Quota.js
-import React, { useEffect, useState } from 'react';
+
+import React, { useEffect, useState } from "react";
 import {
   getQuotas,
   getDeletedQuotas,
@@ -7,18 +8,18 @@ import {
   updateQuota,
   softDeleteQuota,
   restoreQuota,
-} from '../services/quotaService';
+} from "../services/quotaService";
 
 const initialForm = {
-  purchasingGroup: '',
-  plant: '',
-  plantSpecialMaterialStatus: '',
-  taxIndicatorForMaterial: '',
-  materialFreightGroup: '',
-  materialGroup: '',
-  validFrom: '',
-  validTo: '',
-  quotaUsage: '',
+  purchasingGroup: "",
+  plant: "",
+  plantSpecialMaterialStatus: "",
+  taxIndicatorForMaterial: "",
+  materialFreightGroup: "",
+  materialGroup: "",
+  validFrom: "",
+  validTo: "",
+  quotaUsage: "",
 };
 
 const Quota = () => {
@@ -32,68 +33,76 @@ const Quota = () => {
 
   const loadData = async () => {
     setLoading(true);
+
     try {
       const [activeRes, deletedRes] = await Promise.all([
         getQuotas(),
         getDeletedQuotas(),
       ]);
+
       setQuotas(activeRes.data);
       setDeletedQuotas(deletedRes.data);
     } catch (err) {
-      console.error('Error loading quotas', err);
-    } finally {
-      setLoading(false);
+      console.error("Error loading quotas", err);
     }
+
+    setLoading(false);
   };
 
   useEffect(() => {
     loadData();
   }, []);
 
-  const handleChange = e => {
+  const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
   };
 
-  const handleSubmit = async e => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+
     if (!formData.purchasingGroup) {
-      alert('Enter purchasing group');
-      return;
-    }
-    if (!formData.plant) {
-      alert('Enter plant');
+      alert("Enter Purchasing Group");
       return;
     }
 
-    const payload = { ...formData };
+    if (!formData.plant) {
+      alert("Enter Plant");
+      return;
+    }
 
     try {
       if (editingId) {
-        await updateQuota(editingId, payload);
+        await updateQuota(editingId, formData);
       } else {
-        await createQuota(payload);
+        await createQuota(formData);
       }
+
       setFormData(initialForm);
       setEditingId(null);
       loadData();
     } catch (err) {
-      console.error('Error saving quota', err);
+      console.error("Error saving quota", err);
     }
   };
 
-  const handleEdit = q => {
+  const handleEdit = (q) => {
     setEditingId(q.id);
+
     setFormData({
-      purchasingGroup: q.purchasingGroup || '',
-      plant: q.plant || '',
-      plantSpecialMaterialStatus: q.plantSpecialMaterialStatus || '',
-      taxIndicatorForMaterial: q.taxIndicatorForMaterial || '',
-      materialFreightGroup: q.materialFreightGroup || '',
-      materialGroup: q.materialGroup || '',
-      validFrom: q.validFrom || '',
-      validTo: q.validTo || '',
-      quotaUsage: q.quotaUsage || '',
+      purchasingGroup: q.purchasingGroup || "",
+      plant: q.plant || "",
+      plantSpecialMaterialStatus: q.plantSpecialMaterialStatus || "",
+      taxIndicatorForMaterial: q.taxIndicatorForMaterial || "",
+      materialFreightGroup: q.materialFreightGroup || "",
+      materialGroup: q.materialGroup || "",
+      validFrom: q.validFrom || "",
+      validTo: q.validTo || "",
+      quotaUsage: q.quotaUsage || "",
     });
   };
 
@@ -102,187 +111,383 @@ const Quota = () => {
     setFormData(initialForm);
   };
 
-  const handleSoftDelete = async id => {
-    if (!window.confirm('Move this quota record to recycle bin?')) return;
-    try {
-      await softDeleteQuota(id);
-      loadData();
-    } catch (err) {
-      console.error('Error deleting quota', err);
-    }
+  const handleSoftDelete = async (id) => {
+    if (!window.confirm("Move this record to recycle bin?")) return;
+
+    await softDeleteQuota(id);
+    loadData();
   };
 
-  const handleRestore = async id => {
-    try {
-      await restoreQuota(id);
-      loadData();
-    } catch (err) {
-      console.error('Error restoring quota', err);
-    }
+  const handleRestore = async (id) => {
+    await restoreQuota(id);
+    loadData();
   };
 
   const currentList = showDeleted ? deletedQuotas : quotas;
 
   return (
-    <div className="page-container">
-      <h2>Quota Arrangement</h2>
+    <div className="quota-page">
 
-      <form className="form-card" onSubmit={handleSubmit}>
-        <h4>Key</h4>
-        <div className="form-row">
-          <label>Purchasing Group</label>
-          <input
-            name="purchasingGroup"
-            value={formData.purchasingGroup}
-            onChange={handleChange}
-            required
-          />
-        </div>
-        <div className="form-row">
-          <label>Plant</label>
-          <input
-            name="plant"
-            value={formData.plant}
-            onChange={handleChange}
-            required
-          />
-        </div>
+<style>{`
 
-        <h4>Material Attributes</h4>
-        <div className="form-row">
-          <label>Plant Special Material Status</label>
-          <input
-            name="plantSpecialMaterialStatus"
-            value={formData.plantSpecialMaterialStatus}
-            onChange={handleChange}
-          />
-        </div>
-        <div className="form-row">
-          <label>Tax Indicator for Material</label>
-          <input
-            name="taxIndicatorForMaterial"
-            value={formData.taxIndicatorForMaterial}
-            onChange={handleChange}
-          />
-        </div>
-        <div className="form-row">
-          <label>Material Freight Group</label>
-          <input
-            name="materialFreightGroup"
-            value={formData.materialFreightGroup}
-            onChange={handleChange}
-          />
-        </div>
-        <div className="form-row">
-          <label>Material Group</label>
-          <input
-            name="materialGroup"
-            value={formData.materialGroup}
-            onChange={handleChange}
-          />
-        </div>
+.quota-page{
+max-width:1100px;
+margin:auto;
+font-family:Segoe UI;
+}
 
-        <h4>Validity & Usage</h4>
-        <div className="form-row">
-          <label>Valid From</label>
-          <input
-            type="date"
-            name="validFrom"
-            value={formData.validFrom}
-            onChange={handleChange}
-          />
-        </div>
-        <div className="form-row">
-          <label>Valid To</label>
-          <input
-            type="date"
-            name="validTo"
-            value={formData.validTo}
-            onChange={handleChange}
-          />
-        </div>
-        <div className="form-row">
-          <label>Quota Usage</label>
-          <input
-            name="quotaUsage"
-            value={formData.quotaUsage}
-            onChange={handleChange}
-            placeholder="e.g. 1, 2, A, B"
-          />
-        </div>
+/* FORM CARD */
 
-        <div className="form-actions">
-          <button type="submit">
-            {editingId ? 'Update Quota' : 'Create Quota'}
-          </button>
-          {editingId && (
-            <button type="button" onClick={handleCancelEdit}>
-              Cancel
-            </button>
-          )}
-        </div>
-      </form>
+.form-card{
+background:white;
+padding:25px;
+border-radius:6px;
+border:1px solid #e5e7eb;
+box-shadow:0 2px 6px rgba(0,0,0,0.1);
+margin-bottom:25px;
+}
 
-      <div className="list-header">
-        <h3>{showDeleted ? 'Recycle Bin' : 'Active Quota Records'}</h3>
-        <button onClick={() => setShowDeleted(v => !v)}>
-          {showDeleted ? 'Show Active' : 'Show Recycle Bin'}
-        </button>
-      </div>
+/* SECTION HEADINGS */
 
-      {loading ? (
-        <p>Loading...</p>
-      ) : currentList.length === 0 ? (
-        <p>No records.</p>
-      ) : (
-        <table className="data-table">
-          <thead>
-            <tr>
-              <th>Purch. Group</th>
-              <th>Plant</th>
-              <th>Plant Spec. Status</th>
-              <th>Tax Indicator</th>
-              <th>Mat. Freight Group</th>
-              <th>Material Group</th>
-              <th>Valid From</th>
-              <th>Valid To</th>
-              <th>Quota Usage</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {currentList.map(q => (
-              <tr key={q.id}>
-                <td>{q.purchasingGroup}</td>
-                <td>{q.plant}</td>
-                <td>{q.plantSpecialMaterialStatus}</td>
-                <td>{q.taxIndicatorForMaterial}</td>
-                <td>{q.materialFreightGroup}</td>
-                <td>{q.materialGroup}</td>
-                <td>{q.validFrom}</td>
-                <td>{q.validTo}</td>
-                <td>{q.quotaUsage}</td>
-                <td>
-                  {!showDeleted && (
-                    <>
-                      <button onClick={() => handleEdit(q)}>Edit</button>
-                      <button onClick={() => handleSoftDelete(q.id)}>
-                        Delete
-                      </button>
-                    </>
-                  )}
-                  {showDeleted && (
-                    <button onClick={() => handleRestore(q.id)}>
-                      Restore
-                    </button>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
-    </div>
+.form-card h4{
+margin-top:20px;
+margin-bottom:12px;
+font-size:16px;
+border-bottom:2px solid #e5e7eb;
+padding-bottom:5px;
+color:#111827;
+}
+
+/* GRID LAYOUT */
+
+.form-grid{
+display:grid;
+grid-template-columns:repeat(2,1fr);
+gap:10px;
+}
+
+/* FORM FIELD */
+
+.form-row{
+display:flex;
+flex-direction:column;
+width:300px;
+}
+
+.form-row label{
+font-size:13px;
+margin-bottom:2px;
+color:#374151;
+padding-right:30px;
+}
+
+.form-row input{
+height:36px;
+
+border:1px solid #3b82f6;
+border-radius:4px;
+font-size:14px;
+width:300px;
+
+}
+
+/* BUTTONS */
+
+.form-actions{
+margin-top:20px;
+display:flex;
+gap:10px;
+}
+
+button{
+padding:7px 16px;
+border:none;
+border-radius:4px;
+cursor:pointer;
+font-size:14px;
+}
+
+button[type="submit"]{
+background:#2563eb;
+color:white;
+}
+
+button[type="submit"]:hover{
+background:#1d4ed8;
+}
+
+.form-actions button[type="button"]{
+background:#9ca3af;
+color:white;
+}
+
+.form-actions button[type="button"]:hover{
+background:#6b7280;
+}
+
+/* HEADER */
+
+.list-header{
+display:flex;
+justify-content:space-between;
+align-items:center;
+margin-bottom:15px;
+}
+
+.list-header button{
+background:#f97316;
+color:white;
+}
+
+.list-header button:hover{
+background:#ea580c;
+}
+
+/* TABLE */
+
+.data-table{
+width:100%;
+border-collapse:collapse;
+background:white;
+}
+
+.data-table th{
+background:#eef2ff;
+padding:8px;
+border:1px solid #e5e7eb;
+}
+
+.data-table td{
+padding:8px;
+border:1px solid #e5e7eb;
+font-size:13px;
+}
+
+.data-table tr:nth-child(even){
+background:#f9fafb;
+}
+
+.data-table button{
+margin-right:6px;
+padding:4px 10px;
+font-size:12px;
+}
+
+.data-table button:nth-child(1){
+background:#3b82f6;
+color:white;
+}
+
+.data-table button:nth-child(2){
+background:#ef4444;
+color:white;
+}
+
+`}</style>
+
+<h2>Quota Arrangement</h2>
+
+<form className="form-card" onSubmit={handleSubmit}>
+
+<h4>Key</h4>
+
+<div className="form-grid">
+
+<div className="form-row">
+<label>Purchasing Group</label>
+<input
+name="purchasingGroup"
+value={formData.purchasingGroup}
+onChange={handleChange}
+/>
+</div>
+
+<div className="form-row">
+<label>Plant</label>
+<input
+name="plant"
+value={formData.plant}
+onChange={handleChange}
+/>
+</div>
+
+</div>
+
+<h4>Material Attributes</h4>
+
+<div className="form-grid">
+
+<div className="form-row">
+<label>Plant Special Material Status</label>
+<input
+  name="plantSpecialMaterialStatus"
+  value={formData.plantSpecialMaterialStatus}
+  onChange={handleChange}
+  maxLength={4}
+/>
+</div>
+
+<div className="form-row">
+<label>Tax Indicator</label>
+<input
+  name="taxIndicatorForMaterial"
+  value={formData.taxIndicatorForMaterial}
+  onChange={handleChange}
+  maxLength={4}
+/>
+</div>
+
+<div className="form-row">
+<label>Material Freight Group</label>
+<input
+name="materialFreightGroup"
+value={formData.materialFreightGroup}
+onChange={handleChange}
+/>
+</div>
+
+<div className="form-row">
+<label>Material Group</label>
+<input
+name="materialGroup"
+value={formData.materialGroup}
+onChange={handleChange}
+/>
+</div>
+
+</div>
+
+<h4>Validity & Usage</h4>
+
+<div className="form-grid">
+
+<div className="form-row">
+<label>Valid From</label>
+<input
+type="date"
+name="validFrom"
+value={formData.validFrom}
+onChange={handleChange}
+/>
+</div>
+
+<div className="form-row">
+<label>Valid To</label>
+<input
+type="date"
+name="validTo"
+value={formData.validTo}
+onChange={handleChange}
+/>
+</div>
+
+<div className="form-row">
+<label>Quota Usage</label>
+<input
+  name="quotaUsage"
+  value={formData.quotaUsage}
+  onChange={handleChange}
+  maxLength={4}
+/>
+</div>
+
+</div>
+
+<div className="form-actions">
+
+<button type="submit">
+{editingId ? "Update Quota" : "Create Quota"}
+</button>
+
+{editingId && (
+<button type="button" onClick={handleCancelEdit}>
+Cancel
+</button>
+)}
+
+</div>
+
+</form>
+
+<div className="list-header">
+
+<h3>{showDeleted ? "Recycle Bin" : "Active Quota Records"}</h3>
+
+<button onClick={() => setShowDeleted((v) => !v)}>
+{showDeleted ? "Show Active" : "Show Recycle Bin"}
+</button>
+
+</div>
+
+{loading ? (
+<p>Loading...</p>
+) : currentList.length === 0 ? (
+<p>No records.</p>
+) : (
+
+<table className="data-table">
+
+<thead>
+<tr>
+<th>Purch. Group</th>
+<th>Plant</th>
+<th>Plant Status</th>
+<th>Tax</th>
+<th>Freight</th>
+<th>Material Group</th>
+<th>Valid From</th>
+<th>Valid To</th>
+<th>Usage</th>
+<th>Actions</th>
+</tr>
+</thead>
+
+<tbody>
+
+{currentList.map((q) => (
+
+<tr key={q.id}>
+
+<td>{q.purchasingGroup}</td>
+<td>{q.plant}</td>
+<td>{q.plantSpecialMaterialStatus}</td>
+<td>{q.taxIndicatorForMaterial}</td>
+<td>{q.materialFreightGroup}</td>
+<td>{q.materialGroup}</td>
+<td>{q.validFrom}</td>
+<td>{q.validTo}</td>
+<td>{q.quotaUsage}</td>
+
+<td>
+
+{!showDeleted && (
+<>
+<button onClick={() => handleEdit(q)}>Edit</button>
+<button onClick={() => handleSoftDelete(q.id)}>
+Delete
+</button>
+</>
+)}
+
+{showDeleted && (
+<button onClick={() => handleRestore(q.id)}>
+Restore
+</button>
+)}
+
+</td>
+
+</tr>
+
+))}
+
+</tbody>
+
+</table>
+
+)}
+
+</div>
   );
 };
 

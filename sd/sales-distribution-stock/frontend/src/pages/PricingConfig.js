@@ -45,7 +45,12 @@ const PricingConfig = () => {
 
   const handleChange = e => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    // auto-uppercase for code
+    if (name === 'pricingProcedure') {
+      setFormData(prev => ({ ...prev, [name]: value.toUpperCase() }));
+    } else {
+      setFormData(prev => ({ ...prev, [name]: value }));
+    }
   };
 
   const handleSubmit = async e => {
@@ -107,6 +112,126 @@ const PricingConfig = () => {
 
   return (
     <div className="page-container">
+      <style>{`
+        .page-container{
+          max-width:1100px;
+          margin:auto;
+          padding:20px;
+          font-family:Segoe UI, sans-serif;
+        }
+
+        h2{
+          margin-bottom:16px;
+        }
+
+        .form-card{
+          background:white;
+          padding:16px;
+          border-radius:6px;
+          box-shadow:0 2px 6px rgba(0,0,0,0.1);
+          margin-bottom:20px;
+        }
+
+        /* aligned label + input */
+        .form-row{
+          display:flex;
+          align-items:center;
+          gap:12px;
+          margin-bottom:10px;
+        }
+
+        .form-row label{
+          width:160px;
+          font-size:14px;
+        }
+
+        .form-row input{
+          height:34px;
+          padding:4px 8px;
+          border:1px solid #cbd5e1;
+          border-radius:4px;
+          font-size:14px;
+        }
+
+        .form-row input:disabled{
+          background:#f3f4f6;
+        }
+
+        .form-actions{
+          margin-top:12px;
+          display:flex;
+          gap:8px;
+        }
+
+        .form-actions button{
+          padding:7px 14px;
+          border:none;
+          border-radius:4px;
+          cursor:pointer;
+          font-size:13px;
+          background:#2563eb;
+          color:white;
+        }
+
+        .form-actions button[type="button"]{
+          background:#6b7280;
+        }
+
+        .list-header{
+          display:flex;
+          justify-content:space-between;
+          align-items:center;
+          margin:16px 0;
+        }
+
+        .list-header button{
+          padding:7px 14px;
+          border:none;
+          border-radius:4px;
+          background:#6b7280;
+          color:white;
+          cursor:pointer;
+          font-size:13px;
+        }
+
+        .data-table{
+          width:100%;
+          border-collapse:collapse;
+        }
+
+        .data-table th{
+          background:#e0f2fe;
+          padding:8px;
+          border:1px solid #ddd;
+          font-size:13px;
+        }
+
+        .data-table td{
+          padding:6px;
+          border:1px solid #ddd;
+          font-size:13px;
+        }
+
+        .data-table tr:nth-child(even){
+          background:#f9fafb;
+        }
+
+        .data-table button{
+          padding:4px 10px;
+          border:none;
+          border-radius:4px;
+          cursor:pointer;
+          font-size:12px;
+          background:#2563eb;
+          color:white;
+          margin-right:6px;
+        }
+
+        .data-table button:nth-child(2){
+          background:#f59e0b;
+        }
+      `}</style>
+
       <h2>Pricing Procedure Configuration</h2>
 
       <form className="form-card" onSubmit={handleSubmit}>
@@ -118,6 +243,8 @@ const PricingConfig = () => {
             onChange={handleChange}
             required
             disabled={!!editingId}
+            maxLength={6}
+            style={{ textTransform: 'uppercase', width: '200px' }}
           />
         </div>
         <div className="form-row">
@@ -126,6 +253,7 @@ const PricingConfig = () => {
             name="description"
             value={formData.description}
             onChange={handleChange}
+            style={{ width: '350px' }}
           />
         </div>
 

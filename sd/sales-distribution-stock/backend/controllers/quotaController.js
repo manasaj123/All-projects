@@ -25,10 +25,29 @@ exports.getQuotaById = asyncHandler(async (req, res) => {
 });
 
 // POST /api/quotas
-exports.createQuota = asyncHandler(async (req, res) => {
-  const quota = await db.Quota.create(req.body);
-  res.status(201).json(quota);
-});
+exports.createQuota = async (req, res) => {
+  try {
+    const payload = { ...req.body };
+
+    // If you have any optional numeric fields, normalize here, e.g.:
+    // if (payload.someIntField === '') payload.someIntField = null;
+
+    const quota = await db.Quota.create(payload);
+    return res.status(201).json(quota);
+  } catch (err) {
+    console.error(
+      'DB error in createQuota:',
+      err.message,
+      err.original?.sqlMessage,
+      err.original?.sql
+    );
+    return res.status(500).json({
+      error: err.message,
+      sqlMessage: err.original?.sqlMessage,
+      sql: err.original?.sql,
+    });
+  }
+};
 
 // PUT /api/quotas/:id
 exports.updateQuota = asyncHandler(async (req, res) => {

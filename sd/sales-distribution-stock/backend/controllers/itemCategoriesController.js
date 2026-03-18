@@ -26,10 +26,14 @@ exports.getItemCategoriesConfigById = asyncHandler(async (req, res) => {
 
 // POST /api/item-categories-config
 exports.createItemCategoriesConfig = asyncHandler(async (req, res) => {
-  const cfg = await db.ItemCategoriesConfig.create(req.body);
-  res.status(201).json(cfg);
+  try {
+    const cfg = await db.ItemCategoriesConfig.create(req.body);
+    res.status(201).json(cfg);
+  } catch (err) {
+    console.error('DB error in createItemCategoriesConfig:', err.message, err.original?.sqlMessage);
+    return res.status(500).json({ error: err.message, sql: err.original?.sqlMessage });
+  }
 });
-
 // PUT /api/item-categories-config/:id
 exports.updateItemCategoriesConfig = asyncHandler(async (req, res) => {
   const cfg = await db.ItemCategoriesConfig.findByPk(req.params.id);

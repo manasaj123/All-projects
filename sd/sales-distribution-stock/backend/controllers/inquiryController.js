@@ -42,10 +42,17 @@ exports.getInquiryById = asyncHandler(async (req, res) => {
 });
 
 // POST /api/inquiries
-exports.createInquiry = asyncHandler(async (req, res) => {
-  const inquiry = await db.Inquiry.create(req.body);
-  res.status(201).json(inquiry);
-});
+// controllers/inquiryController.js
+exports.createInquiry = async (req, res) => {
+  try {
+    const inquiry = await db.Inquiry.create(req.body);
+    res.status(201).json(inquiry);
+  } catch (err) {
+    console.error('Create inquiry error:', err.original || err);
+    res.status(500).json({ message: err.message });
+  }
+};
+
 
 // PUT /api/inquiries/:id
 exports.updateInquiry = asyncHandler(async (req, res) => {
