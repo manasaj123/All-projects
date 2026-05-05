@@ -21,6 +21,18 @@ export default function InProcessInspectionPage() {
     orderNo: ""
   });
 
+  // all fields required
+  const [errors, setErrors] = useState({
+    materialCode: "",
+    productionPlant: "",
+    planningPlant: "",
+    orderType: "",
+    orderNo: ""
+  });
+
+  const cleanCode = v =>
+    (v || "").toUpperCase().replace(/[^A-Z0-9_-]/g, "");
+
   const loadData = async () => {
     try {
       const [active, bin] = await Promise.all([
@@ -40,24 +52,95 @@ export default function InProcessInspectionPage() {
 
   const handleChange = e => {
     const { name, value } = e.target;
-    setForm(prev => ({ ...prev, [name]: value }));
+    let newValue = value;
+
+    if (
+      [
+        "materialCode",
+        "productionPlant",
+        "planningPlant",
+        "orderType",
+        "orderNo"
+      ].includes(name)
+    ) {
+      newValue = value.toUpperCase().replace(/[^A-Z0-9_-]/g, "");
+    }
+
+    // clear error when user types
+    if (Object.prototype.hasOwnProperty.call(errors, name)) {
+      setErrors(prev => ({ ...prev, [name]: "" }));
+    }
+
+    setForm(prev => ({ ...prev, [name]: newValue }));
   };
 
   const handleSubmit = async e => {
     e.preventDefault();
 
-    const payload = {
-      materialCode: form.materialCode || null,
-      productionPlant: form.productionPlant || null,
-      planningPlant: form.planningPlant || null,
-      orderType: form.orderType || null,
-      orderNo: form.orderNo || null
+    const newErrors = {
+      materialCode: "",
+      productionPlant: "",
+      planningPlant: "",
+      orderType: "",
+      orderNo: ""
     };
 
-    if (editingId) {
-      await axios.put(`${BASE_URL}/in-process-inspections/${editingId}`, payload);
-    } else {
-      await axios.post(`${BASE_URL}/in-process-inspections`, payload);
+    const code = form.materialCode.trim();
+    const prodPlant = form.productionPlant.trim();
+    const planPlant = form.planningPlant.trim();
+    const orderType = form.orderType.trim();
+    const orderNo = form.orderNo.trim();
+
+    const codeRegex = /^[A-Z0-9_-]+$/;
+
+    if (!code) {
+      newErrors.materialCode = "Material code is required";
+    } else if (!codeRegex.test(code)) {
+      newErrors.materialCode =
+        "Material code must contain only letters, numbers, '_' or '-' (e.g. MC-001)";
+    }
+
+    if (!prodPlant) {
+      newErrors.productionPlant = "Production plant is required";
+    }
+    if (!planPlant) {
+      newErrors.planningPlant = "Planning plant is required";
+    }
+    if (!orderType) {
+      newErrors.orderType = "Order type is required";
+    }
+    if (!orderNo) {
+      newErrors.orderNo = "Order number is required";
+    }
+
+    // if any error message exists, block submit
+    const hasErrors = Object.values(newErrors).some(msg => msg);
+    if (hasErrors) {
+      setErrors(newErrors);
+      return;
+    }
+
+    const payload = {
+      materialCode: form.materialCode,
+      productionPlant: form.productionPlant,
+      planningPlant: form.planningPlant,
+      orderType: form.orderType,
+      orderNo: form.orderNo
+    };
+
+    try {
+      if (editingId) {
+        await axios.put(
+          `${BASE_URL}/in-process-inspections/${editingId}`,
+          payload
+        );
+      } else {
+        await axios.post(`${BASE_URL}/in-process-inspections`, payload);
+      }
+    } catch (err) {
+      console.error("Save Error:", err.response?.data || err);
+      alert(err.response?.data?.message || "Error saving record");
+      return;
     }
 
     setForm({
@@ -74,11 +157,18 @@ export default function InProcessInspectionPage() {
   const handleEdit = item => {
     setEditingId(item.id);
     setForm({
-      materialCode: item.materialCode || "",
-      productionPlant: item.productionPlant || "",
-      planningPlant: item.planningPlant || "",
-      orderType: item.orderType || "",
-      orderNo: item.orderNo || ""
+      materialCode: cleanCode(item.materialCode),
+      productionPlant: cleanCode(item.productionPlant),
+      planningPlant: cleanCode(item.planningPlant),
+      orderType: cleanCode(item.orderType),
+      orderNo: cleanCode(item.orderNo)
+    });
+    setErrors({
+      materialCode: "",
+      productionPlant: "",
+      planningPlant: "",
+      orderType: "",
+      orderNo: ""
     });
   };
 
@@ -108,7 +198,11 @@ export default function InProcessInspectionPage() {
         <div className="qc-master-body">
           {/* Form card */}
           <div className="qc-master-form-card">
-            <h3>{editingId ? "Edit In-Process Inspection" : "Create In-Process Inspection"}</h3>
+            <h3>
+              {editingId
+                ? "Edit In-Process Inspection"
+                : "Create In-Process Inspection"}
+            </h3>
 
             <form onSubmit={handleSubmit} className="qc-form">
               <div className="form-row">
@@ -117,8 +211,11 @@ export default function InProcessInspectionPage() {
                   name="materialCode"
                   value={form.materialCode}
                   onChange={handleChange}
-                  placeholder="Enter material code"
+                  placeholder="Enter material code (e.g. MC-001)"
                 />
+                {errors.materialCode && (
+                  <span className="error-text">{errors.materialCode}</span>
+                )}
               </div>
 
               <div className="form-row">
@@ -129,6 +226,9 @@ export default function InProcessInspectionPage() {
                   onChange={handleChange}
                   placeholder="Enter production plant"
                 />
+                {errors.productionPlant && (
+                  <span className="error-text">{errors.productionPlant}</span>
+                )}
               </div>
 
               <div className="form-row">
@@ -139,6 +239,9 @@ export default function InProcessInspectionPage() {
                   onChange={handleChange}
                   placeholder="Enter planning plant"
                 />
+                {errors.planningPlant && (
+                  <span className="error-text">{errors.planningPlant}</span>
+                )}
               </div>
 
               <div className="form-row">
@@ -149,6 +252,9 @@ export default function InProcessInspectionPage() {
                   onChange={handleChange}
                   placeholder="Enter order type"
                 />
+                {errors.orderType && (
+                  <span className="error-text">{errors.orderType}</span>
+                )}
               </div>
 
               <div className="form-row">
@@ -159,6 +265,9 @@ export default function InProcessInspectionPage() {
                   onChange={handleChange}
                   placeholder="Enter order number"
                 />
+                {errors.orderNo && (
+                  <span className="error-text">{errors.orderNo}</span>
+                )}
               </div>
 
               <div className="form-row-full">
@@ -172,7 +281,11 @@ export default function InProcessInspectionPage() {
           {/* List card */}
           <div className="qc-master-list">
             <div className="qc-master-list-header">
-              <h3>{showRecycleBin ? "Recycle Bin" : "In-Process Inspection List"}</h3>
+              <h3>
+                {showRecycleBin
+                  ? "Recycle Bin"
+                  : "In-Process Inspection List"}
+              </h3>
               <button onClick={() => setShowRecycleBin(v => !v)}>
                 {showRecycleBin ? "Show Active" : "Show Recycle Bin"}
               </button>
@@ -202,13 +315,31 @@ export default function InProcessInspectionPage() {
                     <td>
                       {!showRecycleBin ? (
                         <>
-                          <button className="action-edit" onClick={() => handleEdit(item)}>Edit</button>
-                          <button className="action-delete" onClick={() => handleSoftDelete(item.id)}>Delete</button>
+                          <button
+                            className="action-edit"
+                            onClick={() => handleEdit(item)}
+                          >
+                            Edit
+                          </button>
+                          <button
+                            className="action-delete"
+                            onClick={() => handleSoftDelete(item.id)}
+                          >
+                            Delete
+                          </button>
                         </>
                       ) : (
                         <>
-                          <button className="action-restore" onClick={() => handleRestore(item.id)}>Restore</button>
-                          <button className="action-hard-delete" onClick={() => handleHardDelete(item.id)}>
+                          <button
+                            className="action-restore"
+                            onClick={() => handleRestore(item.id)}
+                          >
+                            Restore
+                          </button>
+                          <button
+                            className="action-hard-delete"
+                            onClick={() => handleHardDelete(item.id)}
+                          >
                             Delete Permanently
                           </button>
                         </>
@@ -225,7 +356,6 @@ export default function InProcessInspectionPage() {
                 )}
               </tbody>
             </table>
-
           </div>
         </div>
       </div>

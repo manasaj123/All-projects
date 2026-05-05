@@ -32,6 +32,17 @@ db.BankStatement = require('../models/BankStatement')(sequelize, DataTypes);
 db.Budget = require('../models/Budget')(sequelize, DataTypes);
 db.Expense = require('../models/Expense')(sequelize, DataTypes);
 db.Audit = require('../models/Audit')(sequelize, DataTypes);
+db.JournalHeader = require('../models/JournalHeader')(sequelize, DataTypes);
+db.JournalLine = require('../models/JournalLine')(sequelize, DataTypes);
+
+db.GLAccount = require('../models/GlAccount')(sequelize, DataTypes);
+db.AccDocument = require('../models/AccDocument')(sequelize, DataTypes);
+
+// ✅ NEW: Fixed Asset model
+db.FixedAsset = require('../models/fixedAsset')(sequelize, DataTypes);
+
+db.VendorCustomerInvoice = require('../models/VendorCustomerInvoice')(sequelize, DataTypes);
+db.VendorCustomerInvoiceLine = require('../models/VendorCustomerInvoiceLine')(sequelize, DataTypes);
 
 // Associations
 db.User.hasMany(db.Invoice, { foreignKey: 'createdBy' });
@@ -70,7 +81,33 @@ db.CostCenter.hasMany(db.Budget, { foreignKey: 'costCenterId' });
 db.Budget.belongsTo(db.ProfitCenter, { foreignKey: 'profitCenterId' });
 db.ProfitCenter.hasMany(db.Budget, { foreignKey: 'profitCenterId' });
 
+// Existing associations above...
+
+db.CostCenter.hasMany(db.Ledger, { foreignKey: 'costCenterId' });
+db.Ledger.belongsTo(db.CostCenter, { foreignKey: 'costCenterId' });
+
+db.ProfitCenter.hasMany(db.Ledger, { foreignKey: 'profitCenterId' });
+db.Ledger.belongsTo(db.ProfitCenter, { foreignKey: 'profitCenterId' });
+
 db.User.hasMany(db.Audit, { foreignKey: 'userId' });
 db.Audit.belongsTo(db.User, { foreignKey: 'userId' });
 
+db.JournalHeader.hasMany(db.JournalLine, { foreignKey: 'journalId', as: 'lines' });
+db.JournalLine.belongsTo(db.JournalHeader, { foreignKey: 'journalId', as: 'header' });
+
+db.Category = require('../models/Category')(sequelize, DataTypes);
+db.Project = require('../models/Project')(sequelize, DataTypes);
+
+
+
+if (db.VendorCustomerInvoice && db.VendorCustomerInvoiceLine) {
+  db.VendorCustomerInvoice.hasMany(db.VendorCustomerInvoiceLine, {
+    as: 'lines',
+    foreignKey: 'invoiceId',
+  });
+  db.VendorCustomerInvoiceLine.belongsTo(db.VendorCustomerInvoice, {
+    as: 'invoice',
+    foreignKey: 'invoiceId',
+  });
+}
 module.exports = db;

@@ -23,8 +23,9 @@ export default function SamplingProcedurePage() {
     inspectionPoints: "WITHOUT_POINTS",
     sampleSize: "",
     acceptanceNumber: "",
-     multipleSamples: "NO_MULTIPLE_SAMPLES" 
+    multipleSamples: "NO_MULTIPLE_SAMPLES"
   });
+  const [errors, setErrors] = useState({});
   const [editingId, setEditingId] = useState(null);
   const [showRecycleBin, setShowRecycleBin] = useState(false);
 
@@ -57,12 +58,75 @@ export default function SamplingProcedurePage() {
 
   const handleChange = e => {
     const { name, value } = e.target;
-    setForm(prev => ({ ...prev, [name]: value }));
+    let newValue = value;
+
+    // Example: force uppercase for procedureCode
+    if (name === "procedureCode") {
+      newValue = value.toUpperCase();
+    }
+
+    setForm(prev => ({ ...prev, [name]: newValue }));
+    setErrors(prev => ({ ...prev, [name]: undefined }));
+  };
+
+  const validateForm = () => {
+    const newErrors = {};
+
+    // Codes like SP_TEST, SPCODE_01 (letters, numbers, _, -)
+    const procedureCodeRegex = /^[A-Z0-9_-]+$/;
+    // Description: letters, numbers, spaces, and basic punctuation ,.-()
+    const descriptionRegex = /^[A-Za-z0-9\s.,\-()/_]*$/;
+
+    // Procedure code required and must follow pattern
+    if (!form.procedureCode.trim()) {
+      newErrors.procedureCode = "Sampling procedure code is required";
+    } else if (!procedureCodeRegex.test(form.procedureCode.trim())) {
+      newErrors.procedureCode =
+        "Code can contain letters, numbers, _ and - only (no spaces or symbols like @#$)";
+    }
+
+    // Description optional but if present, restrict weird symbols
+    if (form.description && !descriptionRegex.test(form.description.trim())) {
+      newErrors.description =
+        "Description can contain letters, numbers, spaces, and . , - ( ) / _";
+    }
+
+    // Numeric checks: non-negative integers
+    const numFields = ["sampleSize", "acceptanceNumber"];
+    numFields.forEach(field => {
+      const value = form[field];
+      if (value !== "" && isNaN(Number(value))) {
+        newErrors[field] = "Must be a number";
+      } else if (value !== "" && Number(value) < 0) {
+        newErrors[field] = "Cannot be negative";
+      } else if (value !== "" && !Number.isInteger(Number(value))) {
+        newErrors[field] = "Must be an integer";
+      }
+    });
+
+    const sampleSize =
+      form.sampleSize === "" ? null : Number(form.sampleSize);
+    const acceptanceNumber =
+      form.acceptanceNumber === "" ? null : Number(form.acceptanceNumber);
+
+    if (
+      sampleSize !== null &&
+      acceptanceNumber !== null &&
+      acceptanceNumber > sampleSize
+    ) {
+      newErrors.acceptanceNumber =
+        "Acceptance number cannot be greater than sample size";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async e => {
     e.preventDefault();
-    if (!form.procedureCode) return;
+
+    const isValid = validateForm();
+    if (!isValid) return;
 
     const payload = {
       procedureCode: form.procedureCode,
@@ -74,7 +138,7 @@ export default function SamplingProcedurePage() {
       acceptanceNumber: form.acceptanceNumber
         ? Number(form.acceptanceNumber)
         : null,
-        multipleSamples: form.multipleSamples
+      multipleSamples: form.multipleSamples
     };
 
     if (editingId) {
@@ -94,16 +158,17 @@ export default function SamplingProcedurePage() {
       inspectionPoints: "WITHOUT_POINTS",
       sampleSize: "",
       acceptanceNumber: "",
-      multipleSamples: "NO_MULTIPLE_SAMPLES" 
+      multipleSamples: "NO_MULTIPLE_SAMPLES"
     });
     setEditingId(null);
+    setErrors({});
     await loadData();
   };
 
   const handleEdit = item => {
     setEditingId(item.id);
     setForm({
-      procedureCode: item.procedureCode || item.procedure_code,
+      procedureCode: (item.procedureCode || item.procedure_code || "").toUpperCase(),
       description: item.description || "",
       samplingType: item.samplingType || item.sampling_type || "FIXED_SAMPLE",
       valuationMode: item.valuationMode || item.valuation_mode || "",
@@ -112,9 +177,10 @@ export default function SamplingProcedurePage() {
       sampleSize: item.sampleSize || item.sample_size || "",
       acceptanceNumber:
         item.acceptanceNumber || item.acceptance_number || "",
-         multipleSamples:
-    item.multipleSamples || item.multiple_samples || "NO_MULTIPLE_SAMPLES"
+      multipleSamples:
+        item.multipleSamples || item.multiple_samples || "NO_MULTIPLE_SAMPLES"
     });
+    setErrors({});
   };
 
   const handleSoftDelete = async id => {
@@ -162,6 +228,11 @@ export default function SamplingProcedurePage() {
                   placeholder="SP_TEST"
                   required
                 />
+                {errors.procedureCode && (
+                  <span className="error-text">
+                    {errors.procedureCode}
+                  </span>
+                )}
               </div>
 
               <div className="form-row">
@@ -172,6 +243,11 @@ export default function SamplingProcedurePage() {
                   onChange={handleChange}
                   placeholder="Short description"
                 />
+                {errors.description && (
+                  <span className="error-text">
+                    {errors.description}
+                  </span>
+                )}
               </div>
 
               {/* Row 2 */}
@@ -214,6 +290,11 @@ export default function SamplingProcedurePage() {
                   onChange={handleChange}
                   placeholder="e.g. 80"
                 />
+                {errors.sampleSize && (
+                  <span className="error-text">
+                    {errors.sampleSize}
+                  </span>
+                )}
               </div>
 
               <div className="form-row">
@@ -226,9 +307,14 @@ export default function SamplingProcedurePage() {
                   onChange={handleChange}
                   placeholder="e.g. 2"
                 />
+                {errors.acceptanceNumber && (
+                  <span className="error-text">
+                    {errors.acceptanceNumber}
+                  </span>
+                )}
               </div>
 
-              {/* Row 4: inspection points, full width */}
+              {/* Row 4: inspection points */}
               <div className="form-row form-row-full">
                 <label>Inspection Points</label>
                 <div className="radio-group-horizontal">
@@ -285,44 +371,52 @@ export default function SamplingProcedurePage() {
                   </label>
                 </div>
               </div>
+
+              {/* Row 5: multiple samples */}
               <div className="form-row form-row-full">
-  <label>Multiple samples</label>
-  <div className="radio-group-horizontal">
-    <label className="radio-option-inline">
-      <input
-        type="radio"
-        name="multipleSamples"
-        value="NO_MULTIPLE_SAMPLES"
-        checked={form.multipleSamples === "NO_MULTIPLE_SAMPLES"}
-        onChange={handleChange}
-      />
-      No multiple samples
-    </label>
+                <label>Multiple samples</label>
+                <div className="radio-group-horizontal">
+                  <label className="radio-option-inline">
+                    <input
+                      type="radio"
+                      name="multipleSamples"
+                      value="NO_MULTIPLE_SAMPLES"
+                      checked={
+                        form.multipleSamples === "NO_MULTIPLE_SAMPLES"
+                      }
+                      onChange={handleChange}
+                    />
+                    No multiple samples
+                  </label>
 
-    <label className="radio-option-inline">
-      <input
-        type="radio"
-        name="multipleSamples"
-        value="INDEP_MULTIPLE_SAMPLES"
-        checked={form.multipleSamples === "INDEP_MULTIPLE_SAMPLES"}
-        onChange={handleChange}
-      />
-      Indep multiple samples
-    </label>
+                  <label className="radio-option-inline">
+                    <input
+                      type="radio"
+                      name="multipleSamples"
+                      value="INDEP_MULTIPLE_SAMPLES"
+                      checked={
+                        form.multipleSamples ===
+                        "INDEP_MULTIPLE_SAMPLES"
+                      }
+                      onChange={handleChange}
+                    />
+                    Indep multiple samples
+                  </label>
 
-    <label className="radio-option-inline">
-      <input
-        type="radio"
-        name="multipleSamples"
-        value="DEP_MULTIPLE_SAMPLES"
-        checked={form.multipleSamples === "DEP_MULTIPLE_SAMPLES"}
-        onChange={handleChange}
-      />
-      Dep multiple samples
-    </label>
-  </div>
-</div>
-
+                  <label className="radio-option-inline">
+                    <input
+                      type="radio"
+                      name="multipleSamples"
+                      value="DEP_MULTIPLE_SAMPLES"
+                      checked={
+                        form.multipleSamples === "DEP_MULTIPLE_SAMPLES"
+                      }
+                      onChange={handleChange}
+                    />
+                    Dep multiple samples
+                  </label>
+                </div>
+              </div>
 
               <div className="form-row-full">
                 <button type="submit">
@@ -332,6 +426,7 @@ export default function SamplingProcedurePage() {
             </form>
           </div>
 
+          {/* List */}
           <div className="qc-master-list">
             <div className="qc-master-list-header">
               <h3>
@@ -349,7 +444,6 @@ export default function SamplingProcedurePage() {
               <thead>
                 <tr>
                   <th className="col-id">ID</th>
-                  
                   <th>Sampling Procedure</th>
                   <th>Description</th>
                   <th>Sampling Type</th>
@@ -357,7 +451,6 @@ export default function SamplingProcedurePage() {
                   <th>Sample size</th>
                   <th>Acceptance no.</th>
                   <th>Multiple samples</th>
-
                   {!showRecycleBin && <th>Inspection Points</th>}
                   {showRecycleBin && <th>Deleted At</th>}
                   <th>Actions</th>
@@ -367,7 +460,6 @@ export default function SamplingProcedurePage() {
                 {list.map(item => (
                   <tr key={item.id}>
                     <td className="col-id">{item.id}</td>
-                    
                     <td>{item.procedureCode || item.procedure_code}</td>
                     <td>{item.description}</td>
                     <td>{item.samplingType || item.sampling_type}</td>
@@ -376,9 +468,9 @@ export default function SamplingProcedurePage() {
                     <td>
                       {item.acceptanceNumber || item.acceptance_number}
                     </td>
-                    <td>{item.multipleSamples || item.multiple_samples}</td>
-
-
+                    <td>
+                      {item.multipleSamples || item.multiple_samples}
+                    </td>
                     {!showRecycleBin && (
                       <td>
                         {item.inspectionPoints || item.inspection_points}
@@ -387,10 +479,8 @@ export default function SamplingProcedurePage() {
                     {showRecycleBin && (
                       <td>{item.deleted_at || item.deletedAt || "-"}</td>
                     )}
-
                     <td>
                       {!showRecycleBin && (
-                        <>
                         <div className="btn">
                           <button
                             className="action-edit"
@@ -404,12 +494,10 @@ export default function SamplingProcedurePage() {
                           >
                             Delete
                           </button>
-                          </div>
-                        </>
+                        </div>
                       )}
                       {showRecycleBin && (
-                        <>
-                         <div className="btn">
+                        <div className="btn">
                           <button
                             className="action-restore"
                             onClick={() => handleRestore(item.id)}
@@ -422,8 +510,7 @@ export default function SamplingProcedurePage() {
                           >
                             Delete Permanently
                           </button>
-                          </div>
-                        </>
+                        </div>
                       )}
                     </td>
                   </tr>

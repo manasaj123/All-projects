@@ -63,7 +63,7 @@ export default function Sidebar() {
           </Link>
         </li>
 
-        <li className="qc-sidebar-item">
+        {/* <li className="qc-sidebar-item">
           <Link to="/lots" className="qc-sidebar-link">
             Inspection 
           </Link>
@@ -73,7 +73,7 @@ export default function Sidebar() {
           <Link to="/reports" className="qc-sidebar-link">
             Audit Reports
           </Link>
-        </li>
+        </li>*/}
       </ul>
     </div>
   );

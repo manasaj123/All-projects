@@ -1,0 +1,321 @@
+// frontend/src/pages/AccDocument.js
+import React, { useEffect, useState } from 'react';
+import api from '../api';
+
+const AccDocument = () => {
+  const [form, setForm] = useState({
+    documentNumber: '',
+    companyCode: 'DB4',
+    fiscalYear: new Date().getFullYear().toString(),
+    documentDate: '',
+    postingDate: '',
+    period: '',
+    reference: '',
+    crossCompNumber: '',
+    currency: 'INR',
+    text: '',
+    ledgerGroup: '',
+  });
+
+  const [docs, setDocs] = useState([]);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+
+  const loadDocs = async () => {
+    try {
+      const res = await api.get('/acc-documents');
+      setDocs(res.data || []);
+    } catch (err) {
+      console.error('Acc document list error', err.response?.data || err.message);
+    }
+  };
+
+  useEffect(() => {
+    loadDocs().catch(console.error);
+  }, []);
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    setSuccess('');
+
+    if (!form.companyCode || !form.documentDate || !form.postingDate) {
+      setError('Company code, document date, and posting date are required');
+      return;
+    }
+
+    if (!form.period) {
+      const d = form.postingDate ? new Date(form.postingDate) : new Date();
+      const m = d.getMonth() + 1;
+      setForm((prev) => ({ ...prev, period: m.toString() }));
+    }
+
+    try {
+      const payload = {
+        companyCode: form.companyCode,
+        fiscalYear: Number(form.fiscalYear),
+        documentDate: form.documentDate,
+        postingDate: form.postingDate,
+        period: Number(form.period || (new Date(form.postingDate).getMonth() + 1)),
+        reference: form.reference || '',
+        crossCompNumber: form.crossCompNumber || '',
+        currency: form.currency || 'INR',
+        text: form.text || '',
+        ledgerGroup: form.ledgerGroup || '',
+      };
+
+      const res = await api.post('/acc-documents', payload);
+      const docNo = res.data.documentNumber;
+
+      setSuccess(`Document posted (Doc No: ${docNo})`);
+      setForm((prev) => ({
+        ...prev,
+        documentNumber: docNo,
+        reference: '',
+        crossCompNumber: '',
+        text: '',
+        ledgerGroup: '',
+      }));
+      await loadDocs();
+    } catch (err) {
+      console.error('Acc document save error', err.response?.data || err.message);
+      setError(err.response?.data?.message || 'Failed to post document');
+    }
+  };
+
+  return (
+    <div>
+      <style>{`
+        .card {
+          background-color: #ffffff;
+          border-radius: 6px;
+          padding: 1rem;
+          margin-bottom: 1rem;
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+        }
+        .grid-2 {
+          display: grid;
+          grid-template-columns: 1.1fr 0.9fr;
+          gap: 1rem;
+        }
+        .form-grid-2 {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+          gap: 0.75rem 1rem;
+        }
+        .form-grid-2 label {
+          display: block;
+          font-size: 0.85rem;
+          font-weight: 500;
+          margin-bottom: 0.25rem;
+        }
+        .form-grid-2 input,
+        .form-grid-2 select,
+        .form-grid-2 textarea {
+          width: 100%;
+          padding: 0.35rem 0.5rem;
+          border: 1px solid #d0d7de;
+          border-radius: 4px;
+          font-size: 0.9rem;
+        }
+        .btn-primary {
+          margin-top: 0.75rem;
+          padding: 0.4rem 1rem;
+          border-radius: 4px;
+          border: none;
+          background-color: #2563eb;
+          color: #ffffff;
+          cursor: pointer;
+        }
+        .error-text {
+          color: #b91c1c;
+          margin-bottom: 0.5rem;
+          font-size: 0.9rem;
+        }
+        .success-text {
+          color: #15803d;
+          margin-bottom: 0.5rem;
+          font-size: 0.9rem;
+        }
+        .table {
+          width: 100%;
+          border-collapse: collapse;
+          font-size: 0.9rem;
+        }
+        .table th,
+        .table td {
+          padding: 0.45rem 0.5rem;
+          border-bottom: 1px solid #e5e7eb;
+        }
+      `}</style>
+
+      <h2>Accounting Document Header</h2>
+
+      <div className="grid-2">
+        <div className="card">
+          <h3>Create Document</h3>
+          {error && <div className="error-text">{error}</div>}
+          {success && <div className="success-text">{success}</div>}
+
+          <form onSubmit={handleSubmit}>
+            <div className="form-grid-2">
+              <div>
+                <label>Document Number</label>
+                <input
+                  name="documentNumber"
+                  value={form.documentNumber}
+                  readOnly
+                  placeholder="Generated by backend"
+                />
+              </div>
+
+              <div>
+                <label>Company Code</label>
+                <input
+                  name="companyCode"
+                  value={form.companyCode}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
+
+              <div>
+                <label>Fiscal Year</label>
+                <input
+                  type="number"
+                  name="fiscalYear"
+                  value={form.fiscalYear}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
+
+              <div>
+                <label>Document Date</label>
+                <input
+                  type="date"
+                  name="documentDate"
+                  value={form.documentDate}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
+
+              <div>
+                <label>Posting Date</label>
+                <input
+                  type="date"
+                  name="postingDate"
+                  value={form.postingDate}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
+
+              <div>
+                <label>Period</label>
+                <input
+                  type="number"
+                  name="period"
+                  value={form.period}
+                  onChange={handleChange}
+                  placeholder="1-12; auto if empty"
+                />
+              </div>
+
+              <div>
+                <label>Reference</label>
+                <input
+                  name="reference"
+                  value={form.reference}
+                  onChange={handleChange}
+                />
+              </div>
+
+              <div>
+                <label>Cross-Comp Number</label>
+                <input
+                  name="crossCompNumber"
+                  value={form.crossCompNumber}
+                  onChange={handleChange}
+                />
+              </div>
+
+              <div>
+                <label>Currency</label>
+                <input
+                  name="currency"
+                  value={form.currency}
+                  onChange={handleChange}
+                />
+              </div>
+
+              <div>
+                <label>partner BArea</label>
+                <input
+                  name="ledgerGroup"
+                  value={form.ledgerGroup}
+                  onChange={handleChange}
+                />
+              </div>
+
+              <div style={{ gridColumn: '1 / -1' }}>
+                <label>Text</label>
+                <textarea
+                  name="text"
+                  rows={2}
+                  value={form.text}
+                  onChange={handleChange}
+                />
+              </div>
+            </div>
+
+            <button className="btn-primary" type="submit">
+              Save Header
+            </button>
+          </form>
+        </div>
+
+        <div className="card">
+          <h3>Recent Documents</h3>
+          <table className="table">
+            <thead>
+              <tr>
+                <th>Doc No</th>
+                <th>Company</th>
+                <th>Year</th>
+                <th>Posting Date</th>
+                <th>Period</th>
+                <th>Currency</th>
+              </tr>
+            </thead>
+            <tbody>
+              {docs.map((d) => (
+                <tr key={d.id}>
+                  <td>{d.documentNumber}</td>
+                  <td>{d.companyCode}</td>
+                  <td>{d.fiscalYear}</td>
+                  <td>{d.postingDate}</td>
+                  <td>{d.period}</td>
+                  <td>{d.currency}</td>
+                </tr>
+              ))}
+              {docs.length === 0 && (
+                <tr>
+                  <td colSpan="6">No documents yet.</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default AccDocument;

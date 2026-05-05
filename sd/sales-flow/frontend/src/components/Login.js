@@ -25,6 +25,31 @@ const styles = {
     border: "1px solid #ccc",
     boxSizing: "border-box"
   },
+  passwordWrapper: {
+    position: "relative",
+    width: "100%",
+    marginBottom: "10px"
+  },
+  passwordInput: {
+    width: "100%",
+    padding: "8px 40px 8px 8px",
+    borderRadius: "4px",
+    border: "1px solid #ccc",
+    boxSizing: "border-box"
+  },
+  eyeButton: {
+    position: "absolute",
+    right: "10px",
+    top: "50%",
+    transform: "translateY(-50%)",
+    background: "none",
+    border: "none",
+    cursor: "pointer",
+    color: "#666",
+    fontSize: "18px",
+    padding: "2px",
+    lineHeight: "1"
+  },
   button: {
     width: "100%",
     padding: "8px",
@@ -45,11 +70,17 @@ const Login = ({ onLogin }) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError("");
+    
+    // Convert email to lowercase
+    const lowercaseEmail = email.toLowerCase();
+    
     try {
-      const data = await loginApi(email, password);
+      const data = await loginApi(lowercaseEmail, password);
       localStorage.setItem("token", data.token);
       onLogin(data.token);
     } catch (err) {
@@ -58,7 +89,6 @@ const Login = ({ onLogin }) => {
   };
 
   return (
-    
     <div style={styles.container}>
       <h2 style={styles.title}>Login</h2>
       {error && <p style={styles.error}>{error}</p>}
@@ -66,16 +96,31 @@ const Login = ({ onLogin }) => {
         <input
           style={styles.input}
           placeholder="Email"
+          type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
+          required
         />
-        <input
-          style={styles.input}
-          placeholder="Password"
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
+        
+        <div style={styles.passwordWrapper}>
+          <input
+            style={styles.passwordInput}
+            placeholder="Password"
+            type={showPassword ? "text" : "password"}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
+          <button
+            type="button"
+            style={styles.eyeButton}
+            onClick={() => setShowPassword(!showPassword)}
+            title={showPassword ? "Hide password" : "Show password"}
+          >
+            {showPassword ? "👁️" : "👁️‍🗨️"}
+          </button>
+        </div>
+        
         <button style={styles.button} type="submit">
           Login
         </button>

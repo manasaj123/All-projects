@@ -20,6 +20,7 @@ export default function InspectionMethodPage() {
     inspectionName: "",
     status: "NOT_RELEASED"
   });
+  const [errors, setErrors] = useState({});
   const [editingId, setEditingId] = useState(null);
   const [showRecycleBin, setShowRecycleBin] = useState(false);
 
@@ -46,11 +47,36 @@ export default function InspectionMethodPage() {
   const handleChange = e => {
     const { name, value } = e.target;
     setForm(prev => ({ ...prev, [name]: value }));
+    setErrors(prev => ({ ...prev, [name]: undefined }));
+  };
+
+  const validateForm = () => {
+    const newErrors = {};
+
+    // Master inspection required
+    if (!form.masterInspectionId) {
+      newErrors.masterInspectionId = "Master Inspection is required";
+    }
+
+    // Method name: letters, numbers, spaces, and - _ / ( )
+    const methodNameRegex = /^[A-Za-z0-9\s\-_/()]+$/;
+
+    if (!form.inspectionName.trim()) {
+      newErrors.inspectionName = "Inspection Method Name is required";
+    } else if (!methodNameRegex.test(form.inspectionName.trim())) {
+      newErrors.inspectionName =
+        "Method name can contain letters, numbers, spaces, and - _ / ( )";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async e => {
     e.preventDefault();
-    if (!form.masterInspectionId) return;
+
+    const isValid = validateForm();
+    if (!isValid) return;
 
     const payload = {
       masterInspectionId: form.masterInspectionId,
@@ -79,10 +105,12 @@ export default function InspectionMethodPage() {
   const handleEdit = item => {
     setEditingId(item.id);
     setForm({
-      masterInspectionId: item.masterInspectionId || item.master_inspection_id || "",
+      masterInspectionId:
+        item.masterInspectionId || item.master_inspection_id || "",
       inspectionName: item.inspectionName || item.inspection_name || "",
       status: item.status
     });
+    setErrors({});
   };
 
   const handleSoftDelete = async id => {
@@ -141,6 +169,11 @@ export default function InspectionMethodPage() {
                     </option>
                   ))}
                 </select>
+                {errors.masterInspectionId && (
+                  <span className="error-text">
+                    {errors.masterInspectionId}
+                  </span>
+                )}
               </div>
 
               <div className="form-row">
@@ -149,7 +182,13 @@ export default function InspectionMethodPage() {
                   name="inspectionName"
                   value={form.inspectionName}
                   onChange={handleChange}
+                  required
                 />
+                {errors.inspectionName && (
+                  <span className="error-text">
+                    {errors.inspectionName}
+                  </span>
+                )}
               </div>
 
               <div className="form-row">

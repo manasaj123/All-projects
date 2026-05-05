@@ -13,6 +13,23 @@ const Sidebar = () => {
       <NavLink to="/cost-centers">💰 Cost Centers</NavLink>
       <NavLink to="/profit-centers">📉 Profit Centers</NavLink>
       <NavLink to="/expenses">🧮 Expenses</NavLink>
+      
+      
+      <NavLink to="/gl-accounts">G/L Accounts</NavLink>
+      <NavLink to="/vendor-customer-invoices">_VENDOR/CUSTOMER INVOICES</NavLink>
+      <NavLink to="/journal">✔ Journal</NavLink>
+      <NavLink to="/accounting-documents">📝 A/c-Documents</NavLink>
+      
+      
+      <NavLink
+  to="/reports"
+  style={({ isActive }) => ({
+    color: isActive ? "yellow" : "white"
+  })}
+>
+  📊 Reports
+</NavLink>
+      {/*<NavLink to="/ledger">✔ Ledger</NavLink> */}
       <NavLink to="/audit">🔍 Audit</NavLink>
     </aside>
   );

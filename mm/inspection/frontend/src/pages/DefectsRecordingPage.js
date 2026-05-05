@@ -14,14 +14,27 @@ export default function DefectsRecordingPage() {
   const [editingId, setEditingId] = useState(null);
 
   const [form, setForm] = useState({
-    defectType: "CUSTOMER",   // CUSTOMER / VENDOR / INTERNAL
+    defectType: "CUSTOMER", // CUSTOMER / VENDOR / INTERNAL
     title: "",
     description: "",
     materialCode: "",
     lotOrOrderNo: "",
     reporter: "",
-    priority: "MEDIUM"        // LOW / MEDIUM / HIGH
+    priority: "MEDIUM" // LOW / MEDIUM / HIGH
   });
+
+  const [errors, setErrors] = useState({
+    defectType: "",
+    title: "",
+    description: "",
+    materialCode: "",
+    lotOrOrderNo: "",
+    reporter: "",
+    priority: ""
+  });
+
+  const cleanCode = v =>
+    (v || "").toUpperCase().replace(/[^A-Z0-9_-]/g, "");
 
   const loadData = async () => {
     try {
@@ -42,26 +55,107 @@ export default function DefectsRecordingPage() {
 
   const handleChange = e => {
     const { name, value } = e.target;
-    setForm(prev => ({ ...prev, [name]: value }));
+    let newValue = value;
+
+    // title: only letters, numbers, spaces (no special chars)
+    if (name === "title") {
+      newValue = value.replace(/[^A-Za-z0-9 ]/g, "");
+    }
+
+    // code-like fields: uppercase + restrict chars
+    if (["materialCode", "lotOrOrderNo", "reporter"].includes(name)) {
+      newValue = cleanCode(value);
+    }
+
+    // clear error when user edits that field
+    if (Object.prototype.hasOwnProperty.call(errors, name)) {
+      setErrors(prev => ({ ...prev, [name]: "" }));
+    }
+
+    setForm(prev => ({ ...prev, [name]: newValue }));
   };
 
   const handleSubmit = async e => {
     e.preventDefault();
 
-    const payload = {
-      defectType: form.defectType || "INTERNAL",
-      title: form.title || "",
-      description: form.description || null,
-      materialCode: form.materialCode || null,
-      lotOrOrderNo: form.lotOrOrderNo || null,
-      reporter: form.reporter || null,
-      priority: form.priority || "MEDIUM"
+    const newErrors = {
+      defectType: "",
+      title: "",
+      description: "",
+      materialCode: "",
+      lotOrOrderNo: "",
+      reporter: "",
+      priority: ""
     };
 
-    if (editingId) {
-      await axios.put(`${BASE_URL}/defects/${editingId}`, payload);
-    } else {
-      await axios.post(`${BASE_URL}/defects`, payload);
+    const titleTrim = form.title.trim();
+    const descTrim = form.description.trim();
+    const matTrim = form.materialCode.trim();
+    const lotTrim = form.lotOrOrderNo.trim();
+    const repTrim = form.reporter.trim();
+
+    const titleRegex = /^[A-Za-z0-9 ]+$/;
+
+    // required: defectType
+    if (!form.defectType) {
+      newErrors.defectType = "Defect type is required";
+    }
+
+    // required: title, and no special chars
+    if (!titleTrim) {
+      newErrors.title = "Title is required";
+    } else if (!titleRegex.test(titleTrim)) {
+      newErrors.title =
+        "Title must contain only letters, numbers and spaces (no special characters)";
+    }
+
+    // required: description
+    if (!descTrim) {
+      newErrors.description = "Description is required";
+    }
+
+    // required: materialCode, lotOrOrderNo, reporter
+    if (!matTrim) {
+      newErrors.materialCode = "Material code is required";
+    }
+    if (!lotTrim) {
+      newErrors.lotOrOrderNo = "Lot / Order No. is required";
+    }
+    if (!repTrim) {
+      newErrors.reporter = "Reporter is required";
+    }
+
+    // required: priority
+    if (!form.priority) {
+      newErrors.priority = "Priority is required";
+    }
+
+    const hasErrors = Object.values(newErrors).some(msg => msg);
+    if (hasErrors) {
+      setErrors(newErrors);
+      return;
+    }
+
+    const payload = {
+      defectType: form.defectType,
+      title: titleTrim,
+      description: descTrim,
+      materialCode: matTrim,
+      lotOrOrderNo: lotTrim,
+      reporter: repTrim,
+      priority: form.priority
+    };
+
+    try {
+      if (editingId) {
+        await axios.put(`${BASE_URL}/defects/${editingId}`, payload);
+      } else {
+        await axios.post(`${BASE_URL}/defects`, payload);
+      }
+    } catch (err) {
+      console.error("Save Error:", err.response?.data || err);
+      alert(err.response?.data?.message || "Error saving defect");
+      return;
     }
 
     setForm({
@@ -81,12 +175,21 @@ export default function DefectsRecordingPage() {
     setEditingId(item.id);
     setForm({
       defectType: item.defectType || "CUSTOMER",
-      title: item.title || "",
+      title: (item.title || "").replace(/[^A-Za-z0-9 ]/g, ""),
       description: item.description || "",
-      materialCode: item.materialCode || "",
-      lotOrOrderNo: item.lotOrOrderNo || "",
-      reporter: item.reporter || "",
+      materialCode: cleanCode(item.materialCode || ""),
+      lotOrOrderNo: cleanCode(item.lotOrOrderNo || ""),
+      reporter: cleanCode(item.reporter || ""),
       priority: item.priority || "MEDIUM"
+    });
+    setErrors({
+      defectType: "",
+      title: "",
+      description: "",
+      materialCode: "",
+      lotOrOrderNo: "",
+      reporter: "",
+      priority: ""
     });
   };
 
@@ -136,6 +239,9 @@ export default function DefectsRecordingPage() {
                     Internal defect (in‑process inspection)
                   </option>
                 </select>
+                {errors.defectType && (
+                  <span className="error-text">{errors.defectType}</span>
+                )}
               </div>
 
               <div className="form-row">
@@ -146,6 +252,9 @@ export default function DefectsRecordingPage() {
                   onChange={handleChange}
                   placeholder="Short defect title"
                 />
+                {errors.title && (
+                  <span className="error-text">{errors.title}</span>
+                )}
               </div>
 
               <div className="form-row">
@@ -157,6 +266,9 @@ export default function DefectsRecordingPage() {
                   placeholder="Describe the defect"
                   rows={3}
                 />
+                {errors.description && (
+                  <span className="error-text">{errors.description}</span>
+                )}
               </div>
 
               <div className="form-row">
@@ -165,8 +277,11 @@ export default function DefectsRecordingPage() {
                   name="materialCode"
                   value={form.materialCode}
                   onChange={handleChange}
-                  placeholder="Optional material code"
+                  placeholder="Material code"
                 />
+                {errors.materialCode && (
+                  <span className="error-text">{errors.materialCode}</span>
+                )}
               </div>
 
               <div className="form-row">
@@ -177,6 +292,9 @@ export default function DefectsRecordingPage() {
                   onChange={handleChange}
                   placeholder="Inspection lot or order number"
                 />
+                {errors.lotOrOrderNo && (
+                  <span className="error-text">{errors.lotOrOrderNo}</span>
+                )}
               </div>
 
               <div className="form-row">
@@ -187,6 +305,9 @@ export default function DefectsRecordingPage() {
                   onChange={handleChange}
                   placeholder="Who reported the defect"
                 />
+                {errors.reporter && (
+                  <span className="error-text">{errors.reporter}</span>
+                )}
               </div>
 
               <div className="form-row">
@@ -200,6 +321,9 @@ export default function DefectsRecordingPage() {
                   <option value="MEDIUM">Medium</option>
                   <option value="HIGH">High</option>
                 </select>
+                {errors.priority && (
+                  <span className="error-text">{errors.priority}</span>
+                )}
               </div>
 
               <div className="form-row-full">
@@ -286,7 +410,6 @@ export default function DefectsRecordingPage() {
                 )}
               </tbody>
             </table>
-
           </div>
         </div>
       </div>

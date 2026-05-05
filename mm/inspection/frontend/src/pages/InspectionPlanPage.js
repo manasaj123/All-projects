@@ -21,13 +21,15 @@ export default function InspectionPlanPage() {
     groupCode: "",
     vendorCode: "",
     validFrom: "",
-    deletionFlag: "0",   // 0 = active, 1 = flagged
+    deletionFlag: "0", // 0 = active, 1 = flagged
     usageCode: "5",
     statusCode: "4",
     planningGroup: "",
     fromLotSize: "",
     toLotSize: ""
   });
+
+  const [errors, setErrors] = useState({});
 
   const loadData = async () => {
     try {
@@ -51,11 +53,113 @@ export default function InspectionPlanPage() {
 
   const handleChange = e => {
     const { name, value } = e.target;
-    setForm(prev => ({ ...prev, [name]: value }));
+    let newValue = value;
+
+    // Optional: force uppercase for codes
+    if (
+      [
+        "materialCode",
+        "plantCode",
+        "groupCode",
+        "vendorCode",
+        "planningGroup"
+      ].includes(name)
+    ) {
+      newValue = value.toUpperCase();
+    }
+
+    setForm(prev => ({ ...prev, [name]: newValue }));
+    setErrors(prev => ({ ...prev, [name]: undefined }));
+  };
+
+  const validateForm = () => {
+    const newErrors = {};
+
+    // Regex rules
+    const codeRegex = /^[A-Z0-9_-]+$/;      // for plant/group/vendor/planning group
+    const materialRegex = /^[A-Z0-9_-]+$/;  // material code
+    const usageStatusRegex = /^[0-9]+$/;    // numeric codes for usage/status
+
+    // Material
+    if (!form.materialCode.trim()) {
+      newErrors.materialCode = "Material is required";
+    } else if (!materialRegex.test(form.materialCode.trim())) {
+      newErrors.materialCode =
+        "Material can contain letters, numbers, _ and - only";
+    }
+
+    // Plant
+    if (!form.plantCode.trim()) {
+      newErrors.plantCode = "Plant is required";
+    } else if (!codeRegex.test(form.plantCode.trim())) {
+      newErrors.plantCode =
+        "Plant can contain letters, numbers, _ and - only (no spaces or symbols like @)";
+    }
+
+    // Group (optional)
+    if (form.groupCode && !codeRegex.test(form.groupCode.trim())) {
+      newErrors.groupCode =
+        "Group can contain letters, numbers, _ and - only";
+    }
+
+    // Vendor (optional)
+    if (form.vendorCode && !codeRegex.test(form.vendorCode.trim())) {
+      newErrors.vendorCode =
+        "Vendor can contain letters, numbers, _ and - only";
+    }
+
+    // Valid from
+    if (!form.validFrom) {
+      newErrors.validFrom = "Valid from is required";
+    }
+
+    // Usage code
+    if (form.usageCode && !usageStatusRegex.test(form.usageCode.trim())) {
+      newErrors.usageCode = "Usage must be numeric (e.g. 5)";
+    }
+
+    // Status code
+    if (form.statusCode && !usageStatusRegex.test(form.statusCode.trim())) {
+      newErrors.statusCode = "Status must be numeric (e.g. 4)";
+    }
+
+    // Planning group
+    if (form.planningGroup && !codeRegex.test(form.planningGroup.trim())) {
+      newErrors.planningGroup =
+        "Planning group can contain letters, numbers, _ and - only";
+    }
+
+    // Lot size numeric checks (>= 0)
+    const lotFields = ["fromLotSize", "toLotSize"];
+    lotFields.forEach(field => {
+      const value = form[field];
+      if (value !== "" && isNaN(Number(value))) {
+        newErrors[field] = "Must be a number";
+      } else if (value !== "" && Number(value) < 0) {
+        newErrors[field] = "Cannot be negative";
+      }
+    });
+
+    // Relationship: fromLotSize <= toLotSize (if both present)
+    const fromLot =
+      form.fromLotSize === "" ? null : Number(form.fromLotSize);
+    const toLot =
+      form.toLotSize === "" ? null : Number(form.toLotSize);
+
+    if (fromLot !== null && toLot !== null && toLot < fromLot) {
+      newErrors.toLotSize = "To lot size cannot be less than from lot size";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async e => {
     e.preventDefault();
+
+    const isValid = validateForm();
+    if (!isValid) return;
+
     if (!form.materialCode || !form.plantCode || !form.validFrom) return;
 
     const payload = {
@@ -97,6 +201,7 @@ export default function InspectionPlanPage() {
       toLotSize: ""
     });
     setEditingId(null);
+    setErrors({});
     await loadData();
   };
 
@@ -109,22 +214,16 @@ export default function InspectionPlanPage() {
       vendorCode: item.vendor_code || item.vendorCode || "",
       validFrom: (item.valid_from || item.validFrom || "").slice(0, 10),
       deletionFlag:
-        item.deletion_flag != null
-          ? String(item.deletion_flag)
-          : "0",
+        item.deletion_flag != null ? String(item.deletion_flag) : "0",
       usageCode: item.usage_code || item.usageCode || "5",
       statusCode: item.status_code || item.statusCode || "4",
-      planningGroup:
-        item.planning_group || item.planningGroup || "",
+      planningGroup: item.planning_group || item.planningGroup || "",
       fromLotSize:
-        item.from_lot_size != null
-          ? String(item.from_lot_size)
-          : "",
+        item.from_lot_size != null ? String(item.from_lot_size) : "",
       toLotSize:
-        item.to_lot_size != null
-          ? String(item.to_lot_size)
-          : ""
+        item.to_lot_size != null ? String(item.to_lot_size) : ""
     });
+    setErrors({});
   };
 
   const handleSoftDelete = async id => {
@@ -133,9 +232,7 @@ export default function InspectionPlanPage() {
   };
 
   const handleRestore = async id => {
-    await axios.post(
-      `${BASE_URL}/inspection-plans/${id}/restore`
-    );
+    await axios.post(`${BASE_URL}/inspection-plans/${id}/restore`);
     await loadData();
   };
 
@@ -185,6 +282,11 @@ export default function InspectionPlanPage() {
                     </option>
                   ))}
                 </select>
+                {errors.materialCode && (
+                  <span className="error-text">
+                    {errors.materialCode}
+                  </span>
+                )}
               </div>
 
               <div className="form-row">
@@ -196,6 +298,9 @@ export default function InspectionPlanPage() {
                   placeholder="Plant"
                   required
                 />
+                {errors.plantCode && (
+                  <span className="error-text">{errors.plantCode}</span>
+                )}
               </div>
 
               {/* Row 2: Group + Vendor */}
@@ -207,6 +312,9 @@ export default function InspectionPlanPage() {
                   onChange={handleChange}
                   placeholder="Task list group"
                 />
+                {errors.groupCode && (
+                  <span className="error-text">{errors.groupCode}</span>
+                )}
               </div>
 
               <div className="form-row">
@@ -217,6 +325,9 @@ export default function InspectionPlanPage() {
                   onChange={handleChange}
                   placeholder="Vendor"
                 />
+                {errors.vendorCode && (
+                  <span className="error-text">{errors.vendorCode}</span>
+                )}
               </div>
 
               {/* Row 3: Valid from + Deletion flag */}
@@ -229,6 +340,9 @@ export default function InspectionPlanPage() {
                   onChange={handleChange}
                   required
                 />
+                {errors.validFrom && (
+                  <span className="error-text">{errors.validFrom}</span>
+                )}
               </div>
 
               <div className="form-row">
@@ -252,6 +366,9 @@ export default function InspectionPlanPage() {
                   onChange={handleChange}
                   placeholder="5"
                 />
+                {errors.usageCode && (
+                  <span className="error-text">{errors.usageCode}</span>
+                )}
               </div>
 
               <div className="form-row">
@@ -262,6 +379,9 @@ export default function InspectionPlanPage() {
                   onChange={handleChange}
                   placeholder="4 (Released)"
                 />
+                {errors.statusCode && (
+                  <span className="error-text">{errors.statusCode}</span>
+                )}
               </div>
 
               {/* Row 5: Planning group + From lot size */}
@@ -273,6 +393,11 @@ export default function InspectionPlanPage() {
                   onChange={handleChange}
                   placeholder="Planner group"
                 />
+                {errors.planningGroup && (
+                  <span className="error-text">
+                    {errors.planningGroup}
+                  </span>
+                )}
               </div>
 
               <div className="form-row">
@@ -284,6 +409,11 @@ export default function InspectionPlanPage() {
                   value={form.fromLotSize}
                   onChange={handleChange}
                 />
+                {errors.fromLotSize && (
+                  <span className="error-text">
+                    {errors.fromLotSize}
+                  </span>
+                )}
               </div>
 
               {/* Row 6: To lot size */}
@@ -296,6 +426,9 @@ export default function InspectionPlanPage() {
                   value={form.toLotSize}
                   onChange={handleChange}
                 />
+                {errors.toLotSize && (
+                  <span className="error-text">{errors.toLotSize}</span>
+                )}
               </div>
 
               <div className="form-row-full">
@@ -368,9 +501,7 @@ export default function InspectionPlanPage() {
                         : ""}
                     </td>
                     <td>
-                      {item.to_lot_size != null
-                        ? item.to_lot_size
-                        : ""}
+                      {item.to_lot_size != null ? item.to_lot_size : ""}
                     </td>
 
                     {!showRecycleBin && (

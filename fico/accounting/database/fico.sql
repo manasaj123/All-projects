@@ -216,3 +216,119 @@ ON DUPLICATE KEY UPDATE code=code;
 
 -- Example AR invoice and its ledger would normally be created via the app
 -- so that all double-entry logic in controllers runs correctly.
+
+
+CREATE TABLE categories (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(100) NOT NULL,
+  type ENUM('INCOME','EXPENSE') NOT NULL,
+  createdAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+
+CREATE TABLE projects (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(100) NOT NULL,
+  code VARCHAR(50) NOT NULL,
+  status ENUM('OPEN','CLOSED') NOT NULL DEFAULT 'OPEN',
+  createdAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+ALTER TABLE ledger
+  ADD COLUMN projectId INT NULL,
+  ADD CONSTRAINT fk_ledger_project
+    FOREIGN KEY (projectId) REFERENCES projects(id);
+
+CREATE TABLE gl_accounts (
+  id INT AUTO_INCREMENT PRIMARY KEY,              -- Account ID
+  glCode VARCHAR(20) NOT NULL UNIQUE,             -- G/L Account
+  name VARCHAR(255) NOT NULL,                     -- Account name (extra, useful)
+  companyCode VARCHAR(10) NOT NULL,               -- Company Code
+  accountController VARCHAR(100),                 -- Account Controller
+  accountCurrency VARCHAR(10) NOT NULL,           -- Account Currency
+  taxCategory VARCHAR(50),                        -- Tax Category
+  reconciliationType ENUM('NONE','CUSTOMER','VENDOR') DEFAULT 'NONE', -- Recon acct type
+  altAccountNumber VARCHAR(50),                   -- Alternative Account Number
+  toleranceGroup VARCHAR(50),                     -- Tolerance Group
+  fieldStatusGroup VARCHAR(50),                   -- Field Status Group
+  planningLevel VARCHAR(50),                      -- Planning Level
+  createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+CREATE TABLE journal_headers (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  documentNumber VARCHAR(20) NOT NULL UNIQUE,
+  documentDate DATE NOT NULL,
+  postingDate DATE NOT NULL,
+  documentType VARCHAR(4) NOT NULL,
+  reference VARCHAR(50),
+  headerText VARCHAR(255),
+  companyCode VARCHAR(10) NOT NULL,
+  status VARCHAR(10) NOT NULL DEFAULT 'POSTED',
+  createdBy VARCHAR(50),
+  createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB;
+
+CREATE TABLE journal_lines (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  journalId INT NOT NULL,
+  lineNo INT NOT NULL,
+  glAccount VARCHAR(20) NOT NULL,
+  debit DECIMAL(18,2) NOT NULL DEFAULT 0,
+  credit DECIMAL(18,2) NOT NULL DEFAULT 0,
+  costCenterId VARCHAR(20),
+  profitCenterId VARCHAR(20),
+  narration VARCHAR(255),
+  FOREIGN KEY (journalId) REFERENCES journal_headers(id)
+) ENGINE=InnoDB;
+
+
+CREATE TABLE acc_documents (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  documentNumber VARCHAR(20) NOT NULL,
+  companyCode   VARCHAR(10) NOT NULL,
+  fiscalYear    INT NOT NULL,
+  documentDate  DATE NOT NULL,
+  postingDate   DATE NOT NULL,
+  period        TINYINT NOT NULL,
+  reference     VARCHAR(50),
+  crossCompNumber VARCHAR(20),
+  currency      VARCHAR(3) NOT NULL,
+  text          VARCHAR(255),
+  ledgerGroup   VARCHAR(10),
+  createdAt     TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB;
+
+
+CREATE TABLE vendor_customer_invoices (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  mode ENUM('VENDOR','CUSTOMER') NOT NULL,
+  postingDate DATE NOT NULL,
+  documentDate DATE NOT NULL,
+  amount DECIMAL(15,2) NOT NULL,
+  reference VARCHAR(50),
+  businessPlace VARCHAR(30),
+  text VARCHAR(255),
+  baselineDate DATE,
+  vendorCode VARCHAR(20),
+  sectionCode VARCHAR(20),
+  customerCode VARCHAR(20),
+  createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+CREATE TABLE vendor_customer_invoice_lines (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  invoiceId INT NOT NULL,
+  glAccount VARCHAR(20) NOT NULL,
+  amount DECIMAL(15,2) NOT NULL,
+  taxCode VARCHAR(10),
+  assignment VARCHAR(50),
+  lineText VARCHAR(255),
+  costCenter VARCHAR(20),
+  hsnCode VARCHAR(20),
+  FOREIGN KEY (invoiceId) REFERENCES vendor_customer_invoices(id)
+);

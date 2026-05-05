@@ -10,6 +10,14 @@ const productApi = {
   async create(data) {
     const res = await axios.post(BASE, data);
     return res.data;
+  },
+  async update(id, data) {
+    const res = await axios.put(`${BASE}/${id}`, data);
+    return res.data;
+  },
+  async delete(id) {
+    const res = await axios.delete(`${BASE}/${id}`);
+    return res.data;
   }
 };
 

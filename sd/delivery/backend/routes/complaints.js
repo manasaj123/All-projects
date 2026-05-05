@@ -2,9 +2,15 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../utils/db');
 
+/**
+ * GET /api/complaints
+ * List all complaints (latest first)
+ */
 router.get('/', async (req, res) => {
   try {
-    const [complaints] = await pool.execute('SELECT * FROM complaints ORDER BY created_at DESC');
+    const [complaints] = await pool.execute(
+      'SELECT * FROM complaints ORDER BY created_at DESC'
+    );
     res.json(complaints);
   } catch (error) {
     console.error('Complaints GET error:', error);
@@ -12,33 +18,55 @@ router.get('/', async (req, res) => {
   }
 });
 
+/**
+ * POST /api/complaints
+ * Create a new complaint
+ */
 router.post('/', async (req, res) => {
   try {
-    // ✅ SAFE: Filter undefined/null values
-    const { complaint_id, customer_name, customer_phone, order_id, subject, description } = req.body;
-    
-    const params = [
-      complaint_id || null,
-      customer_name || null,
-      customer_phone || null,
-      order_id || null,
-      subject || null,
-      description || null
-    ].filter(Boolean); // Remove null/undefined
+    const {
+      customer_name,
+      customer_phone,
+      order_id,
+      subject,
+      description,
+      assigned_to,
+    } = req.body;
 
-    if (params.length < 2) {
-      return res.status(400).json({ error: 'Minimum required fields missing' });
+    // Basic validation: require at least customer + description or subject
+    if (!customer_name || !description) {
+      return res
+        .status(400)
+        .json({ error: 'customer_name and description are required' });
     }
 
+    // Insert complaint – note: NO complaint_id column in table
     const [result] = await pool.execute(
-      `INSERT INTO complaints (complaint_id, customer_name, customer_phone, order_id, subject, description) 
-       VALUES (?, ?, ?, ?, ?, ?)`,
-      [complaint_id || null, customer_name || null, customer_phone || null, order_id || null, subject || null, description || null]
+      `INSERT INTO complaints 
+        (customer_name, customer_phone, order_id, subject, description, status, assigned_to)
+       VALUES (?, ?, ?, ?, ?, 'new', ?)`,
+      [
+        customer_name || null,
+        customer_phone || null,
+        order_id || null,
+        subject || null,
+        description || null,
+        assigned_to || null,
+      ]
     );
-    
-    const [complaint] = await pool.execute('SELECT * FROM complaints WHERE id = ?', [result.insertId]);
-    req.app.get('io')?.emit('complaintCreated', complaint[0]);
-    res.status(201).json(complaint[0]);
+
+    // Fetch the newly created record
+    const [rows] = await pool.execute(
+      'SELECT * FROM complaints WHERE id = ?',
+      [result.insertId]
+    );
+
+    const complaint = rows[0];
+
+    // Emit realtime event if socket.io is attached
+    req.app.get('io')?.emit('complaintCreated', complaint);
+
+    res.status(201).json(complaint);
   } catch (error) {
     console.error('Complaints POST error:', error);
     res.status(400).json({ error: error.message });

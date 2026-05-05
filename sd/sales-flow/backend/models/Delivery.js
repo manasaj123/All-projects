@@ -1,18 +1,41 @@
+// models/Delivery.js
 const { DataTypes } = require("sequelize");
 const { sequelize } = require("../config/db");
 
-const Delivery = sequelize.define(
-  "Delivery",
-  {
-    orderId: { type: DataTypes.INTEGER, allowNull: false },
-    address: { type: DataTypes.STRING, allowNull: false },
-    deliveredAt: { type: DataTypes.DATE },
-    status: {
-      type: DataTypes.ENUM("PENDING", "OUT_FOR_DELIVERY", "DELIVERED"),
-      defaultValue: "PENDING"
+const Delivery = sequelize.define("Delivery", {
+  id: {
+    type: DataTypes.INTEGER,
+    primaryKey: true,
+    autoIncrement: true
+  },
+  orderId: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    references: {
+      model: 'orders',
+      key: 'id'
     }
   },
-  { tableName: "deliveries" }
-);
+  status: {
+    type: DataTypes.STRING(50),
+    allowNull: false,
+    defaultValue: 'pending'
+  },
+  trackingNumber: {
+    type: DataTypes.STRING(100),
+    allowNull: true
+  },
+  estimatedDelivery: {
+    type: DataTypes.DATE,
+    allowNull: true
+  },
+  deliveredAt: {
+    type: DataTypes.DATE,
+    allowNull: true
+  }
+}, {
+  tableName: 'deliveries',
+  timestamps: true
+});
 
 module.exports = Delivery;

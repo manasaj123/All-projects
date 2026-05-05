@@ -31,6 +31,18 @@ export default function FinalInspectionPage() {
     planCode: ""
   });
 
+  const [errors, setErrors] = useState({
+    materialCode: "",
+    productionPlant: "",
+    orderType: "",
+    orderQuantity: "",
+    orderDate: "",
+    planCode: ""
+  });
+
+  const cleanCode = v =>
+    (v || "").toUpperCase().replace(/[^A-Z0-9_-]/g, "");
+
   const loadData = async () => {
     try {
       const [active, bin] = await Promise.all([
@@ -58,8 +70,8 @@ export default function FinalInspectionPage() {
         );
         setForm(prev => ({
           ...prev,
-          materialCode: res.data.materialCode || "",
-          productionPlant: res.data.productionPlant || ""
+          materialCode: cleanCode(res.data.materialCode || ""),
+          productionPlant: cleanCode(res.data.productionPlant || "")
         }));
       } catch (err) {
         console.error("Load from In-Process error:", err);
@@ -70,49 +82,161 @@ export default function FinalInspectionPage() {
 
   const handleChange = e => {
     const { name, value } = e.target;
-    setForm(prev => ({ ...prev, [name]: value }));
+    let newValue = value;
+
+    // code-like fields: uppercase + restrict
+    if (["materialCode", "productionPlant", "orderType", "planCode"].includes(name)) {
+      newValue = value.toUpperCase().replace(/[^A-Z0-9_-]/g, "");
+    }
+
+    // numeric for quantity
+    if (name === "orderQuantity") {
+      const cleaned = value.replace(/[^0-9.\-]/g, "");
+      let result = cleaned;
+      const firstMinus = result.indexOf("-");
+      if (firstMinus > 0) {
+        result = result.replace(/-/g, "");
+      }
+      const parts = result.split(".");
+      if (parts.length > 2) {
+        result = parts[0] + "." + parts.slice(1).join("");
+      }
+      newValue = result;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(errors, name)) {
+      setErrors(prev => ({ ...prev, [name]: "" }));
+    }
+
+    setForm(prev => ({ ...prev, [name]: newValue }));
   };
 
   const handleSubmit = async e => {
-    e.preventDefault();
+  e.preventDefault();
 
-    const payload = {
-      materialCode: form.materialCode || null,
-      productionPlant: form.productionPlant || null,
-      orderType: form.orderType || null,
-      orderQuantity: form.orderQuantity ? Number(form.orderQuantity) : null,
-      orderDate: form.orderDate || null,
-      planCode: form.planCode || null
-    };
+  const newErrors = {
+    materialCode: "",
+    productionPlant: "",
+    orderType: "",
+    orderQuantity: "",
+    orderDate: "",
+    planCode: ""
+  };
 
+  const code = form.materialCode.trim();
+  const plant = form.productionPlant.trim();
+  const oType = form.orderType.trim();
+  const qtyStr = form.orderQuantity.toString().trim();
+  const oDate = form.orderDate.trim();
+  const plan = form.planCode.trim();
+
+  const codeRegex = /^[A-Z0-9_-]+$/;
+
+  if (!code) {
+    newErrors.materialCode = "Material code is required";
+  } else if (!codeRegex.test(code)) {
+    newErrors.materialCode =
+      "Material code must contain only letters, numbers, '_' or '-' (e.g. MC-001)";
+  }
+
+  if (!plant) {
+    newErrors.productionPlant = "Production plant is required";
+  } else if (!codeRegex.test(plant)) {
+    newErrors.productionPlant =
+      "Production plant must contain only letters, numbers, '_' or '-'";
+  }
+
+  if (!oType) {
+    newErrors.orderType = "Order type is required";
+  } else if (!codeRegex.test(oType)) {
+    newErrors.orderType =
+      "Order type must contain only letters, numbers, '_' or '-'";
+  }
+
+  // quantity: required, number, > 0
+  if (!qtyStr) {
+    newErrors.orderQuantity = "Order quantity is required";
+  } else {
+    const qty = Number(qtyStr);
+    if (Number.isNaN(qty)) {
+      newErrors.orderQuantity = "Order quantity must be a valid number";
+    } else if (qty <= 0) {
+      newErrors.orderQuantity =
+        "Order quantity must be greater than 0 (no negative or zero)";
+    }
+  }
+
+  if (!oDate) {
+    newErrors.orderDate = "Order date is required";
+  }
+
+  if (!plan) {
+    newErrors.planCode = "Plan code is required";
+  } else if (!codeRegex.test(plan)) {
+    newErrors.planCode =
+      "Plan code must contain only letters, numbers, '_' or '-'";
+  }
+
+  const hasErrors = Object.values(newErrors).some(msg => msg);
+  if (hasErrors) {
+    setErrors(newErrors);
+    return;
+  }
+
+  const payload = {
+    materialCode: form.materialCode,
+    productionPlant: form.productionPlant,
+    orderType: form.orderType,
+    orderQuantity: Number(form.orderQuantity),
+    orderDate: form.orderDate,
+    planCode: form.planCode
+  };
+
+  try {
     if (editingId) {
-      await axios.put(`${BASE_URL}/final-inspections/${editingId}`, payload);
+      await axios.put(
+        `${BASE_URL}/final-inspections/${editingId}`,
+        payload
+      );
     } else {
       await axios.post(`${BASE_URL}/final-inspections`, payload);
     }
+  } catch (err) {
+    console.error("Save Error:", err.response?.data || err);
+    alert(err.response?.data?.message || "Error saving record");
+    return;
+  }
 
+  setForm({
+    materialCode: "",
+    productionPlant: "",
+    orderType: "",
+    orderQuantity: "",
+    orderDate: "",
+    planCode: ""
+  });
+  setEditingId(null);
+  loadData();
+};
+
+  const handleEdit = item => {
+    setEditingId(item.id);
     setForm({
+      materialCode: cleanCode(item.materialCode),
+      productionPlant: cleanCode(item.productionPlant),
+      orderType: cleanCode(item.orderType),
+      orderQuantity:
+        item.orderQuantity != null ? String(item.orderQuantity) : "",
+      orderDate: item.orderDate ? item.orderDate.slice(0, 10) : "",
+      planCode: cleanCode(item.planCode)
+    });
+    setErrors({
       materialCode: "",
       productionPlant: "",
       orderType: "",
       orderQuantity: "",
       orderDate: "",
       planCode: ""
-    });
-    setEditingId(null);
-    loadData();
-  };
-
-  const handleEdit = item => {
-    setEditingId(item.id);
-    setForm({
-      materialCode: item.materialCode || "",
-      productionPlant: item.productionPlant || "",
-      orderType: item.orderType || "",
-      orderQuantity:
-        item.orderQuantity != null ? String(item.orderQuantity) : "",
-      orderDate: item.orderDate ? item.orderDate.slice(0, 10) : "",
-      planCode: item.planCode || ""
     });
   };
 
@@ -142,7 +266,9 @@ export default function FinalInspectionPage() {
         <div className="qc-master-body">
           {/* Form card */}
           <div className="qc-master-form-card">
-            <h3>{editingId ? "Edit Final Inspection" : "Create Final Inspection"}</h3>
+            <h3>
+              {editingId ? "Edit Final Inspection" : "Create Final Inspection"}
+            </h3>
 
             <form onSubmit={handleSubmit} className="qc-form">
               <div className="form-row">
@@ -153,6 +279,9 @@ export default function FinalInspectionPage() {
                   onChange={handleChange}
                   placeholder="Enter material code"
                 />
+                {errors.materialCode && (
+                  <span className="error-text">{errors.materialCode}</span>
+                )}
               </div>
 
               <div className="form-row">
@@ -163,6 +292,9 @@ export default function FinalInspectionPage() {
                   onChange={handleChange}
                   placeholder="Enter production plant"
                 />
+                {errors.productionPlant && (
+                  <span className="error-text">{errors.productionPlant}</span>
+                )}
               </div>
 
               <div className="form-row">
@@ -173,6 +305,9 @@ export default function FinalInspectionPage() {
                   onChange={handleChange}
                   placeholder="Enter order type"
                 />
+                {errors.orderType && (
+                  <span className="error-text">{errors.orderType}</span>
+                )}
               </div>
 
               <div className="form-row">
@@ -185,6 +320,9 @@ export default function FinalInspectionPage() {
                   onChange={handleChange}
                   placeholder="Enter quantity"
                 />
+                {errors.orderQuantity && (
+                  <span className="error-text">{errors.orderQuantity}</span>
+                )}
               </div>
 
               <div className="form-row">
@@ -195,6 +333,9 @@ export default function FinalInspectionPage() {
                   value={form.orderDate}
                   onChange={handleChange}
                 />
+                {errors.orderDate && (
+                  <span className="error-text">{errors.orderDate}</span>
+                )}
               </div>
 
               <div className="form-row">
@@ -205,6 +346,9 @@ export default function FinalInspectionPage() {
                   onChange={handleChange}
                   placeholder="Enter plan code"
                 />
+                {errors.planCode && (
+                  <span className="error-text">{errors.planCode}</span>
+                )}
               </div>
 
               <div className="form-row-full">
@@ -291,7 +435,6 @@ export default function FinalInspectionPage() {
                 )}
               </tbody>
             </table>
-
           </div>
         </div>
       </div>

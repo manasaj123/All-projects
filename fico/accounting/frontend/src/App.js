@@ -14,6 +14,14 @@ import Budget from './pages/Budget';
 import CostCenter from './pages/CostCenter';
 import ProfitCenter from './pages/ProfitCenter';
 import Expense from './pages/Expense';
+import GLAccount from './pages/GLAccount';
+import Journal from './pages/Journal';
+import Ledger from './pages/Ledger';
+import AccDocument from './pages/AccDocument';
+import VendorCustomerInvoice from './pages/VendorCustomerInvoice';
+
+
+
 
 
 import './styles/App.css';
@@ -36,6 +44,7 @@ const App = () => {
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
       <Route element={<ProtectedRoute />}>
+      
         <Route
           path="/"
           element={<Navigate to="/dashboard" replace />}
@@ -96,6 +105,49 @@ const App = () => {
             </AppLayout>
           }
         />
+     
+<Route
+    path="/gl-accounts"
+    element={
+      <AppLayout>
+        <GLAccount />
+      </AppLayout>
+    }
+  />
+<Route
+  path="/journal"
+  element={
+    <AppLayout>
+      <Journal />
+    </AppLayout>
+  }
+/>
+<Route
+  path="/ledger"
+  element={
+    <AppLayout>
+      <Ledger />
+    </AppLayout>
+  }
+/>
+<Route
+  path="/accounting-documents"
+  element={
+    <AppLayout>
+      <AccDocument />
+    </AppLayout>
+  }
+/>
+<Route
+  path="/vendor-customer-invoices"
+  element={
+    <AppLayout>
+      <VendorCustomerInvoice />
+    </AppLayout>
+  }
+/>
+
+
         <Route
           path="/expenses"
           element={
@@ -104,6 +156,7 @@ const App = () => {
             </AppLayout>
           }
         />
+       
       </Route>
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>

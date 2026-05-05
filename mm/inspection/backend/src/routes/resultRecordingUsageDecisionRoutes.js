@@ -19,6 +19,62 @@ const mapRow = r => ({
   updatedAt: r.updated_at
 });
 
+// Common validators
+const codeRegex = /^[A-Z0-9_-]+$/;   // plant/material/batch/vendor
+const udRegex = /^[A-Z]$/;           // single letter
+
+function validatePayload(req, res) {
+  const {
+    plantCode,
+    origin,
+    materialCode,
+    batchNumber,
+    vendorCode,
+    usageDecision
+  } = req.body;
+
+  if (!plantCode || !materialCode || !batchNumber || !vendorCode) {
+    res.status(400).json({
+      message:
+        "plantCode, materialCode, batchNumber, vendorCode are required"
+    });
+    return null;
+  }
+
+  if (!codeRegex.test(plantCode.toUpperCase())) {
+    res.status(400).json({ message: "Invalid plantCode" });
+    return null;
+  }
+  if (!codeRegex.test(materialCode.toUpperCase())) {
+    res.status(400).json({ message: "Invalid materialCode" });
+    return null;
+  }
+  if (!codeRegex.test(batchNumber.toUpperCase())) {
+    res.status(400).json({ message: "Invalid batchNumber" });
+    return null;
+  }
+  if (!codeRegex.test(vendorCode.toUpperCase())) {
+    res.status(400).json({ message: "Invalid vendorCode" });
+    return null;
+  }
+
+  const originVal = origin || "01";
+
+  if (usageDecision && !udRegex.test(usageDecision.toUpperCase())) {
+    res.status(400).json({ message: "Invalid usageDecision (must be one letter A–Z)" });
+    return null;
+  }
+
+  return {
+    plantCode: plantCode.toUpperCase(),
+    origin: originVal,
+    materialCode: materialCode.toUpperCase(),
+    batchNumber: batchNumber.toUpperCase(),
+    vendorCode: vendorCode.toUpperCase(),
+    usageDecision: usageDecision ? usageDecision.toUpperCase() : ""
+  };
+}
+
 // GET active
 router.get("/raw-material-inspections", (req, res) => {
   const sql =
@@ -47,141 +103,151 @@ router.get("/raw-material-inspections/recycle-bin", (req, res) => {
   });
 });
 
-// CREATE or UPDATE (by plant+origin+material+batch+vendor)
+// CREATE (insert)
 router.post("/raw-material-inspections", (req, res) => {
+  const base = validatePayload(req, res);
+  if (!base) return;
+
   const {
     plantCode,
+    origin,
     materialCode,
     batchNumber,
     vendorCode,
-    resultText,
-    usageDecision   // UD code entered by user, e.g. 'A'
-  } = req.body;
+    usageDecision
+  } = base;
 
-  if (!plantCode || !materialCode || !batchNumber || !vendorCode) {
-    return res.status(400).json({
-      message:
-        "plantCode, materialCode, batchNumber, vendorCode are required"
-    });
-  }
+  const { resultText } = req.body;
 
-  const origin = "01";
-
-  // derive quality score from UD code
   let qualityScore = null;
   if (usageDecision === "A") {
     qualityScore = 100;
-  } else {
-    qualityScore = null; // or 0 if you prefer
   }
 
-  const selectExistingSql = `
-    SELECT *
-    FROM raw_material_inspections
-    WHERE plant_code = ?
-      AND origin = ?
-      AND material_code = ?
-      AND batch_number = ?
-      AND vendor_code = ?
-      AND is_deleted = 0
+  const insertSql = `
+    INSERT INTO raw_material_inspections
+      (plant_code, origin, material_code, batch_number,
+       vendor_code, result_summary, usage_decision, quality_score)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
   `;
 
   db.query(
-    selectExistingSql,
-    [plantCode, origin, materialCode, batchNumber, vendorCode],
-    (err, rows) => {
+    insertSql,
+    [
+      plantCode,
+      origin,
+      materialCode,
+      batchNumber,
+      vendorCode,
+      resultText || null,
+      usageDecision || null,
+      qualityScore
+    ],
+    (err2, result) => {
+      if (err2) {
+        console.error("INSERT raw_material_inspections error:", err2);
+        return res
+          .status(500)
+          .json({ message: "DB error", error: err2 });
+      }
+
+      const selectSql =
+        "SELECT * FROM raw_material_inspections WHERE id = ?";
+      db.query(selectSql, [result.insertId], (err3, rows2) => {
+        if (err3) {
+          console.error(
+            "SELECT raw_material_inspections after insert error:",
+            err3
+          );
+          return res
+            .status(500)
+            .json({ message: "DB error", error: err3 });
+        }
+
+        return res.status(201).json(mapRow(rows2[0]));
+      });
+    }
+  );
+});
+
+// UPDATE by ID
+router.put("/raw-material-inspections/:id", (req, res) => {
+  const id = Number(req.params.id);
+  const base = validatePayload(req, res);
+  if (!base) return;
+
+  const {
+    plantCode,
+    origin,
+    materialCode,
+    batchNumber,
+    vendorCode,
+    usageDecision
+  } = base;
+
+  const { resultText } = req.body;
+
+  let qualityScore = null;
+  if (usageDecision === "A") {
+    qualityScore = 100;
+  }
+
+  const sql = `
+    UPDATE raw_material_inspections
+    SET
+      plant_code = ?,
+      origin = ?,
+      material_code = ?,
+      batch_number = ?,
+      vendor_code = ?,
+      result_summary = ?,
+      usage_decision = ?,
+      quality_score = ?
+    WHERE id = ? AND is_deleted = 0
+  `;
+
+  db.query(
+    sql,
+    [
+      plantCode,
+      origin,
+      materialCode,
+      batchNumber,
+      vendorCode,
+      resultText || null,
+      usageDecision || null,
+      qualityScore,
+      id
+    ],
+    (err, result) => {
       if (err) {
-        console.error(
-          "SELECT raw_material_inspections for upsert error:",
-          err
-        );
-        return res.status(500).json({ message: "DB error", error: err });
+        console.error("UPDATE raw_material_inspections by id error:", err);
+        return res
+          .status(500)
+          .json({ message: "DB error", error: err });
       }
 
-      if (rows.length > 0) {
-        // UPDATE
-        const id = rows[0].id;
-        const updateSql = `
-          UPDATE raw_material_inspections
-          SET result_summary = ?, usage_decision = ?, quality_score = ?
-          WHERE id = ? AND is_deleted = 0
-        `;
-
-        db.query(
-          updateSql,
-          [resultText || null, usageDecision || null, qualityScore, id],
-          (err2) => {
-            if (err2) {
-              console.error("UPDATE raw_material_inspections error:", err2);
-              return res
-                .status(500)
-                .json({ message: "DB error", error: err2 });
-            }
-
-            const selectSql =
-              "SELECT * FROM raw_material_inspections WHERE id = ?";
-            db.query(selectSql, [id], (err3, rows2) => {
-              if (err3) {
-                console.error(
-                  "SELECT raw_material_inspections after update error:",
-                  err3
-                );
-                return res
-                  .status(500)
-                  .json({ message: "DB error", error: err3 });
-              }
-
-              return res.json(mapRow(rows2[0]));
-            });
-          }
-        );
-      } else {
-        // INSERT
-        const insertSql = `
-          INSERT INTO raw_material_inspections
-            (plant_code, origin, material_code, batch_number,
-             vendor_code, result_summary, usage_decision, quality_score)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        `;
-
-        db.query(
-          insertSql,
-          [
-            plantCode,
-            origin,
-            materialCode,
-            batchNumber,
-            vendorCode,
-            resultText || null,
-            usageDecision || null,
-            qualityScore
-          ],
-          (err2, result) => {
-            if (err2) {
-              console.error("INSERT raw_material_inspections error:", err2);
-              return res
-                .status(500)
-                .json({ message: "DB error", error: err2 });
-            }
-
-            const selectSql =
-              "SELECT * FROM raw_material_inspections WHERE id = ?";
-            db.query(selectSql, [result.insertId], (err3, rows2) => {
-              if (err3) {
-                console.error(
-                  "SELECT raw_material_inspections after insert error:",
-                  err3
-                );
-                return res
-                  .status(500)
-                  .json({ message: "DB error", error: err3 });
-              }
-
-              return res.status(201).json(mapRow(rows2[0]));
-            });
-          }
-        );
+      if (result.affectedRows === 0) {
+        return res
+          .status(404)
+          .json({ message: "Not found or already deleted" });
       }
+
+      const selectSql =
+        "SELECT * FROM raw_material_inspections WHERE id = ?";
+      db.query(selectSql, [id], (err2, rows2) => {
+        if (err2) {
+          console.error(
+            "SELECT raw_material_inspections after update-by-id error:",
+            err2
+          );
+          return res
+            .status(500)
+            .json({ message: "DB error", error: err2 });
+        }
+
+        return res.json(mapRow(rows2[0]));
+      });
     }
   );
 });

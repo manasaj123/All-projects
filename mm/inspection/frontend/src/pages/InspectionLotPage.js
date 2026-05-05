@@ -1,11 +1,11 @@
-// mm/inspection/frontend/src/pages/InspectionLotPage.js
+// inspection/frontend/src/pages/InspectionLotPage.js
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import Sidebar from "../components/qc/Sidebar";
 import Header from "../components/qc/Header";
 import "./Pagestyles.css";
 
-const BASE_URL = "http://localhost:5003/api"; // inspection backend
+const BASE_URL = "http://localhost:5003/api";
 
 export default function InspectionLotPage() {
   const [items, setItems] = useState([]);
@@ -33,51 +33,84 @@ export default function InspectionLotPage() {
   });
 
   const loadData = async () => {
-    try {
-      const [active, bin] = await Promise.all([
-        axios.get(`${BASE_URL}/inspection-lots`),
-        axios.get(`${BASE_URL}/inspection-lots/recycle-bin`)
-      ]);
-      setItems(active.data || []);
-      setBinItems(bin.data || []);
-    } catch (err) {
-      console.error("Load Error:", err);
-    }
+    const [activeRes, binRes] = await Promise.all([
+      axios.get(`${BASE_URL}/inspection-lots`),
+      axios.get(`${BASE_URL}/inspection-lots/recycle-bin`)
+    ]);
+    setItems(activeRes.data || []);
+    setBinItems(binRes.data || []);
   };
 
   useEffect(() => {
     loadData();
   }, []);
 
+  // helper for date parsing (this was missing)
+  const parse = v => (v ? new Date(v) : null);
+
   const handleChange = e => {
     const { name, value } = e.target;
-    setForm(prev => ({ ...prev, [name]: value }));
+    console.log("CHANGE:", name, value);
+
+    let newValue = value;
+
+    if (
+      [
+        "selectionProfile",
+        "plant",
+        "lotOrigin",
+        "material",
+        "batch",
+        "vendor",
+        "manufacturer",
+        "customer",
+        "materialClass"
+      ].includes(name)
+    ) {
+      newValue = value.toUpperCase().replace(/[^A-Z0-9_-]/g, "");
+    }
+
+    if (name === "maxHits") {
+      newValue = value.replace(/[^0-9]/g, "");
+    }
+
+    console.log("NEW VALUE:", name, newValue);
+    setForm(prev => ({ ...prev, [name]: newValue }));
   };
 
   const handleSubmit = async e => {
     e.preventDefault();
 
+    const lcFrom = parse(form.lotCreatedFrom);
+    const lcTo = parse(form.lotCreatedTo);
+    const isFrom = parse(form.inspStartFrom);
+    const isTo = parse(form.inspStartTo);
+    const ieFrom = parse(form.inspectionEndFrom);
+    const ieTo = parse(form.inspectionEndTo);
+
+    if (lcFrom && lcTo && lcFrom > lcTo) {
+      alert("Lot created (From) cannot be after (To)");
+      return;
+    }
+    if (isFrom && isTo && isFrom > isTo) {
+      alert("Insp. start date (From) cannot be after (To)");
+      return;
+    }
+    if (ieFrom && ieTo && ieFrom > ieTo) {
+      alert("End of Inspection (From) cannot be after (To)");
+      return;
+    }
+
     const payload = {
-      selectionProfile: form.selectionProfile || null,
-      lotCreatedFrom: form.lotCreatedFrom || null,
-      lotCreatedTo: form.lotCreatedTo || null,
-      inspStartFrom: form.inspStartFrom || null,
-      inspStartTo: form.inspStartTo || null,
-      inspectionEndFrom: form.inspectionEndFrom || null,
-      inspectionEndTo: form.inspectionEndTo || null,
-      plant: form.plant || null,
-      lotOrigin: form.lotOrigin || null,
-      material: form.material || null,
-      batch: form.batch || null,
-      vendor: form.vendor || null,
-      manufacturer: form.manufacturer || null,
-      customer: form.customer || null,
-      materialClass: form.materialClass || null,
-      maxHits: form.maxHits ? Number(form.maxHits) : null
+      ...form,
+      maxHits: form.maxHits || null
     };
 
     if (editingId) {
-      await axios.put(`${BASE_URL}/inspection-lots/${editingId}`, payload);
+      await axios.put(
+        `${BASE_URL}/inspection-lots/${editingId}`,
+        payload
+      );
     } else {
       await axios.post(`${BASE_URL}/inspection-lots`, payload);
     }
@@ -101,7 +134,7 @@ export default function InspectionLotPage() {
       maxHits: ""
     });
     setEditingId(null);
-    loadData();
+    await loadData();
   };
 
   const handleEdit = item => {
@@ -128,17 +161,17 @@ export default function InspectionLotPage() {
 
   const handleSoftDelete = async id => {
     await axios.delete(`${BASE_URL}/inspection-lots/${id}`);
-    loadData();
+    await loadData();
   };
 
   const handleRestore = async id => {
     await axios.post(`${BASE_URL}/inspection-lots/${id}/restore`);
-    loadData();
+    await loadData();
   };
 
   const handleHardDelete = async id => {
     await axios.delete(`${BASE_URL}/inspection-lots/${id}/hard-delete`);
-    loadData();
+    await loadData();
   };
 
   const list = showRecycleBin ? binItems : items;
@@ -147,12 +180,14 @@ export default function InspectionLotPage() {
     <div className="qc-master-page">
       <Sidebar />
       <div className="qc-master-content">
-        <Header title="Inspection Lot Selection" />
+        <Header title="Create Listing Inspection Lot" />
 
         <div className="qc-master-body">
-          {/* Form card */}
+          {/* Form */}
           <div className="qc-master-form-card">
-            <h3>{editingId ? "Edit Inspection Lot" : "Create Listing Inspection Lot"}</h3>
+            <h3>
+              {editingId ? "Edit Inspection Lot" : "Create Inspection Lot"}
+            </h3>
 
             <form onSubmit={handleSubmit} className="qc-form">
               <div className="form-row">
@@ -161,6 +196,7 @@ export default function InspectionLotPage() {
                   name="selectionProfile"
                   value={form.selectionProfile}
                   onChange={handleChange}
+                  placeholder="Profile"
                 />
               </div>
 
@@ -173,7 +209,6 @@ export default function InspectionLotPage() {
                   onChange={handleChange}
                 />
               </div>
-
               <div className="form-row">
                 <label>Lot created on (To)</label>
                 <input
@@ -193,7 +228,6 @@ export default function InspectionLotPage() {
                   onChange={handleChange}
                 />
               </div>
-
               <div className="form-row">
                 <label>Insp. start date (To)</label>
                 <input
@@ -213,7 +247,6 @@ export default function InspectionLotPage() {
                   onChange={handleChange}
                 />
               </div>
-
               <div className="form-row">
                 <label>End of Inspection (To)</label>
                 <input
@@ -230,6 +263,7 @@ export default function InspectionLotPage() {
                   name="plant"
                   value={form.plant}
                   onChange={handleChange}
+                  placeholder="Plant"
                 />
               </div>
 
@@ -239,6 +273,7 @@ export default function InspectionLotPage() {
                   name="lotOrigin"
                   value={form.lotOrigin}
                   onChange={handleChange}
+                  placeholder="Origin"
                 />
               </div>
 
@@ -248,6 +283,7 @@ export default function InspectionLotPage() {
                   name="material"
                   value={form.material}
                   onChange={handleChange}
+                  placeholder="Material"
                 />
               </div>
 
@@ -257,6 +293,7 @@ export default function InspectionLotPage() {
                   name="batch"
                   value={form.batch}
                   onChange={handleChange}
+                  placeholder="Batch"
                 />
               </div>
 
@@ -266,6 +303,7 @@ export default function InspectionLotPage() {
                   name="vendor"
                   value={form.vendor}
                   onChange={handleChange}
+                  placeholder="Vendor"
                 />
               </div>
 
@@ -275,6 +313,7 @@ export default function InspectionLotPage() {
                   name="manufacturer"
                   value={form.manufacturer}
                   onChange={handleChange}
+                  placeholder="Manufacturer"
                 />
               </div>
 
@@ -284,6 +323,7 @@ export default function InspectionLotPage() {
                   name="customer"
                   value={form.customer}
                   onChange={handleChange}
+                  placeholder="Customer"
                 />
               </div>
 
@@ -293,6 +333,7 @@ export default function InspectionLotPage() {
                   name="materialClass"
                   value={form.materialClass}
                   onChange={handleChange}
+                  placeholder="Material class"
                 />
               </div>
 
@@ -300,10 +341,9 @@ export default function InspectionLotPage() {
                 <label>Maximum No. of Hits</label>
                 <input
                   name="maxHits"
-                  type="number"
                   value={form.maxHits}
                   onChange={handleChange}
-                  min="0"
+                  placeholder="Max hits"
                 />
               </div>
 
@@ -315,11 +355,18 @@ export default function InspectionLotPage() {
             </form>
           </div>
 
-          {/* List card */}
+          {/* List */}
           <div className="qc-master-list">
             <div className="qc-master-list-header">
-              <h3>{showRecycleBin ? "Recycle Bin" : "Inspection Lot List"}</h3>
-              <button onClick={() => setShowRecycleBin(v => !v)}>
+              <h3>
+                {showRecycleBin
+                  ? "Inspection Lot - Recycle Bin"
+                  : "Inspection Lot List"}
+              </h3>
+
+              <button
+                onClick={() => setShowRecycleBin(v => !v)}
+              >
                 {showRecycleBin ? "Show Active" : "Show Recycle Bin"}
               </button>
             </div>
@@ -327,53 +374,84 @@ export default function InspectionLotPage() {
             <table className="qc-table">
               <thead>
                 <tr>
-                  <th>ID</th>
+                  <th className="col-id">ID</th>
                   <th>Selection Profile</th>
                   <th>Plant</th>
                   <th>Material</th>
                   <th>Vendor</th>
                   <th>Customer</th>
                   <th>Max Hits</th>
+                  {showRecycleBin && <th>Deleted At</th>}
                   <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {list.map(item => (
                   <tr key={item.id}>
-                    <td>{item.id}</td>
+                    <td className="col-id">{item.id}</td>
                     <td>{item.selectionProfile}</td>
                     <td>{item.plant}</td>
                     <td>{item.material}</td>
                     <td>{item.vendor}</td>
                     <td>{item.customer}</td>
                     <td>{item.maxHits}</td>
+                    {showRecycleBin && (
+                      <td>{item.deletedAt || "-"}</td>
+                    )}
                     <td>
-                      {!showRecycleBin ? (
-                        <>
-                          <button className="action-edit" onClick={() => handleEdit(item)}>Edit</button>
-                          <button className="action-delete" onClick={() => handleSoftDelete(item.id)}>Delete</button>
-                        </>
-                      ) : (
-                        <>
-                          <button className="action-restore" onClick={() => handleRestore(item.id)}>Restore</button>
-                          <button className="action-hard-delete" onClick={() => handleHardDelete(item.id)}>
+                      {!showRecycleBin && (
+                        <div className="btn">
+                          <button
+                            className="action-edit"
+                            onClick={() => handleEdit(item)}
+                          >
+                            Edit
+                          </button>
+                          <button
+                            className="action-delete"
+                            onClick={() =>
+                              handleSoftDelete(item.id)
+                            }
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      )}
+                      {showRecycleBin && (
+                        <div className="btn">
+                          <button
+                            className="action-restore"
+                            onClick={() =>
+                              handleRestore(item.id)
+                            }
+                          >
+                            Restore
+                          </button>
+                          <button
+                            className="action-hard-delete"
+                            onClick={() =>
+                              handleHardDelete(item.id)
+                            }
+                          >
                             Delete Permanently
                           </button>
-                        </>
+                        </div>
                       )}
                     </td>
                   </tr>
                 ))}
                 {list.length === 0 && (
                   <tr>
-                    <td colSpan={8} style={{ textAlign: "center" }}>
+                    <td
+                      colSpan={showRecycleBin ? 9 : 8}
+                      style={{ textAlign: "center" }}
+                    >
                       No records
                     </td>
                   </tr>
                 )}
               </tbody>
             </table>
-
           </div>
         </div>
       </div>

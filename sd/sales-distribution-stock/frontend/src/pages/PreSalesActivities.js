@@ -181,6 +181,7 @@ function PreSalesActivities() {
       <form className="form-card" onSubmit={handleSubmit}>
         <div className="form-grid">
           <div className="form-row">
+            
             <input
               name="inquiryType"
               value={form.inquiryType}

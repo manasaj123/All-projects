@@ -15,26 +15,38 @@ export default function QualityNotificationPage() {
 
   const [form, setForm] = useState({
     qnNumber: "",
-    qnType: "CUSTOMER",          // CUSTOMER complaint / VENDOR complaint
+    qnType: "CUSTOMER", // CUSTOMER complaint / VENDOR complaint
 
     purchaseOrderNo: "",
     inspectionLotNo: "",
 
     defectType: "",
-    causeCodeGroup: "QM",        // QM = design defect group
+    causeCodeGroup: "QM", // QM = design defect group
     causeCode: "",
     causeText: "",
 
-    taskCodeGroup: "QM-G2",      // rework code group
+    taskCodeGroup: "QM-G2", // rework code group
     taskCode: "",
     taskText: "",
 
-    activityCodeGroup: "QM-G2",  // special complaint group
+    activityCodeGroup: "QM-G2", // special complaint group
     activityCode: "",
     activityText: "",
 
-    status: "OPEN"               // OPEN / COMPLETED
+    status: "OPEN" // OPEN / COMPLETED
   });
+
+  const [errors, setErrors] = useState({
+    qnNumber: "",
+    qnType: "",
+    purchaseOrderNo: "",
+    inspectionLotNo: "",
+    defectType: "",
+    status: ""
+  });
+
+  const cleanCode = v =>
+    (v || "").toUpperCase().replace(/[^A-Z0-9_-]/g, "");
 
   const loadData = async () => {
     try {
@@ -55,20 +67,87 @@ export default function QualityNotificationPage() {
 
   const handleChange = e => {
     const { name, value } = e.target;
-    setForm(prev => ({ ...prev, [name]: value }));
+    let newValue = value;
+
+    if (
+      [
+        "qnNumber",
+        "purchaseOrderNo",
+        "inspectionLotNo",
+        "defectType",
+        "causeCodeGroup",
+        "causeCode",
+        "taskCodeGroup",
+        "taskCode",
+        "activityCodeGroup",
+        "activityCode"
+      ].includes(name)
+    ) {
+      newValue = cleanCode(value);
+    }
+
+    if (Object.prototype.hasOwnProperty.call(errors, name)) {
+      setErrors(prev => ({ ...prev, [name]: "" }));
+    }
+
+    setForm(prev => ({ ...prev, [name]: newValue }));
   };
 
   const handleSubmit = async e => {
     e.preventDefault();
 
+    const newErrors = {
+      qnNumber: "",
+      qnType: "",
+      purchaseOrderNo: "",
+      inspectionLotNo: "",
+      defectType: "",
+      status: ""
+    };
+
+    const qnNumberTrim = form.qnNumber.trim();
+    const poTrim = form.purchaseOrderNo.trim();
+    const lotTrim = form.inspectionLotNo.trim();
+    const defectTrim = form.defectType.trim();
+
+    if (!qnNumberTrim) {
+      newErrors.qnNumber = "Quality notification number is required";
+    }
+
+    if (!form.qnType) {
+      newErrors.qnType = "Notification type is required";
+    }
+
+    if (!poTrim) {
+      newErrors.purchaseOrderNo = "Purchase order number is required";
+    }
+
+    if (!lotTrim) {
+      newErrors.inspectionLotNo = "Inspection lot number is required";
+    }
+
+    if (!defectTrim) {
+      newErrors.defectType = "Defect type is required";
+    }
+
+    if (!form.status) {
+      newErrors.status = "Status is required";
+    }
+
+    const hasErrors = Object.values(newErrors).some(msg => msg);
+    if (hasErrors) {
+      setErrors(newErrors);
+      return;
+    }
+
     const payload = {
-      qnNumber: form.qnNumber || "",
+      qnNumber: qnNumberTrim,
       qnType: form.qnType || "CUSTOMER",
 
-      purchaseOrderNo: form.purchaseOrderNo || null,
-      inspectionLotNo: form.inspectionLotNo || null,
+      purchaseOrderNo: poTrim,
+      inspectionLotNo: lotTrim,
 
-      defectType: form.defectType || null,
+      defectType: defectTrim,
       causeCodeGroup: form.causeCodeGroup || "QM",
       causeCode: form.causeCode || null,
       causeText: form.causeText || null,
@@ -84,13 +163,19 @@ export default function QualityNotificationPage() {
       status: form.status || "OPEN"
     };
 
-    if (editingId) {
-      await axios.put(
-        `${BASE_URL}/quality-notifications/${editingId}`,
-        payload
-      );
-    } else {
-      await axios.post(`${BASE_URL}/quality-notifications`, payload);
+    try {
+      if (editingId) {
+        await axios.put(
+          `${BASE_URL}/quality-notifications/${editingId}`,
+          payload
+        );
+      } else {
+        await axios.post(`${BASE_URL}/quality-notifications`, payload);
+      }
+    } catch (err) {
+      console.error("Save Error:", err.response?.data || err);
+      alert(err.response?.data?.message || "Error saving quality notification");
+      return;
     }
 
     setForm({
@@ -117,26 +202,34 @@ export default function QualityNotificationPage() {
   const handleEdit = item => {
     setEditingId(item.id);
     setForm({
-      qnNumber: item.qnNumber || "",
+      qnNumber: cleanCode(item.qnNumber || ""),
       qnType: item.qnType || "CUSTOMER",
 
-      purchaseOrderNo: item.purchaseOrderNo || "",
-      inspectionLotNo: item.inspectionLotNo || "",
+      purchaseOrderNo: cleanCode(item.purchaseOrderNo || ""),
+      inspectionLotNo: cleanCode(item.inspectionLotNo || ""),
 
-      defectType: item.defectType || "",
-      causeCodeGroup: item.causeCodeGroup || "QM",
-      causeCode: item.causeCode || "",
+      defectType: cleanCode(item.defectType || ""),
+      causeCodeGroup: cleanCode(item.causeCodeGroup || "QM"),
+      causeCode: cleanCode(item.causeCode || ""),
       causeText: item.causeText || "",
 
-      taskCodeGroup: item.taskCodeGroup || "QM-G2",
-      taskCode: item.taskCode || "",
+      taskCodeGroup: cleanCode(item.taskCodeGroup || "QM-G2"),
+      taskCode: cleanCode(item.taskCode || ""),
       taskText: item.taskText || "",
 
-      activityCodeGroup: item.activityCodeGroup || "QM-G2",
-      activityCode: item.activityCode || "",
+      activityCodeGroup: cleanCode(item.activityCodeGroup || "QM-G2"),
+      activityCode: cleanCode(item.activityCode || ""),
       activityText: item.activityText || "",
 
       status: item.status || "OPEN"
+    });
+    setErrors({
+      qnNumber: "",
+      qnType: "",
+      purchaseOrderNo: "",
+      inspectionLotNo: "",
+      defectType: "",
+      status: ""
     });
   };
 
@@ -180,7 +273,9 @@ export default function QualityNotificationPage() {
           {/* Form card */}
           <div className="qc-master-form-card">
             <h3>
-              {editingId ? "Edit Quality Notification" : "Create Quality Notification"}
+              {editingId
+                ? "Edit Quality Notification"
+                : "Create Quality Notification"}
             </h3>
 
             <form onSubmit={handleSubmit} className="qc-form">
@@ -193,6 +288,9 @@ export default function QualityNotificationPage() {
                   onChange={handleChange}
                   placeholder="Enter QN number"
                 />
+                {errors.qnNumber && (
+                  <span className="error-text">{errors.qnNumber}</span>
+                )}
               </div>
 
               <div className="form-row">
@@ -205,6 +303,9 @@ export default function QualityNotificationPage() {
                   <option value="CUSTOMER">Customer Complaint</option>
                   <option value="VENDOR">Complaint against Vendor</option>
                 </select>
+                {errors.qnType && (
+                  <span className="error-text">{errors.qnType}</span>
+                )}
               </div>
 
               <div className="form-row">
@@ -215,6 +316,9 @@ export default function QualityNotificationPage() {
                   onChange={handleChange}
                   placeholder="PO number for received goods"
                 />
+                {errors.purchaseOrderNo && (
+                  <span className="error-text">{errors.purchaseOrderNo}</span>
+                )}
               </div>
 
               <div className="form-row">
@@ -225,6 +329,9 @@ export default function QualityNotificationPage() {
                   onChange={handleChange}
                   placeholder="Inspection lot linked to PO"
                 />
+                {errors.inspectionLotNo && (
+                  <span className="error-text">{errors.inspectionLotNo}</span>
+                )}
               </div>
 
               {/* Step 3: Defect type & cause */}
@@ -234,8 +341,11 @@ export default function QualityNotificationPage() {
                   name="defectType"
                   value={form.defectType}
                   onChange={handleChange}
-                  placeholder="e.g. Design defect, wrong spec"
+                  placeholder="e.g. DESIGN_DEFECT, WRONG_SPEC"
                 />
+                {errors.defectType && (
+                  <span className="error-text">{errors.defectType}</span>
+                )}
               </div>
 
               <div className="form-row">
@@ -341,6 +451,9 @@ export default function QualityNotificationPage() {
                   <option value="OPEN">Open</option>
                   <option value="COMPLETED">Completed</option>
                 </select>
+                {errors.status && (
+                  <span className="error-text">{errors.status}</span>
+                )}
               </div>
 
               <div className="form-row-full">
@@ -439,7 +552,6 @@ export default function QualityNotificationPage() {
                 )}
               </tbody>
             </table>
-
           </div>
         </div>
       </div>

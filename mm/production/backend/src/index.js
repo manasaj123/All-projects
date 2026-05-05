@@ -10,6 +10,9 @@ const workOrderRoutes = require('./routes/workOrderRoutes');
 const mrpRoutes = require('./routes/mrpRoutes');
 const metricRoutes = require('./routes/metricRoutes');
 const productRoutes = require('./routes/productRoutes');
+const gradePackRoutes = require('./routes/gradePackRoutes');
+
+
 
 const app = express();
 app.use(cors());
@@ -23,6 +26,7 @@ app.use('/api/work-orders', workOrderRoutes);
 app.use('/api/mrp', mrpRoutes);
 app.use('/api/metrics', metricRoutes);
 app.use('/api/products', productRoutes);
+app.use('/api/grade-packs', gradePackRoutes);
 
 const port = process.env.PORT || 4000;
 app.listen(port, () => {

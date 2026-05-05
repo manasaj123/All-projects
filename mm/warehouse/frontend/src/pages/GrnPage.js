@@ -3,12 +3,12 @@ import axiosClient from '../api/axiosClient';
 import Table from '../components/common/Table';
 import '../pages/style.css';
 
-
 const GrnPage = () => {
   const [grns, setGrns] = useState([]);
+  const [warehouses, setWarehouses] = useState([]);
   const [formData, setFormData] = useState({
     grn_no: '',
-    warehouse_id: '1',
+    warehouse_id: '',
     received_date: new Date().toISOString().split('T')[0],
     total_items: ''
   });
@@ -17,7 +17,23 @@ const GrnPage = () => {
 
   useEffect(() => {
     loadGrns();
+    loadWarehouses();
   }, []);
+
+  const loadWarehouses = async () => {
+    try {
+      const response = await axiosClient.get('/warehouse');
+      setWarehouses(response.data || []);
+      
+      // Set default warehouse to first one if available
+      if (response.data && response.data.length > 0) {
+        setFormData(prev => ({ ...prev, warehouse_id: response.data[0].id.toString() }));
+      }
+    } catch (error) {
+      console.error('Load warehouses failed:', error);
+      setWarehouses([]);
+    }
+  };
 
   const loadGrns = async () => {
     try {
@@ -33,24 +49,42 @@ const GrnPage = () => {
     e.preventDefault();
     setLoading(true);
 
+    // Validate GRN number format (alphanumeric and dash only)
+    if (formData.grn_no && !/^[A-Z0-9\-]+$/i.test(formData.grn_no)) {
+      alert('❌ GRN No can only contain letters, numbers, and dashes');
+      setLoading(false);
+      return;
+    }
+
+    if (!formData.warehouse_id) {
+      alert('❌ Please select a warehouse');
+      setLoading(false);
+      return;
+    }
+
     try {
       const payload = {
-        grn_no: formData.grn_no || `GRN${Date.now()}`,
+        grn_no: formData.grn_no.trim().toUpperCase() || `GRN${Date.now()}`,
         warehouse_id: parseInt(formData.warehouse_id, 10),
         received_date: formData.received_date,
         total_items: parseInt(formData.total_items, 10)
       };
 
+      console.log('📤 Sending GRN:', payload);
+
       await axiosClient.post('/grn', payload);
       alert(`✅ GRN ${payload.grn_no} created!`);
       await loadGrns();
+      
+      // Reset form but keep warehouse selection
       setFormData({
         grn_no: '',
-        warehouse_id: '1',
+        warehouse_id: formData.warehouse_id,
         received_date: new Date().toISOString().split('T')[0],
         total_items: ''
       });
     } catch (error) {
+      console.error('❌ Create GRN error:', error.response?.data || error.message);
       alert(`❌ Failed: ${error.response?.data?.error || error.message}`);
     } finally {
       setLoading(false);
@@ -65,14 +99,27 @@ const GrnPage = () => {
       alert('✅ GRN put-away completed!');
       await loadGrns();
     } catch (error) {
-      alert('❌ Put-away failed');
+      console.error('Put-away error:', error.response?.data || error.message);
+      alert(`❌ Put-away failed: ${error.response?.data?.error || error.message}`);
     }
   };
 
   const grnColumns = [
     { key: 'grn_no', label: 'GRN No' },
-    { key: 'received_date', label: 'Date' },
+    { 
+      key: 'received_date', 
+      label: 'Date',
+      render: (row) => new Date(row.received_date).toLocaleDateString('en-IN')
+    },
     { key: 'total_items', label: 'Items' },
+    { 
+      key: 'warehouse_id', 
+      label: 'Warehouse',
+      render: (row) => {
+        const warehouse = warehouses.find(w => w.id === row.warehouse_id);
+        return warehouse ? warehouse.name : `WH ${row.warehouse_id}`;
+      }
+    },
     { key: 'status', label: 'Status' },
     {
       key: 'actions',
@@ -86,13 +133,13 @@ const GrnPage = () => {
             📦 Put Away
           </button>
         ) : (
-          'Completed'
+          <span style={{ color: '#27ae60', fontWeight: 'bold' }}>✅ Completed</span>
         )
     }
   ];
 
   const totalPendingItems = grns.reduce(
-    (sum, grn) => sum + (grn.total_items || 0),
+    (sum, grn) => sum + (Number(grn.total_items) || 0),
     0
   );
 
@@ -100,9 +147,24 @@ const GrnPage = () => {
     <div>
       <div className="page-header">
         <h1>📥 Goods Receipt Note (GRN)</h1>
-        <span style={{ color: '#27ae60', fontSize: '1.2em' }}>
-          Total Pending: {totalPendingItems} items
+        <span style={{ color: '#27ae60', fontSize: '1.2em', fontWeight: 'bold' }}>
+          📦 Pending: {totalPendingItems} items
         </span>
+      </div>
+
+      <div className="metrics-grid">
+        <div className="card">
+          <h3>Total Warehouses</h3>
+          <p className="metric-value">{warehouses.length}</p>
+        </div>
+        <div className="card">
+          <h3>Pending GRNs</h3>
+          <p className="metric-value">{grns.length}</p>
+        </div>
+        <div className="card">
+          <h3>Pending Items</h3>
+          <p className="metric-value">{totalPendingItems}</p>
+        </div>
       </div>
 
       <div className="card">
@@ -110,26 +172,30 @@ const GrnPage = () => {
         <form onSubmit={handleSubmit} style={{ maxWidth: '600px' }}>
           <div className="form-group">
             <label>
-              GRN No <small>(auto if blank)</small>
+              GRN No <small style={{ color: '#7f8c8d' }}>(auto-generated if blank)</small>
             </label>
             <input
               value={formData.grn_no}
               onChange={(e) =>
                 setFormData({ ...formData, grn_no: e.target.value })
               }
-              placeholder="GRN001"
+              placeholder="GRN-001 or leave blank"
+              pattern="[A-Za-z0-9\-]*"
+              title="Only letters, numbers, and dashes allowed"
             />
+            <small style={{ color: '#7f8c8d', display: 'block', marginTop: '0.25rem' }}>
+              Format: Letters, numbers, and dashes only (e.g., GRN-001, GRN2024)
+            </small>
           </div>
 
           <div
-            className="form-group"
             style={{
               display: 'grid',
               gridTemplateColumns: '1fr 1fr',
               gap: '1rem'
             }}
           >
-            <div>
+            <div className="form-group">
               <label>Warehouse *</label>
               <select
                 value={formData.warehouse_id}
@@ -138,12 +204,16 @@ const GrnPage = () => {
                 }
                 required
               >
-                <option value="1">Main Warehouse</option>
-                <option value="2">Secondary</option>
+                <option value="">Select Warehouse</option>
+                {warehouses.map((wh) => (
+                  <option key={wh.id} value={wh.id}>
+                    {wh.name}
+                  </option>
+                ))}
               </select>
             </div>
-            <div>
-              <label>Date *</label>
+            <div className="form-group">
+              <label>Received Date *</label>
               <input
                 type="date"
                 value={formData.received_date}
@@ -164,6 +234,7 @@ const GrnPage = () => {
                 setFormData({ ...formData, total_items: e.target.value })
               }
               min="1"
+              placeholder="Enter number of items"
               required
             />
           </div>
@@ -172,8 +243,9 @@ const GrnPage = () => {
             type="submit"
             className="btn btn-primary"
             disabled={loading}
+            style={{ width: '100%' }}
           >
-            {loading ? '⏳ Creating...' : '➕ Create GRN'}
+            {loading ? '⏳ Creating GRN...' : '➕ Create GRN'}
           </button>
         </form>
       </div>
@@ -187,12 +259,16 @@ const GrnPage = () => {
             style={{
               padding: '3rem',
               textAlign: 'center',
-              color: '#7f8c8d'
+              color: '#7f8c8d',
+              background: '#f8f9fa',
+              borderRadius: '8px'
             }}
           >
-            🎉 No pending GRNs!
-            <br />
-            <small>Create one above 👆</small>
+            <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📦</div>
+            <div style={{ fontSize: '1.2rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>
+              No Pending GRNs
+            </div>
+            <small>Create a new GRN using the form above 👆</small>
           </div>
         )}
       </div>

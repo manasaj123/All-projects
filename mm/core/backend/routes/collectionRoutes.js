@@ -3,85 +3,118 @@ import db from "../config/db.js";
 
 const router = express.Router();
 
-
+/* =========================
+   GET ALL COLLECTIONS
+========================= */
 router.get("/", (req, res) => {
-  const query = `
-    SELECT c.*, 
-           COALESCE(f.name, cust.name) as partyName,
-           COALESCE(f.id, cust.id) as partyId,
-           m.name as materialName,
-           CASE 
-             WHEN f.name IS NOT NULL THEN 'farmer'
-             ELSE 'customer'
-           END as partyType
+  const sql = `
+    SELECT 
+      c.id,
+      c.farmer_id,
+      c.customer_id,
+      c.material_id,
+      c.qty,
+      c.mfg_date,
+      c.expiry_date,
+      c.status,
+
+      COALESCE(f.name, cust.name) AS partyName,
+      m.name AS materialName,
+
+      CASE 
+        WHEN c.farmer_id IS NOT NULL THEN 'farmer'
+        ELSE 'customer'
+      END AS partyType
+
     FROM collections c
-    LEFT JOIN farmers f ON c.farmerId = f.id
-    LEFT JOIN customers cust ON c.customerId = cust.id
-    LEFT JOIN materials m ON c.materialId = m.id
+    LEFT JOIN farmers f ON c.farmer_id = f.id
+    LEFT JOIN customers cust ON c.customer_id = cust.id
+    LEFT JOIN materials m ON c.material_id = m.id
     ORDER BY c.id DESC
   `;
-  
-  db.query(query, (err, result) => {
+
+  db.query(sql, (err, data) => {
     if (err) {
       console.error("Collections GET Error:", err);
       return res.status(500).json({ error: err.message });
     }
-    res.json(result);
+    res.json(data);
   });
 });
 
 
+/* =========================
+   CREATE COLLECTION
+========================= */
 router.post("/", (req, res) => {
   const { partyType, partyId, materialId, qty, mfgDate, expiryDate } = req.body;
-  
-  console.log("Adding collection:", { partyType, partyId, materialId, qty, mfgDate, expiryDate });
-  
+
+  console.log("Adding collection:", req.body);
+
+  if (!partyType || !partyId || !materialId || !qty) {
+    return res.status(400).json({ error: "Missing fields" });
+  }
+
+  // FARMER
   if (partyType === "farmer") {
+    const sql = `
+      INSERT INTO collections
+      (farmer_id, material_id, qty, mfg_date, expiry_date, status)
+      VALUES (?, ?, ?, ?, ?, 'Pending')
+    `;
+
     db.query(
-      "INSERT INTO collections (farmerId, materialId, qty, mfgDate, expiryDate, status) VALUES (?, ?, ?, ?, ?, 'Pending')",
+      sql,
       [partyId, materialId, qty, mfgDate, expiryDate],
       (err, result) => {
         if (err) {
-          console.error("Collections Farmer Insert Error:", err);
+          console.error("Farmer Insert Error:", err);
           return res.status(500).json({ error: err.message });
         }
-        res.status(201).json({ id: result.insertId, success: true });
+        res.status(201).json({ id: result.insertId });
       }
     );
-  } else {
+  }
+
+  // CUSTOMER
+  else {
+    const sql = `
+      INSERT INTO collections
+      (customer_id, material_id, qty, mfg_date, expiry_date, status)
+      VALUES (?, ?, ?, ?, ?, 'Pending')
+    `;
+
     db.query(
-      "INSERT INTO collections (customerId, materialId, qty, expiryDate, status) VALUES (?, ?, ?, ?, 'Pending')",
-      [partyId, materialId, qty, expiryDate],
+      sql,
+      [partyId, materialId, qty, mfgDate, expiryDate],
       (err, result) => {
         if (err) {
-          console.error("Collections Customer Insert Error:", err);
+          console.error("Customer Insert Error:", err);
           return res.status(500).json({ error: err.message });
         }
-        res.status(201).json({ id: result.insertId, success: true });
+        res.status(201).json({ id: result.insertId });
       }
     );
   }
 });
 
 
+/* =========================
+   UPDATE STATUS
+========================= */
 router.patch("/:id", (req, res) => {
   const { id } = req.params;
   const { status } = req.body;
-  
-  console.log(`Updating collection ${id} status to:`, status);
-  
+
   db.query(
     "UPDATE collections SET status = ? WHERE id = ?",
     [status, id],
     (err, result) => {
       if (err) {
-        console.error("Collections Update Error:", err);
+        console.error("Update Error:", err);
         return res.status(500).json({ error: err.message });
       }
-      if (result.affectedRows === 0) {
-        return res.status(404).json({ error: "Collection not found" });
-      }
-      res.json({ success: true, id, status });
+      res.json({ success: true });
     }
   );
 });

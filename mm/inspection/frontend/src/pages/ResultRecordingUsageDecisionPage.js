@@ -19,7 +19,7 @@ export default function ResultRecordingUsageDecisionPage() {
     resultText: "",
     usageDecision: ""  // UD code, e.g. 'A'
   });
-  const [editingKey, setEditingKey] = useState(null); // plant|origin|material|batch|vendor
+  const [editingId, setEditingId] = useState(null);
   const [showRecycleBin, setShowRecycleBin] = useState(false);
 
   const loadData = async () => {
@@ -45,34 +45,51 @@ export default function ResultRecordingUsageDecisionPage() {
 
   const handleChange = e => {
     const { name, value } = e.target;
-    setForm(prev => ({ ...prev, [name]: value }));
-  };
+    let newValue = value;
 
-  const handleSubmit = async e => {
-    e.preventDefault();
-
-    if (
-      !form.plantCode ||
-      !form.materialCode ||
-      !form.batchNumber ||
-      !form.vendorCode
-    ) {
-      return;
+    if (["plantCode", "materialCode", "batchNumber", "vendorCode"].includes(name)) {
+      newValue = value.toUpperCase().replace(/[^A-Z0-9_-]/g, "");
+    } else if (name === "usageDecision") {
+      newValue = value.toUpperCase().replace(/[^A-Z]/g, "").slice(0, 1);
     }
 
-    const payload = {
-      plantCode: form.plantCode,
-      materialCode: form.materialCode,
-      batchNumber: form.batchNumber,
-      vendorCode: form.vendorCode,
-      resultText: form.resultText,
-      usageDecision: form.usageDecision // UD code
-    };
+    setForm(prev => ({ ...prev, [name]: newValue }));
+  };
 
-    await axios.post(
-      `${BASE_URL}/raw-material-inspections`,
-      payload
-    );
+const handleSubmit = async e => {
+  e.preventDefault();
+
+  if (
+    !form.plantCode ||
+    !form.materialCode ||
+    !form.batchNumber ||
+    !form.vendorCode
+  ) {
+    return;
+  }
+
+  const payload = {
+    plantCode: form.plantCode,
+    origin: form.origin,
+    materialCode: form.materialCode,
+    batchNumber: form.batchNumber,
+    vendorCode: form.vendorCode,
+    resultText: form.resultText,
+    usageDecision: form.usageDecision
+  };
+
+  try {
+    if (editingId) {
+      await axios.put(
+        `${BASE_URL}/raw-material-inspections/${editingId}`,
+        payload
+      );
+    } else {
+      await axios.post(
+        `${BASE_URL}/raw-material-inspections`,
+        payload
+      );
+    }
 
     setForm({
       plantCode: "",
@@ -83,20 +100,27 @@ export default function ResultRecordingUsageDecisionPage() {
       resultText: "",
       usageDecision: ""
     });
-    setEditingKey(null);
+    setEditingId(null);
     await loadData();
-  };
+  } catch (err) {
+    if (err.response) {
+      console.error("Submit error:", err.response.data);
+      alert(err.response.data.message || "Validation error");
+    } else {
+      console.error("Submit error:", err);
+      alert("Request failed");
+    }
+  }
+};
 
   const handleEdit = item => {
-    setEditingKey(
-      `${item.plantCode}|${item.origin}|${item.materialCode}|${item.batchNumber}|${item.vendorCode}`
-    );
+    setEditingId(item.id);
     setForm({
-      plantCode: item.plantCode,
-      origin: item.origin,
-      materialCode: item.materialCode,
-      batchNumber: item.batchNumber,
-      vendorCode: item.vendorCode,
+      plantCode: item.plantCode || "",
+      origin: item.origin || "01",
+      materialCode: item.materialCode || "",
+      batchNumber: item.batchNumber || "",
+      vendorCode: item.vendorCode || "",
       resultText: item.resultText || "",
       usageDecision: item.usageDecision || ""
     });
@@ -136,7 +160,7 @@ export default function ResultRecordingUsageDecisionPage() {
           {/* Form card */}
           <div className="qc-master-form-card">
             <h3>
-              {editingKey
+              {editingId
                 ? "Edit Result / Usage Decision"
                 : "Create Result / Usage Decision"}
             </h3>
@@ -156,7 +180,15 @@ export default function ResultRecordingUsageDecisionPage() {
 
               <div className="form-row">
                 <label>Inspection lot origin</label>
-                <input name="origin" value="01" readOnly />
+                <select
+                  name="origin"
+                  value={form.origin}
+                  onChange={handleChange}
+                >
+                  <option value="01">01 - Raw material</option>
+                  <option value="02">02 - In-process</option>
+                  <option value="03">03 - Final</option>
+                </select>
               </div>
 
               {/* Row 2: Material + Batch */}
@@ -214,13 +246,13 @@ export default function ResultRecordingUsageDecisionPage() {
                   value={form.usageDecision}
                   onChange={handleChange}
                   placeholder="e.g. A"
-                  maxLength={2}
+                  maxLength={1}
                 />
               </div>
 
               <div className="form-row-full">
                 <button type="submit">
-                  {editingKey ? "Update" : "Create"}
+                  {editingId ? "Update" : "Create"}
                 </button>
               </div>
             </form>
