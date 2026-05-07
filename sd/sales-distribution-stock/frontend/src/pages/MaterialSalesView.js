@@ -1,5 +1,5 @@
 // frontend/src/pages/MaterialSalesView.js
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from "react";
 import {
   getSalesViews,
   getDeletedSalesViews,
@@ -8,21 +8,21 @@ import {
   softDeleteSalesView,
   restoreSalesView,
   getMaterials,
-} from '../services/salesService';
+} from "../services/salesService";
 
 const initialForm = {
-  materialId: '',
-  salesOrg: '',
-  distributionChannel: '',
-  division: '',
-  deliveringPlant: '',
-  itemCategoryGroup: '',
-  loadingGroup: '',
-  accountAssignmentGroup: '',
-  priceGroup: '',
-  priceList: '',
-  availabilityCheck: '',
-  transportationGroup: '',
+  materialId: "",
+  salesOrg: "",
+  distributionChannel: "",
+  division: "",
+  deliveringPlant: "",
+  itemCategoryGroup: "",
+  loadingGroup: "",
+  accountAssignmentGroup: "",
+  priceGroup: "",
+  priceList: "",
+  availabilityCheck: "",
+  transportationGroup: "",
 };
 
 const MaterialSalesView = () => {
@@ -33,6 +33,7 @@ const MaterialSalesView = () => {
   const [formData, setFormData] = useState(initialForm);
   const [editingId, setEditingId] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState({}); //new
 
   const loadData = async () => {
     setLoading(true);
@@ -46,7 +47,7 @@ const MaterialSalesView = () => {
       setSalesViews(activeRes.data);
       setDeletedSalesViews(deletedRes.data);
     } catch (err) {
-      console.error('Error loading sales view data', err);
+      console.error("Error loading sales view data", err);
     } finally {
       setLoading(false);
     }
@@ -56,46 +57,152 @@ const MaterialSalesView = () => {
     loadData();
   }, []);
 
-  const handleChange = e => {
+  const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = async e => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+
+    const newErrors = {};
+
+    // only letters and numbers allowed
+    const alphaNumRegex = /^[A-Za-z0-9]+$/;
+
+    // only numbers allowed
+    const numberRegex = /^[0-9]+$/;
+
+    // Sales Org
+    if (!alphaNumRegex.test(formData.salesOrg)) {
+      newErrors.salesOrg = "Sales Org should contain only letters and numbers";
+    }
+
+    // Distribution Channel
+    const validDistributionChannels = ["01", "02"];
+
+    if (!validDistributionChannels.includes(formData.distributionChannel)) {
+      newErrors.distributionChannel = "Distribution Channel must be 01 or 02";
+    }
+
+    // Division
+    if (!alphaNumRegex.test(formData.division)) {
+      newErrors.division = "Division should contain only letters and numbers";
+    }
+
+    // Delivering Plant
+    if (!alphaNumRegex.test(formData.deliveringPlant)) {
+      newErrors.deliveringPlant =
+        "Delivering Plant should contain only letters and numbers";
+    }
+
+    // Item Category Group
+    const validItemCategories = ["001", "002"];
+
+    if (!validItemCategories.includes(formData.itemCategoryGroup)) {
+      newErrors.itemCategoryGroup = "Item Category Group must be 001 or 002";
+    }
+
+    // Loading Group
+    if (formData.loadingGroup && !alphaNumRegex.test(formData.loadingGroup)) {
+      newErrors.loadingGroup =
+        "Loading Group should contain only letters and numbers";
+    }
+
+    // Account Assignment Group
+    if (
+      formData.accountAssignmentGroup &&
+      !alphaNumRegex.test(formData.accountAssignmentGroup)
+    ) {
+      newErrors.accountAssignmentGroup =
+        "Account Assignment Group should contain only letters and numbers";
+    }
+
+    // Price Group
+    if (formData.priceGroup && !alphaNumRegex.test(formData.priceGroup)) {
+      newErrors.priceGroup =
+        "Price Group should contain only letters and numbers";
+    }
+
+    // Price List
+    if (formData.priceList && !alphaNumRegex.test(formData.priceList)) {
+      newErrors.priceList =
+        "Price List should contain only letters and numbers";
+    }
+
+    // Availability Check
+    if (
+      formData.availabilityCheck &&
+      !alphaNumRegex.test(formData.availabilityCheck)
+    ) {
+      newErrors.availabilityCheck =
+        "Availability Check should contain only letters and numbers";
+    }
+
+    // Transportation Group
+    if (
+      formData.transportationGroup &&
+      !alphaNumRegex.test(formData.transportationGroup)
+    ) {
+      newErrors.transportationGroup =
+        "Transportation Group should contain only letters and numbers";
+    }
+
+    // show errors
+    setErrors(newErrors);
+
+    // stop submit if errors exist
+    if (Object.keys(newErrors).length > 0) {
+      return;
+    }
+
     try {
       if (!formData.materialId) {
-        alert('Select a material');
+        alert("Select a material");
         return;
       }
+
+      // Prevent duplicate material
+      const alreadyExists = salesViews.some(
+        (v) =>
+          v.materialId === Number(formData.materialId) && v.id !== editingId,
+      );
+
+      if (alreadyExists) {
+        alert("Sales View already exists for this material");
+        return;
+      }
+
       if (editingId) {
         await updateSalesView(editingId, formData);
       } else {
         await createSalesView(formData);
       }
+
       setFormData(initialForm);
       setEditingId(null);
+      setErrors({});
       loadData();
     } catch (err) {
-      console.error('Error saving sales view', err);
+      console.error("Error saving sales view", err);
     }
   };
 
-  const handleEdit = view => {
+  const handleEdit = (view) => {
     setEditingId(view.id);
     setFormData({
-      materialId: view.materialId || '',
-      salesOrg: view.salesOrg || '',
-      distributionChannel: view.distributionChannel || '',
-      division: view.division || '',
-      deliveringPlant: view.deliveringPlant || '',
-      itemCategoryGroup: view.itemCategoryGroup || '',
-      loadingGroup: view.loadingGroup || '',
-      accountAssignmentGroup: view.accountAssignmentGroup || '',
-      priceGroup: view.priceGroup || '',
-      priceList: view.priceList || '',
-      availabilityCheck: view.availabilityCheck || '',
-      transportationGroup: view.transportationGroup || '',
+      materialId: view.materialId || "",
+      salesOrg: view.salesOrg || "",
+      distributionChannel: view.distributionChannel || "",
+      division: view.division || "",
+      deliveringPlant: view.deliveringPlant || "",
+      itemCategoryGroup: view.itemCategoryGroup || "",
+      loadingGroup: view.loadingGroup || "",
+      accountAssignmentGroup: view.accountAssignmentGroup || "",
+      priceGroup: view.priceGroup || "",
+      priceList: view.priceList || "",
+      availabilityCheck: view.availabilityCheck || "",
+      transportationGroup: view.transportationGroup || "",
     });
   };
 
@@ -104,22 +211,22 @@ const MaterialSalesView = () => {
     setFormData(initialForm);
   };
 
-  const handleSoftDelete = async id => {
-    if (!window.confirm('Move this sales view to recycle bin?')) return;
+  const handleSoftDelete = async (id) => {
+    if (!window.confirm("Move this sales view to recycle bin?")) return;
     try {
       await softDeleteSalesView(id);
       loadData();
     } catch (err) {
-      console.error('Error deleting sales view', err);
+      console.error("Error deleting sales view", err);
     }
   };
 
-  const handleRestore = async id => {
+  const handleRestore = async (id) => {
     try {
       await restoreSalesView(id);
       loadData();
     } catch (err) {
-      console.error('Error restoring sales view', err);
+      console.error("Error restoring sales view", err);
     }
   };
 
@@ -303,9 +410,10 @@ const MaterialSalesView = () => {
                   value={formData.materialId}
                   onChange={handleChange}
                   required
+                  disabled={!!editingId}
                 >
                   <option value="">Select Material</option>
-                  {materials.map(m => (
+                  {materials.map((m) => (
                     <option key={m.id} value={m.id}>
                       {m.materialCode} - {m.description}
                     </option>
@@ -322,6 +430,9 @@ const MaterialSalesView = () => {
                   onChange={handleChange}
                   required
                 />
+                {errors.salesOrg && (
+                  <small style={{ color: "red" }}>{errors.salesOrg}</small>
+                )}
               </div>
               <div className="form-row">
                 <label>Distribution Channel</label>
@@ -331,6 +442,11 @@ const MaterialSalesView = () => {
                   onChange={handleChange}
                   required
                 />
+                {errors.distributionChannel && (
+                  <small style={{ color: "red" }}>
+                    {errors.distributionChannel}
+                  </small>
+                )}
               </div>
               <div className="form-row">
                 <label>Division</label>
@@ -340,6 +456,9 @@ const MaterialSalesView = () => {
                   onChange={handleChange}
                   required
                 />
+                {errors.division && (
+                  <small style={{ color: "red" }}>{errors.division}</small>
+                )}
               </div>
               <div className="form-row">
                 <label>Delivering Plant</label>
@@ -349,6 +468,11 @@ const MaterialSalesView = () => {
                   onChange={handleChange}
                   required
                 />
+                {errors.deliveringPlant && (
+                  <small style={{ color: "red" }}>
+                    {errors.deliveringPlant}
+                  </small>
+                )}
               </div>
               <div className="form-row">
                 <label>Item Category Group</label>
@@ -358,6 +482,11 @@ const MaterialSalesView = () => {
                   onChange={handleChange}
                   required
                 />
+                {errors.itemCategoryGroup && (
+                  <small style={{ color: "red" }}>
+                    {errors.itemCategoryGroup}
+                  </small>
+                )}
               </div>
               <div className="form-row">
                 <label>Loading Group</label>
@@ -366,6 +495,9 @@ const MaterialSalesView = () => {
                   value={formData.loadingGroup}
                   onChange={handleChange}
                 />
+                {errors.loadingGroup && (
+                  <small style={{ color: "red" }}>{errors.loadingGroup}</small>
+                )}
               </div>
             </div>
 
@@ -379,6 +511,11 @@ const MaterialSalesView = () => {
                   value={formData.accountAssignmentGroup}
                   onChange={handleChange}
                 />
+                {errors.accountAssignmentGroup && (
+                  <small style={{ color: "red" }}>
+                    {errors.accountAssignmentGroup}
+                  </small>
+                )}
               </div>
               <div className="form-row">
                 <label>Price Group</label>
@@ -387,6 +524,9 @@ const MaterialSalesView = () => {
                   value={formData.priceGroup}
                   onChange={handleChange}
                 />
+                {errors.priceGroup && (
+                  <small style={{ color: "red" }}>{errors.priceGroup}</small>
+                )}
               </div>
               <div className="form-row">
                 <label>Price List</label>
@@ -395,6 +535,9 @@ const MaterialSalesView = () => {
                   value={formData.priceList}
                   onChange={handleChange}
                 />
+                {errors.priceList && (
+                  <small style={{ color: "red" }}>{errors.priceList}</small>
+                )}
               </div>
 
               <h4>Sales: General / Plant Data</h4>
@@ -405,6 +548,11 @@ const MaterialSalesView = () => {
                   value={formData.availabilityCheck}
                   onChange={handleChange}
                 />
+                {errors.availabilityCheck && (
+                  <small style={{ color: "red" }}>
+                    {errors.availabilityCheck}
+                  </small>
+                )}
               </div>
               <div className="form-row">
                 <label>Transportation Group</label>
@@ -413,13 +561,18 @@ const MaterialSalesView = () => {
                   value={formData.transportationGroup}
                   onChange={handleChange}
                 />
+                {errors.transportationGroup && (
+                  <small style={{ color: "red" }}>
+                    {errors.transportationGroup}
+                  </small>
+                )}
               </div>
             </div>
           </div>
 
           <div className="form-actions">
             <button type="submit">
-              {editingId ? 'Update Sales View' : 'Create Sales View'}
+              {editingId ? "Update Sales View" : "Create Sales View"}
             </button>
             {editingId && (
               <button type="button" onClick={handleCancelEdit}>
@@ -430,9 +583,9 @@ const MaterialSalesView = () => {
         </form>
 
         <div className="list-header">
-          <h3>{showDeleted ? 'Recycle Bin' : 'Active Sales Views'}</h3>
-          <button onClick={() => setShowDeleted(v => !v)}>
-            {showDeleted ? 'Show Active' : 'Show Recycle Bin'}
+          <h3>{showDeleted ? "Recycle Bin" : "Active Sales Views"}</h3>
+          <button onClick={() => setShowDeleted((v) => !v)}>
+            {showDeleted ? "Show Active" : "Show Recycle Bin"}
           </button>
         </div>
 
@@ -460,7 +613,7 @@ const MaterialSalesView = () => {
               </tr>
             </thead>
             <tbody>
-              {currentList.map(v => (
+              {currentList.map((v) => (
                 <tr key={v.id}>
                   <td>
                     {v.Material
