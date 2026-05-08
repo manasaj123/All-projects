@@ -1,5 +1,5 @@
 // frontend/src/pages/Customers.js
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from "react";
 import {
   getCustomers,
   getDeletedCustomers,
@@ -7,19 +7,21 @@ import {
   updateCustomer,
   softDeleteCustomer,
   restoreCustomer,
-} from '../services/customerService';
+} from "../services/customerService";
 
 const initialForm = {
-  customerCode: '',
-  name: '',
-  accountGroup: '',
-  city: '',
-  country: '',
-  creditGroup: '',
-  riskCategory: '',
+  customerCode: "",
+  name: "",
+  accountGroup: "",
+  city: "",
+  country: "",
+  creditGroup: "",
+  riskCategory: "",
 };
 
-
+const nameRegex = /^[A-Za-z\s]+$/;
+const cityRegex = /^[A-Za-z\s]+$/;
+const countryRegex = /^[A-Za-z\s]+$/;
 
 const Customers = () => {
   const [customers, setCustomers] = useState([]);
@@ -28,6 +30,7 @@ const Customers = () => {
   const [formData, setFormData] = useState(initialForm);
   const [editingId, setEditingId] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState({});
 
   const loadData = async () => {
     setLoading(true);
@@ -39,7 +42,7 @@ const Customers = () => {
       setCustomers(activeRes.data);
       setDeletedCustomers(deletedRes.data);
     } catch (err) {
-      console.error('Error loading customers', err);
+      console.error("Error loading customers", err);
     }
     setLoading(false);
   };
@@ -48,69 +51,110 @@ const Customers = () => {
     loadData();
   }, []);
 
-  const handleChange = e => {
+  const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       [name]: value,
     }));
   };
 
- const handleSubmit = async e => {
-  e.preventDefault();
+  const handleSubmit = async (e) => {
+    e.preventDefault();
 
-  const payload = {
-  customerCode: formData.customerCode,
-  name: formData.name,
-  accountGroup: formData.accountGroup,
-  city: formData.city,
-  country: formData.country,
-  creditGroup: formData.creditGroup,
-  riskCategory: formData.riskCategory,
-};
+    let newErrors = {};
 
-
-  try {
-    if (editingId) {
-      await updateCustomer(editingId, payload);
-    } else {
-      await createCustomer(payload);
+    // Name validation
+    if (!formData.name.trim()) {
+      newErrors.name = "Name is required";
+    } else if (!nameRegex.test(formData.name.trim())) {
+      newErrors.name = "Name must contain only letters and spaces";
+    } else if (formData.name.length > 150) {
+      newErrors.name = "Name cannot exceed 150 characters";
     }
 
-    setFormData(initialForm);
-    setEditingId(null);
-    loadData();
-  } catch (err) {
-    console.error('Error saving customer', err);
-  }
-};
+    // City validation
+    if (!formData.city.trim()) {
+      newErrors.city = "City is required";
+    } else if (!cityRegex.test(formData.city.trim())) {
+      newErrors.city = "City must contain only letters";
+    }
 
-  const handleEdit = c => {
-  setEditingId(c.id);
-  setFormData({
-  customerCode: c.customerCode || '',
-  name: c.name || '',
-  accountGroup: c.accountGroup || '',
-  city: c.city || '',
-  country: c.country || '',
-  creditGroup: c.creditGroup || '',
-  riskCategory: c.riskCategory || '',
-});
+    // Country validation
+    if (!formData.country.trim()) {
+      newErrors.country = "Country is required";
+    } else if (!countryRegex.test(formData.country.trim())) {
+      newErrors.country = "Country must contain only letters";
+    } else if (formData.country.trim().length > 3) {
+      newErrors.country = "Country must be max 3 characters (e.g., IND, IN)";
+    }
 
-};
+    if (!formData.customerCode.trim()) {
+      newErrors.customerCode = "Customer Code is required";
+    }
+
+    if (!formData.riskCategory.trim()) {
+      newErrors.riskCategory = "Risk Category is required";
+    }
+
+    // stop submit if errors exist
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
+
+    setErrors({});
+
+    const payload = {
+      customerCode: formData.customerCode,
+      name: formData.name,
+      accountGroup: formData.accountGroup,
+      city: formData.city,
+      country: formData.country,
+      creditGroup: formData.creditGroup,
+      riskCategory: formData.riskCategory,
+    };
+
+    try {
+      if (editingId) {
+        await updateCustomer(editingId, payload);
+      } else {
+        await createCustomer(payload);
+      }
+
+      setFormData(initialForm);
+      setEditingId(null);
+      loadData();
+    } catch (err) {
+      console.error("Error saving customer", err);
+    }
+  };
+
+  const handleEdit = (c) => {
+    setEditingId(c.id);
+    setFormData({
+      customerCode: c.customerCode || "",
+      name: c.name || "",
+      accountGroup: c.accountGroup || "",
+      city: c.city || "",
+      country: c.country || "",
+      creditGroup: c.creditGroup || "",
+      riskCategory: c.riskCategory || "",
+    });
+  };
 
   const handleCancelEdit = () => {
     setEditingId(null);
     setFormData(initialForm);
   };
 
-  const handleSoftDelete = async id => {
-    if (!window.confirm('Move this customer to recycle bin?')) return;
+  const handleSoftDelete = async (id) => {
+    if (!window.confirm("Move this customer to recycle bin?")) return;
     await softDeleteCustomer(id);
     loadData();
   };
 
-  const handleRestore = async id => {
+  const handleRestore = async (id) => {
     await restoreCustomer(id);
     loadData();
   };
@@ -239,6 +283,10 @@ const Customers = () => {
               required
               disabled={!!editingId}
             />
+
+            {errors.customerCode && (
+              <small style={{ color: "red" }}>{errors.customerCode}</small>
+            )}
           </div>
 
           <div className="form-row">
@@ -248,16 +296,24 @@ const Customers = () => {
               value={formData.name}
               onChange={handleChange}
               required
+              maxLength={150}
             />
+            {formData.name.length > 150 && (
+              <small style={{ color: "red" }}>
+                Name cannot exceed 150 characters
+              </small>
+            )}
+            {errors.name && (
+              <small style={{ color: "red" }}>{errors.name}</small>
+            )}
           </div>
 
           <div className="form-row">
             <label>City</label>
-            <input
-              name="city"
-              value={formData.city}
-              onChange={handleChange}
-            />
+            <input name="city" value={formData.city} onChange={handleChange} />
+            {errors.city && (
+              <small style={{ color: "red" }}>{errors.city}</small>
+            )}
           </div>
 
           <div className="form-row">
@@ -267,32 +323,42 @@ const Customers = () => {
               value={formData.country}
               onChange={handleChange}
             />
+            {errors.country && (
+              <small style={{ color: "red" }}>{errors.country}</small>
+            )}
           </div>
 
           <div className="form-row">
-  <label>Credit Group</label>
-  <input
-    name="creditGroup"
-    value={formData.creditGroup}
-    onChange={handleChange}
-  />
-</div>
+            <label>Credit Group</label>
+            <input
+              name="creditGroup"
+              value={formData.creditGroup}
+              onChange={handleChange}
+            />
+          </div>
 
-<div className="form-row">
-  <label>Risk Category</label>
-  <input
-    name="riskCategory"
-    value={formData.riskCategory}
-    onChange={handleChange}
-  />
-</div>
+          <div className="form-row">
+            <label>Risk Category</label>
+            <select
+              name="riskCategory"
+              value={formData.riskCategory}
+              onChange={handleChange}
+            >
+              <option value="">Select Risk Category</option>
+              <option value="A">A - Low Risk</option>
+              <option value="B">B - Medium Risk</option>
+              <option value="C">C - High Risk</option>
+            </select>
 
-
+            {errors.riskCategory && (
+              <small style={{ color: "red" }}>{errors.riskCategory}</small>
+            )}
+          </div>
         </div>
 
         <div className="form-actions">
           <button type="submit" className="btn btn-submit">
-            {editingId ? 'Update Customer' : 'Create Customer'}
+            {editingId ? "Update Customer" : "Create Customer"}
           </button>
 
           {editingId && (
@@ -308,13 +374,13 @@ const Customers = () => {
       </form>
 
       <div className="list-header">
-        <h3>{showDeleted ? 'Recycle Bin' : 'Active Customers'}</h3>
+        <h3>{showDeleted ? "Recycle Bin" : "Active Customers"}</h3>
 
         <button
           className="btn btn-submit"
-          onClick={() => setShowDeleted(v => !v)}
+          onClick={() => setShowDeleted((v) => !v)}
         >
-          {showDeleted ? 'Show Active' : 'Show Recycle Bin'}
+          {showDeleted ? "Show Active" : "Show Recycle Bin"}
         </button>
       </div>
 
@@ -331,20 +397,20 @@ const Customers = () => {
               <th>City</th>
               <th>Country</th>
               <th>Credit Group</th>
-<th>Risk Category</th>
+              <th>Risk Category</th>
               <th>Actions</th>
             </tr>
           </thead>
 
           <tbody>
-            {currentList.map(c => (
+            {currentList.map((c) => (
               <tr key={c.id}>
                 <td>{c.customerCode}</td>
                 <td>{c.name}</td>
                 <td>{c.city}</td>
                 <td>{c.country}</td>
                 <td>{c.creditGroup}</td>
-<td>{c.riskCategory}</td>
+                <td>{c.riskCategory}</td>
 
                 <td>
                   {!showDeleted && (
@@ -356,12 +422,12 @@ const Customers = () => {
                         Edit
                       </button>
 
-                        <button
-                          className="btn btn-delete"
-                          onClick={() => handleSoftDelete(c.id)}
-                        >
-                          Delete
-                        </button>
+                      <button
+                        className="btn btn-delete"
+                        onClick={() => handleSoftDelete(c.id)}
+                      >
+                        Delete
+                      </button>
                     </>
                   )}
 

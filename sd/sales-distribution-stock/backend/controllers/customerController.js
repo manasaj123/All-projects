@@ -33,6 +33,13 @@ exports.getCustomerById = asyncHandler(async (req, res) => {
 // POST /api/customers
 exports.createCustomer = asyncHandler(async (req, res) => {
   try {
+
+    if (req.body.name && req.body.name.length > 150) {
+      return res.status(400).json({
+        message: 'Name cannot exceed 150 characters',
+      });
+    }
+
     const payload = {
       customerCode: req.body.customerCode,
       name: req.body.name,
@@ -56,6 +63,12 @@ exports.updateCustomer = asyncHandler(async (req, res) => {
   if (!customer) {
     res.status(404).json({ message: 'Customer not found' });
     return;
+  }
+
+  if (req.body.name && req.body.name.length > 150) {
+    return res.status(400).json({
+      message: 'Name cannot exceed 150 characters',
+    });
   }
 
   const payload = {

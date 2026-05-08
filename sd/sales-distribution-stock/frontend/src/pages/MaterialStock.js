@@ -1,5 +1,5 @@
 // frontend/src/pages/MaterialStock.js
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from "react";
 import {
   getMaterials,
   getDeletedMaterials,
@@ -7,18 +7,18 @@ import {
   updateMaterial,
   softDeleteMaterial,
   restoreMaterial,
-} from '../services/materialService';
+} from "../services/materialService";
 
 const initialForm = {
-  materialCode: '',
-  description: '',
-  baseUom: '',
-  materialType: '',
-  industrySector: '',
-  documentDate: '',
-  plant: '',
-  storageLocation: '',
-  movementType: '',
+  materialCode: "",
+  description: "",
+  baseUom: "",
+  materialType: "",
+  industrySector: "",
+  documentDate: "",
+  plant: "",
+  storageLocation: "",
+  movementType: "",
 };
 
 const MaterialStock = () => {
@@ -39,7 +39,7 @@ const MaterialStock = () => {
       setMaterials(activeRes.data);
       setDeletedMaterials(deletedRes.data);
     } catch (err) {
-      console.error('Error loading materials', err);
+      console.error("Error loading materials", err);
     } finally {
       setLoading(false);
     }
@@ -49,39 +49,203 @@ const MaterialStock = () => {
     loadData();
   }, []);
 
-  const handleChange = e => {
+  const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = async e => {
+  //new validation
+
+  const validateForm = () => {
+    const {
+      materialCode,
+      description,
+      baseUom,
+      materialType,
+      industrySector,
+      documentDate, //added
+      plant,
+      storageLocation,
+      movementType,
+    } = formData;
+
+    // Material Code Required
+    if (!materialCode.trim()) {
+      alert("Material Code is required");
+      return false;
+    }
+
+    // Material Code should not be 0
+    if (materialCode.trim() === "0") {
+      alert("Material Code cannot be 0");
+      return false;
+    }
+
+    // Material Code only letters and numbers
+    if (!/^[a-zA-Z0-9]+$/.test(materialCode.trim())) {
+      alert("Material Code should contain only letters and numbers");
+      return false;
+    }
+
+    // Description Required
+    if (!description.trim()) {
+      alert("Description is required");
+      return false;
+    }
+
+    // Description should not allow special characters
+    if (!/^[a-zA-Z0-9\s]+$/.test(description.trim())) {
+      alert("Description should contain only letters and numbers");
+      return false;
+    }
+
+    // Base UOM Required
+    if (!baseUom.trim()) {
+      alert("Base UoM is required");
+      return false;
+    }
+
+    // Material Type Required
+    if (!materialType.trim()) {
+      alert("Material Type is required");
+      return false;
+    }
+
+    // Material Type no special characters
+    if (!/^[a-zA-Z0-9\s]+$/.test(materialType.trim())) {
+      alert("Material Type should contain only letters and numbers");
+      return false;
+    }
+
+    // Industry Sector Required
+    if (!industrySector.trim()) {
+      alert("Industry Sector is required");
+      return false;
+    }
+
+    // Industry Sector no special characters
+    if (!/^[a-zA-Z0-9\s]+$/.test(industrySector.trim())) {
+      alert("Industry Sector should contain only letters and numbers");
+      return false;
+    }
+
+    // Document Date should be today's date only
+    const today = new Date().toISOString().split("T")[0];
+
+    if (documentDate !== today) {
+      alert("Document Date must be today's date");
+      return false;
+    }
+
+    // Plant Required
+    if (!plant.trim()) {
+      alert("Plant is required");
+      return false;
+    }
+
+    // Plant should not allow special characters
+    if (!/^[a-zA-Z0-9]+$/.test(plant.trim())) {
+      alert("Plant Code should contain only letters and numbers");
+      return false;
+    }
+
+    // Storage Location Required
+    if (!storageLocation.trim()) {
+      alert("Storage Location is required");
+      return false;
+    }
+
+    // Storage Location no special characters
+    if (!/^[a-zA-Z0-9\s]+$/.test(storageLocation.trim())) {
+      alert("Storage Location should contain only letters and numbers");
+      return false;
+    }
+
+    // Movement Type Required
+    if (!movementType.trim()) {
+      alert("Movement Type is required");
+      return false;
+    }
+
+    // Movement Type no special characters
+    if (!/^[a-zA-Z0-9\s]+$/.test(movementType.trim())) {
+      alert("Movement Type should contain only letters and numbers");
+      return false;
+    }
+
+    // Negative values check
+    if (
+      materialCode.includes("-") ||
+      plant.includes("-") ||
+      movementType.includes("-")
+    ) {
+      alert("Negative values are not allowed");
+      return false;
+    }
+    return true;
+  };
+
+  //end of new validation
+
+  // const handleSubmit = async e => {
+  //   e.preventDefault();
+  //   try {
+  //     if (editingId) {
+  //       await updateMaterial(editingId, formData);
+  //     } else {
+  //       await createMaterial(formData);
+  //     }
+  //     setFormData(initialForm);
+  //     setEditingId(null);
+  //     loadData();
+  //   } catch (err) {
+  //     console.error('Error saving material', err);
+  //   }
+  // };
+
+  //updated handle submit
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // Validate before save
+    if (!validateForm()) return;
+
     try {
       if (editingId) {
         await updateMaterial(editingId, formData);
       } else {
         await createMaterial(formData);
       }
+
       setFormData(initialForm);
       setEditingId(null);
       loadData();
     } catch (err) {
-      console.error('Error saving material', err);
+      console.error("Error saving material", err);
+
+      if (err.response?.data?.message) {
+        alert(err.response.data.message);
+      } else {
+        alert(
+          "Error ! Material Name already exists or invalid data. Please check your input.",
+        );
+      }
     }
   };
 
-  const handleEdit = material => {
+  const handleEdit = (material) => {
     setEditingId(material.id);
     setFormData({
-      materialCode: material.materialCode || '',
-      description: material.description || '',
-      baseUom: material.baseUom || '',
-      materialType: material.materialType || '',
-      industrySector: material.industrySector || '',
-      documentDate: material.documentDate || '',
-      plant: material.plant || '',
-      storageLocation: material.storageLocation || '',
-      movementType: material.movementType || '',
+      materialCode: material.materialCode || "",
+      description: material.description || "",
+      baseUom: material.baseUom || "",
+      materialType: material.materialType || "",
+      industrySector: material.industrySector || "",
+      documentDate: material.documentDate || "",
+      plant: material.plant || "",
+      storageLocation: material.storageLocation || "",
+      movementType: material.movementType || "",
     });
   };
 
@@ -90,22 +254,22 @@ const MaterialStock = () => {
     setFormData(initialForm);
   };
 
-  const handleSoftDelete = async id => {
-    if (!window.confirm('Move this material to recycle bin?')) return;
+  const handleSoftDelete = async (id) => {
+    if (!window.confirm("Move this material to recycle bin?")) return;
     try {
       await softDeleteMaterial(id);
       loadData();
     } catch (err) {
-      console.error('Error deleting material', err);
+      console.error("Error deleting material", err);
     }
   };
 
-  const handleRestore = async id => {
+  const handleRestore = async (id) => {
     try {
       await restoreMaterial(id);
       loadData();
     } catch (err) {
-      console.error('Error restoring material', err);
+      console.error("Error restoring material", err);
     }
   };
 
@@ -151,7 +315,9 @@ const MaterialStock = () => {
           margin-bottom:4px;
         }
 
-        .form-field input{
+        .form-field input,
+        .form-field select{
+          width:100%;
           height:34px;
           padding:4px 8px;
           border:1px solid #cbd5e1;
@@ -270,12 +436,19 @@ const MaterialStock = () => {
           </div>
           <div className="form-field">
             <label>Base UoM</label>
-            <input
+            <select
               name="baseUom"
               value={formData.baseUom}
               onChange={handleChange}
               required
-            />
+            >
+              <option value="">-- Select UoM --</option>
+              <option value="kg">kg</option>
+              <option value="liters">liters</option>
+              <option value="packets">packets</option>
+              <option value="pieces">pieces</option>
+              <option value="nos">nos</option>
+            </select>
           </div>
         </div>
 
@@ -318,6 +491,7 @@ const MaterialStock = () => {
               name="plant"
               value={formData.plant}
               onChange={handleChange}
+              required
             />
           </div>
           <div className="form-field">
@@ -326,6 +500,7 @@ const MaterialStock = () => {
               name="storageLocation"
               value={formData.storageLocation}
               onChange={handleChange}
+              required
             />
           </div>
           <div className="form-field">
@@ -334,13 +509,15 @@ const MaterialStock = () => {
               name="movementType"
               value={formData.movementType}
               onChange={handleChange}
+              required
+              maxLength={4}
             />
           </div>
         </div>
 
         <div className="form-actions">
           <button type="submit">
-            {editingId ? 'Update Material' : 'Create Material'}
+            {editingId ? "Update Material" : "Create Material"}
           </button>
           {editingId && (
             <button type="button" onClick={handleCancelEdit}>
@@ -351,9 +528,9 @@ const MaterialStock = () => {
       </form>
 
       <div className="list-header">
-        <h3>{showDeleted ? 'Recycle Bin' : 'Active Materials'}</h3>
-        <button onClick={() => setShowDeleted(v => !v)}>
-          {showDeleted ? 'Show Active' : 'Show Recycle Bin'}
+        <h3>{showDeleted ? "Recycle Bin" : "Active Materials"}</h3>
+        <button onClick={() => setShowDeleted((v) => !v)}>
+          {showDeleted ? "Show Active" : "Show Recycle Bin"}
         </button>
       </div>
 
@@ -378,7 +555,7 @@ const MaterialStock = () => {
             </tr>
           </thead>
           <tbody>
-            {currentList.map(m => (
+            {currentList.map((m) => (
               <tr key={m.id}>
                 <td>{m.materialCode}</td>
                 <td>{m.description}</td>
@@ -399,9 +576,7 @@ const MaterialStock = () => {
                     </div>
                   )}
                   {showDeleted && (
-                    <button onClick={() => handleRestore(m.id)}>
-                      Restore
-                    </button>
+                    <button onClick={() => handleRestore(m.id)}>Restore</button>
                   )}
                 </td>
               </tr>
