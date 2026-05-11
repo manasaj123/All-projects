@@ -1,5 +1,5 @@
 // frontend/src/pages/SalesDocumentConfig.js
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from "react";
 import {
   getSalesDocuments,
   getDeletedSalesDocuments,
@@ -7,27 +7,27 @@ import {
   updateSalesDocument,
   softDeleteSalesDocument,
   restoreSalesDocument,
-} from '../services/salesDocumentService';
+} from "../services/salesDocumentService";
 
 const initialForm = {
-  documentType: '',
-  description: '',
+  documentType: "",
+  description: "",
   referenceMandatory: false,
   checkDivision: false,
   probability: 100,
   checkCreditLimit: false,
-  creditGroup: '',
-  screenSequence: '',
-  incompletionProcedure: '',
-  transactionGroup: '',
-  docPricingProcedure: '',
-  deliveryType: '',
-  deliveryBlock: '',
-  shippingConditions: '',
-  shipCostInfoProfile: '',
-  delvBillingType: '',
-  orderRelBillingType: '',
-  intercompanyBillingType: '',
+  creditGroup: "",
+  screenSequence: "",
+  incompletionProcedure: "",
+  transactionGroup: "",
+  docPricingProcedure: "",
+  deliveryType: "",
+  deliveryBlock: "",
+  shippingConditions: "",
+  shipCostInfoProfile: "",
+  delvBillingType: "",
+  orderRelBillingType: "",
+  intercompanyBillingType: "",
 };
 
 const SalesDocumentConfig = () => {
@@ -49,7 +49,7 @@ const SalesDocumentConfig = () => {
       setDocs(activeRes.data);
       setDeletedDocs(deletedRes.data);
     } catch (err) {
-      console.error('Error loading sales document config', err);
+      console.error("Error loading sales document config", err);
     } finally {
       setLoading(false);
     }
@@ -59,29 +59,72 @@ const SalesDocumentConfig = () => {
     loadData();
   }, []);
 
-  const handleChange = e => {
+  const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     const val =
-      type === 'checkbox'
+      type === "checkbox"
         ? checked
-        : name === 'probability'
-        ? Number(value)
-        : value;
-    setFormData(prev => ({ ...prev, [name]: val }));
+        : name === "probability"
+          ? Number(value)
+          : value;
+    setFormData((prev) => ({ ...prev, [name]: val }));
   };
 
-  const handleSubmit = async e => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.documentType) {
-      alert('Enter document type');
-      return;
+
+    const requiredFields = {
+      documentType: "Document Type",
+      description: "Description",
+      transactionGroup: "Transaction Group",
+      docPricingProcedure: "Document Pricing Procedure",
+      deliveryType: "Delivery Type",
+      screenSequence: "Screen Sequence",
+      creditGroup: "Credit Group",
+      shippingConditions: "Shipping Conditions",
+    };
+
+    for (const [field, label] of Object.entries(requiredFields)) {
+      if (!formData[field]?.toString().trim()) {
+        alert(`${label} is required`);
+        return;
+      }
     }
-    if (!formData.description) {
-      alert('Enter description');
+
+    const deliveryType = formData.deliveryType.trim().toUpperCase();
+
+    if (!["LF", "NL"].includes(deliveryType)) {
+      alert("Invalid Delivery Type (LF or NL only)");
       return;
     }
 
-    const payload = { ...formData };
+    const billingFields = [
+      formData.delvBillingType,
+      formData.orderRelBillingType,
+      formData.intercompanyBillingType,
+    ];
+
+    const hasBilling = billingFields.some((field) => field?.trim());
+
+    if (!hasBilling) {
+      alert("At least one Billing Type is required");
+      return;
+    }
+
+    if (formData.creditGroup && formData.creditGroup.length > 10) {
+      alert("Credit Group must be 10 characters or less");
+      return;
+    }
+
+    if (!formData.docPricingProcedure?.trim()) {
+      alert("Pricing Procedure is required");
+      return;
+    }
+
+    const payload = {
+      ...formData,
+      deliveryType,
+    };
 
     try {
       if (editingId) {
@@ -89,35 +132,36 @@ const SalesDocumentConfig = () => {
       } else {
         await createSalesDocument(payload);
       }
+
       setFormData(initialForm);
       setEditingId(null);
       loadData();
     } catch (err) {
-      console.error('Error saving sales document config', err);
+      console.error("Error saving sales document config", err);
     }
   };
 
-  const handleEdit = row => {
+  const handleEdit = (row) => {
     setEditingId(row.id);
     setFormData({
-      documentType: row.documentType || '',
-      description: row.description || '',
+      documentType: row.documentType || "",
+      description: row.description || "",
       referenceMandatory: !!row.referenceMandatory,
       checkDivision: !!row.checkDivision,
       probability: row.probability ?? 100,
       checkCreditLimit: !!row.checkCreditLimit,
-      creditGroup: row.creditGroup || '',
-      screenSequence: row.screenSequence || '',
-      incompletionProcedure: row.incompletionProcedure || '',
-      transactionGroup: row.transactionGroup || '',
-      docPricingProcedure: row.docPricingProcedure || '',
-      deliveryType: row.deliveryType || '',
-      deliveryBlock: row.deliveryBlock || '',
-      shippingConditions: row.shippingConditions || '',
-      shipCostInfoProfile: row.shipCostInfoProfile || '',
-      delvBillingType: row.delvBillingType || '',
-      orderRelBillingType: row.orderRelBillingType || '',
-      intercompanyBillingType: row.intercompanyBillingType || '',
+      creditGroup: row.creditGroup || "",
+      screenSequence: row.screenSequence || "",
+      incompletionProcedure: row.incompletionProcedure || "",
+      transactionGroup: row.transactionGroup || "",
+      docPricingProcedure: row.docPricingProcedure || "",
+      deliveryType: row.deliveryType || "",
+      deliveryBlock: row.deliveryBlock || "",
+      shippingConditions: row.shippingConditions || "",
+      shipCostInfoProfile: row.shipCostInfoProfile || "",
+      delvBillingType: row.delvBillingType || "",
+      orderRelBillingType: row.orderRelBillingType || "",
+      intercompanyBillingType: row.intercompanyBillingType || "",
     });
   };
 
@@ -126,23 +170,23 @@ const SalesDocumentConfig = () => {
     setFormData(initialForm);
   };
 
-  const handleSoftDelete = async id => {
-    if (!window.confirm('Move this sales document config to recycle bin?'))
+  const handleSoftDelete = async (id) => {
+    if (!window.confirm("Move this sales document config to recycle bin?"))
       return;
     try {
       await softDeleteSalesDocument(id);
       loadData();
     } catch (err) {
-      console.error('Error deleting sales document config', err);
+      console.error("Error deleting sales document config", err);
     }
   };
 
-  const handleRestore = async id => {
+  const handleRestore = async (id) => {
     try {
       await restoreSalesDocument(id);
       loadData();
     } catch (err) {
-      console.error('Error restoring sales document config', err);
+      console.error("Error restoring sales document config", err);
     }
   };
 
@@ -360,7 +404,7 @@ const SalesDocumentConfig = () => {
                     name="referenceMandatory"
                     checked={formData.referenceMandatory}
                     onChange={handleChange}
-                  />{' '}
+                  />{" "}
                   Reference Mandatory
                 </label>
                 <label>
@@ -369,7 +413,7 @@ const SalesDocumentConfig = () => {
                     name="checkDivision"
                     checked={formData.checkDivision}
                     onChange={handleChange}
-                  />{' '}
+                  />{" "}
                   Check Division
                 </label>
                 <label>
@@ -378,7 +422,7 @@ const SalesDocumentConfig = () => {
                     name="checkCreditLimit"
                     checked={formData.checkCreditLimit}
                     onChange={handleChange}
-                  />{' '}
+                  />{" "}
                   Check Credit Limit
                 </label>
               </div>
@@ -446,6 +490,7 @@ const SalesDocumentConfig = () => {
                   name="deliveryType"
                   value={formData.deliveryType}
                   onChange={handleChange}
+                  placeholder="LF / NL"
                 />
               </div>
               <div className="form-row">
@@ -507,8 +552,8 @@ const SalesDocumentConfig = () => {
         <div className="form-actions">
           <button type="submit" className="btn btn-primary">
             {editingId
-              ? 'Update Sales Document Type'
-              : 'Create Sales Document Type'}
+              ? "Update Sales Document Type"
+              : "Create Sales Document Type"}
           </button>
           {editingId && (
             <button
@@ -523,16 +568,12 @@ const SalesDocumentConfig = () => {
       </form>
 
       <div className="list-header">
-        <h3>
-          {showDeleted
-            ? 'Recycle Bin'
-            : 'Active Sales Document Types'}
-        </h3>
+        <h3>{showDeleted ? "Recycle Bin" : "Active Sales Document Types"}</h3>
         <button
           className="btn btn-secondary"
-          onClick={() => setShowDeleted(v => !v)}
+          onClick={() => setShowDeleted((v) => !v)}
         >
-          {showDeleted ? 'Show Active' : 'Show Recycle Bin'}
+          {showDeleted ? "Show Active" : "Show Recycle Bin"}
         </button>
       </div>
 
@@ -556,7 +597,7 @@ const SalesDocumentConfig = () => {
             </tr>
           </thead>
           <tbody>
-            {currentList.map(row => (
+            {currentList.map((row) => (
               <tr key={row.id}>
                 <td>{row.documentType}</td>
                 <td>{row.description}</td>
