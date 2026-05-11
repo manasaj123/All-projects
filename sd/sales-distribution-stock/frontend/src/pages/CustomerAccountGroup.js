@@ -1,5 +1,5 @@
 // frontend/src/pages/CustomerAccountGroup.js
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from "react";
 import {
   getCustomerGroups,
   getDeletedCustomerGroups,
@@ -7,14 +7,14 @@ import {
   updateCustomerGroup,
   softDeleteCustomerGroup,
   restoreCustomerGroup,
-} from '../services/customerGroupService';
+} from "../services/customerGroupService";
 
 const initialForm = {
-  accountGroup: '',
-  name: '',
-  fieldStatusGeneral: '',
-  fieldStatusCompanyCode: '',
-  fieldStatusSales: '',
+  accountGroup: "",
+  name: "",
+  fieldStatusGeneral: "",
+  fieldStatusCompanyCode: "",
+  fieldStatusSales: "",
 };
 
 const CustomerAccountGroup = () => {
@@ -35,7 +35,7 @@ const CustomerAccountGroup = () => {
       setGroups(activeRes.data);
       setDeletedGroups(deletedRes.data);
     } catch (err) {
-      console.error('Error loading customer groups', err);
+      console.error("Error loading customer groups", err);
     }
     setLoading(false);
   };
@@ -44,39 +44,148 @@ const CustomerAccountGroup = () => {
     loadData();
   }, []);
 
-  const handleChange = e => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-  };
+  // const handleChange = e => {
+  //   const { name, value } = e.target;
+  //   setFormData(prev => ({ ...prev, [name]: value }));
+  // };
 
-  const handleSubmit = async e => {
-    e.preventDefault();
-    if (!formData.accountGroup || formData.accountGroup.length !== 4) {
-      alert('Account Group must be 4 characters');
+  // const handleSubmit = async e => {
+  //   e.preventDefault();
+  //   if (!formData.accountGroup || formData.accountGroup.length !== 4) {
+  //     alert('Account Group must be 4 characters');
+  //     return;
+  //   }
+  //   try {
+  //     if (editingId) {
+  //       await updateCustomerGroup(editingId, formData);
+  //     } else {
+  //       await createCustomerGroup(formData);
+  //     }
+  //     setFormData(initialForm);
+  //     setEditingId(null);
+  //     loadData();
+  //   } catch (err) {
+  //     console.error('Error saving customer group', err);
+  //   }
+  // };
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+
+    // Account group validation
+    if (name === "accountGroup") {
+      const upperValue = value.toUpperCase();
+
+      // Only A-Z and numbers
+      const accountGroupRegex = /^[A-Z0-9]*$/;
+
+      if (!accountGroupRegex.test(upperValue)) {
+        return;
+      }
+
+      setFormData((prev) => ({
+        ...prev,
+        [name]: upperValue,
+      }));
+
       return;
     }
+
+    // Name field only letters and spaces
+    if (name === "name") {
+      const lettersOnly = /^[A-Za-z\s]*$/;
+
+      if (!lettersOnly.test(value)) {
+        return;
+      }
+    }
+
+    // Field Status validations
+    if (
+      name === "fieldStatusGeneral" ||
+      name === "fieldStatusCompanyCode" ||
+      name === "fieldStatusSales"
+    ) {
+      const allowedValues = ["Required", "Optional", "Hidden"];
+
+      // Allow typing partial value while entering
+      const isValidPartial = allowedValues.some((v) =>
+        v.toLowerCase().startsWith(value.toLowerCase()),
+      );
+
+      if (!isValidPartial && value !== "") {
+        return;
+      }
+    }
+
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    // Account Group validation
+    const accountGroupRegex = /^[A-Z0-9]{4}$/;
+
+    if (!accountGroupRegex.test(formData.accountGroup)) {
+      alert(
+        "Account Group must be exactly 4 characters and contain only letters and numbers",
+      );
+      return;
+    }
+
+    // Name validation
+    const nameRegex = /^[A-Za-z\s]+$/;
+
+    if (!nameRegex.test(formData.name)) {
+      alert("Name should contain only letters");
+      return;
+    }
+
+    // Field Status validation
+    const validStatuses = ["Required", "Optional", "Hidden"];
+
+    if (!validStatuses.includes(formData.fieldStatusGeneral)) {
+      alert("General Data must be Required, Optional, or Hidden");
+      return;
+    }
+
+    if (!validStatuses.includes(formData.fieldStatusCompanyCode)) {
+      alert("Company Code Data must be Required, Optional, or Hidden");
+      return;
+    }
+
+    if (!validStatuses.includes(formData.fieldStatusSales)) {
+      alert("Sales Data must be Required, Optional, or Hidden");
+      return;
+    }
+
     try {
       if (editingId) {
         await updateCustomerGroup(editingId, formData);
       } else {
         await createCustomerGroup(formData);
       }
+
       setFormData(initialForm);
       setEditingId(null);
       loadData();
     } catch (err) {
-      console.error('Error saving customer group', err);
+      console.error("Error saving customer group", err);
     }
   };
 
-  const handleEdit = group => {
+  const handleEdit = (group) => {
     setEditingId(group.id);
     setFormData({
-      accountGroup: group.accountGroup || '',
-      name: group.name || '',
-      fieldStatusGeneral: group.fieldStatusGeneral || 'optional',
-      fieldStatusCompanyCode: group.fieldStatusCompanyCode || 'optional',
-      fieldStatusSales: group.fieldStatusSales || 'optional',
+      accountGroup: group.accountGroup || "",
+      name: group.name || "",
+      fieldStatusGeneral: group.fieldStatusGeneral || "Optional",
+      fieldStatusCompanyCode: group.fieldStatusCompanyCode || "Optional",
+      fieldStatusSales: group.fieldStatusSales || "Optional",
     });
   };
 
@@ -85,13 +194,14 @@ const CustomerAccountGroup = () => {
     setFormData(initialForm);
   };
 
-  const handleSoftDelete = async id => {
-    if (!window.confirm('Move this customer account group to recycle bin?')) return;
+  const handleSoftDelete = async (id) => {
+    if (!window.confirm("Move this customer account group to recycle bin?"))
+      return;
     await softDeleteCustomerGroup(id);
     loadData();
   };
 
-  const handleRestore = async id => {
+  const handleRestore = async (id) => {
     await restoreCustomerGroup(id);
     loadData();
   };
@@ -288,7 +398,7 @@ const CustomerAccountGroup = () => {
             />
           </div>
 
-          <h4 style={{ gridColumn: '1 / -1' }}>Field Status</h4>
+          <h4 style={{ gridColumn: "1 / -1" }}>Field Status</h4>
 
           <div className="form-row">
             <label>General Data</label>
@@ -297,7 +407,7 @@ const CustomerAccountGroup = () => {
               name="fieldStatusGeneral"
               value={formData.fieldStatusGeneral}
               onChange={handleChange}
-              placeholder="Type Required / Optional / Hidden"
+              placeholder="Required / Optional / Hidden"
             />
           </div>
 
@@ -308,7 +418,7 @@ const CustomerAccountGroup = () => {
               name="fieldStatusCompanyCode"
               value={formData.fieldStatusCompanyCode}
               onChange={handleChange}
-              placeholder="Type Required / Optional / Hidden"
+              placeholder="Required / Optional / Hidden"
             />
           </div>
 
@@ -319,14 +429,14 @@ const CustomerAccountGroup = () => {
               name="fieldStatusSales"
               value={formData.fieldStatusSales}
               onChange={handleChange}
-              placeholder="Type Required / Optional / Hidden"
+              placeholder="Required / Optional / Hidden"
             />
           </div>
         </div>
 
         <div className="form-actions">
           <button type="submit">
-            {editingId ? 'Update Account Group' : 'Create Account Group'}
+            {editingId ? "Update Account Group" : "Create Account Group"}
           </button>
 
           {editingId && (
@@ -338,9 +448,9 @@ const CustomerAccountGroup = () => {
       </form>
 
       <div className="list-header">
-        <h3>{showDeleted ? 'Recycle Bin' : 'Active Account Groups'}</h3>
-        <button onClick={() => setShowDeleted(v => !v)}>
-          {showDeleted ? 'Show Active' : 'Show Recycle Bin'}
+        <h3>{showDeleted ? "Recycle Bin" : "Active Account Groups"}</h3>
+        <button onClick={() => setShowDeleted((v) => !v)}>
+          {showDeleted ? "Show Active" : "Show Recycle Bin"}
         </button>
       </div>
 
@@ -361,7 +471,7 @@ const CustomerAccountGroup = () => {
             </tr>
           </thead>
           <tbody>
-            {currentList.map(g => (
+            {currentList.map((g) => (
               <tr key={g.id}>
                 <td>{g.accountGroup}</td>
                 <td>{g.name}</td>
@@ -372,7 +482,9 @@ const CustomerAccountGroup = () => {
                   {!showDeleted && (
                     <>
                       <button onClick={() => handleEdit(g)}>Edit</button>
-                      <button onClick={() => handleSoftDelete(g.id)}>Delete</button>
+                      <button onClick={() => handleSoftDelete(g.id)}>
+                        Delete
+                      </button>
                     </>
                   )}
                   {showDeleted && (
