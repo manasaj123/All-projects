@@ -14,3 +14,10 @@ export const getRegionReportApi = async (token) => {
   });
   return res.data;
 };
+
+export const getSummaryReportApi = async (token) => {
+  const res = await axios.get(`${API_URL}/summary`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  return res.data;
+};

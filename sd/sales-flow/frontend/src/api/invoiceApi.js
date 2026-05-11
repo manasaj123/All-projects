@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const BASE = "http://localhost:5007/api/invoices"; // Adjust URL as needed
+const BASE = "http://localhost:5007/api/invoices";
 
 export const getInvoicesApi = async (token) => {
   const res = await axios.get(BASE, {
@@ -17,7 +17,7 @@ export const createInvoiceApi = async (token, data) => {
 };
 
 export const payInvoiceApi = async (token, invoiceId) => {
-  const res = await axios.put(`${BASE}/${invoiceId}/pay`, {}, {
+  const res = await axios.put(`${BASE}/${invoiceId}/pay`, {}, {  // Changed to PUT
     headers: { Authorization: `Bearer ${token}` }
   });
   return res.data;

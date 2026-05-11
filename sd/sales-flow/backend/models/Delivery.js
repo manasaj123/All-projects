@@ -1,4 +1,3 @@
-// models/Delivery.js
 const { DataTypes } = require("sequelize");
 const { sequelize } = require("../config/db");
 
@@ -15,6 +14,10 @@ const Delivery = sequelize.define("Delivery", {
       model: 'orders',
       key: 'id'
     }
+  },
+  address: {
+    type: DataTypes.STRING(255),
+    allowNull: true
   },
   status: {
     type: DataTypes.STRING(50),

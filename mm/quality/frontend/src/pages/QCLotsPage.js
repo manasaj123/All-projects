@@ -1,4 +1,3 @@
-// frontend/src/pages/QCLotsPage.js
 import React, { useEffect, useState, useCallback } from "react";
 import qcLotApi from "../api/qcLotApi";
 import QCLotList from "../components/qc/QCLotList";
@@ -6,101 +5,258 @@ import QCLotForm from "../components/qc/QCLotForm";
 
 export default function QCLotsPage() {
   const [lots, setLots] = useState([]);
-  const [status, setStatus] = useState("PENDING");
-  const [stage, setStage] = useState("WAREHOUSE");
+  const [status, setStatus] = useState("");
+  const [stage, setStage] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const [showForm, setShowForm] = useState(false);
 
   const styles = {
     container: {
-      padding: 16,
-      fontSize: 13,
-      height: "85vh",
-      backgroundImage:
-        "linear-gradient(90deg, rgba(59,130,246,0.15), rgba(16,185,129,0.15), rgba(239,68,68,0.15))"
-      
+      padding: "20px",
+      fontSize: "14px",
+      maxWidth: "1200px",
+      margin: "0 auto"
+    },
+    header: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginBottom: "20px"
     },
     title: {
-      fontSize: 20,
-      marginBottom: 12
+      fontSize: "24px",
+      fontWeight: "bold",
+      color: "#1f2937",
+      margin: 0
+    },
+    statsRow: {
+      display: "flex",
+      gap: "16px",
+      marginBottom: "20px",
+      flexWrap: "wrap"
+    },
+    statCard: {
+      flex: "1",
+      minWidth: "150px",
+      padding: "16px",
+      backgroundColor: "#ffffff",
+      borderRadius: "8px",
+      boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+      textAlign: "center"
+    },
+    statValue: {
+      fontSize: "28px",
+      fontWeight: "bold",
+      margin: "4px 0"
+    },
+    statLabel: {
+      fontSize: "12px",
+      color: "#6b7280",
+      textTransform: "uppercase"
     },
     filterRow: {
-      fontSize: 13,
-      marginBottom: 8,
       display: "flex",
       alignItems: "center",
-      gap: 16
+      gap: "16px",
+      marginBottom: "20px",
+      padding: "12px",
+      backgroundColor: "#f9fafb",
+      borderRadius: "8px",
+      flexWrap: "wrap"
     },
     label: {
       display: "flex",
       alignItems: "center",
-      gap: 4
+      gap: "6px",
+      fontSize: "13px",
+      fontWeight: "500"
     },
     select: {
-      padding: "4px 6px",
+      padding: "6px 10px",
       fontSize: "13px",
-      borderRadius: "4px",
-      border: "1px solid #d1d5db"
+      borderRadius: "6px",
+      border: "1px solid #d1d5db",
+      backgroundColor: "white"
     },
-    sectionTitle: {
-      fontSize: 16,
-      marginTop: 16,
-      marginBottom: 8
+    addButton: {
+      padding: "8px 16px",
+      fontSize: "14px",
+      borderRadius: "6px",
+      border: "none",
+      backgroundColor: "#2563eb",
+      color: "#fff",
+      cursor: "pointer",
+      fontWeight: "500"
+    },
+    cancelButton: {
+      padding: "8px 16px",
+      fontSize: "14px",
+      borderRadius: "6px",
+      border: "1px solid #d1d5db",
+      backgroundColor: "#fff",
+      color: "#374151",
+      cursor: "pointer",
+      marginLeft: "8px"
+    },
+    message: {
+      padding: "10px 16px",
+      borderRadius: "6px",
+      marginBottom: "16px",
+      fontSize: "13px"
+    },
+    successMessage: {
+      backgroundColor: "#d1fae5",
+      color: "#065f46"
+    },
+    errorMessage: {
+      backgroundColor: "#fee2e2",
+      color: "#991b1b"
     }
   };
 
   const load = useCallback(async () => {
-    const res = await qcLotApi.list({
-      status: status || undefined,
-      stage: stage || undefined
-    });
-    setLots(res.data || []);
+    setLoading(true);
+    setError("");
+    try {
+      const params = {};
+      if (status) params.status = status;
+      if (stage) params.stage = stage;
+      
+      const res = await qcLotApi.list(params);
+      setLots(res.data || []);
+    } catch (err) {
+      setError("Failed to load QC lots");
+      setLots([]);
+    } finally {
+      setLoading(false);
+    }
   }, [status, stage]);
 
   useEffect(() => {
     load();
   }, [load]);
 
-  const handleCreateLot = async data => {
-    await qcLotApi.create(data);
-    await load();
+  const handleCreateLot = async (data) => {
+    setError("");
+    setSuccess("");
+    try {
+      await qcLotApi.create(data);
+      setSuccess("QC Lot created successfully!");
+      setShowForm(false);
+      await load();
+      setTimeout(() => setSuccess(""), 3000);
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to create QC lot");
+    }
   };
+
+  // Calculate stats
+  const totalLots = lots.length;
+  const pendingLots = lots.filter(l => l.status === "PENDING").length;
+  const acceptedLots = lots.filter(l => l.status === "ACCEPTED").length;
+  const rejectedLots = lots.filter(l => l.status === "REJECTED").length;
 
   return (
     <div style={styles.container}>
-      <h2 style={styles.title}>QC Lots</h2>
+      <div style={styles.header}>
+        <h2 style={styles.title}>QC Lots Management</h2>
+        {!showForm && (
+          <button 
+            style={styles.addButton}
+            onClick={() => setShowForm(true)}
+          >
+            + New QC Lot
+          </button>
+        )}
+      </div>
 
+      {error && <div style={{...styles.message, ...styles.errorMessage}}>{error}</div>}
+      {success && <div style={{...styles.message, ...styles.successMessage}}>{success}</div>}
+
+      {/* Stats Cards */}
+      <div style={styles.statsRow}>
+        <div style={styles.statCard}>
+          <div style={{...styles.statValue, color: "#2563eb"}}>{totalLots}</div>
+          <div style={styles.statLabel}>Total Lots</div>
+        </div>
+        <div style={styles.statCard}>
+          <div style={{...styles.statValue, color: "#d97706"}}>{pendingLots}</div>
+          <div style={styles.statLabel}>Pending</div>
+        </div>
+        <div style={styles.statCard}>
+          <div style={{...styles.statValue, color: "#059669"}}>{acceptedLots}</div>
+          <div style={styles.statLabel}>Accepted</div>
+        </div>
+        <div style={styles.statCard}>
+          <div style={{...styles.statValue, color: "#dc2626"}}>{rejectedLots}</div>
+          <div style={styles.statLabel}>Rejected</div>
+        </div>
+      </div>
+
+      {/* Filters */}
       <div style={styles.filterRow}>
         <label style={styles.label}>
-          <span>Status</span>
+          <span>Status:</span>
           <select
             value={status}
             onChange={e => setStatus(e.target.value)}
             style={styles.select}
           >
-            <option value="">All</option>
+            <option value="">All Status</option>
             <option value="PENDING">Pending</option>
             <option value="ACCEPTED">Accepted</option>
             <option value="REJECTED">Rejected</option>
+            <option value="ACCEPTED_WITH_DEVIATION">Accepted with Deviation</option>
           </select>
         </label>
 
         <label style={styles.label}>
-          <span>Stage</span>
+          <span>Stage:</span>
           <select
             value={stage}
             onChange={e => setStage(e.target.value)}
             style={styles.select}
           >
-            <option value="">Any</option>
+            <option value="">All Stages</option>
             <option value="FIELD">Field</option>
             <option value="WAREHOUSE">Warehouse</option>
           </select>
         </label>
+
+        <button 
+          style={{...styles.addButton, backgroundColor: "#6b7280", fontSize: "12px"}}
+          onClick={() => { setStatus(""); setStage(""); }}
+        >
+          Clear Filters
+        </button>
       </div>
 
-      <QCLotList lots={lots} />
+      {/* QC Lot List */}
+      {loading ? (
+        <div style={{ textAlign: "center", padding: "40px", color: "#6b7280" }}>
+          Loading QC lots...
+        </div>
+      ) : (
+        <QCLotList lots={lots} onRefresh={load} />
+      )}
 
-      <h3 style={styles.sectionTitle}>Create QC Lot (manual)</h3>
-      <QCLotForm onSave={handleCreateLot} />
+      {/* Create Form */}
+      {showForm && (
+        <div style={{ marginTop: "20px" }}>
+          <div style={{ display: "flex", alignItems: "center", marginBottom: "12px" }}>
+            <h3 style={{ margin: 0, fontSize: "18px" }}>Create New QC Lot</h3>
+            <button 
+              style={styles.cancelButton}
+              onClick={() => setShowForm(false)}
+            >
+              Cancel
+            </button>
+          </div>
+          <QCLotForm onSave={handleCreateLot} />
+        </div>
+      )}
     </div>
   );
 }

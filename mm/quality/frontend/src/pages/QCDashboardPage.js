@@ -1,6 +1,29 @@
 // src/pages/QCDashboardPage.js
 import React, { useEffect, useState } from "react";
-import qcDashboardApi from "../api/qcDashboardApi";
+
+// Mock dashboard data
+const MOCK_SUMMARY = {
+  lots: {
+    total: 6,
+    byStatus: {
+      PENDING: 1,
+      ACCEPTED: 1,
+      REJECTED: 2,
+      ACCEPTED_WITH_DEVIATION: 2
+    }
+  },
+  plans: {
+    total: 1
+  },
+  capa: {
+    total: 3,
+    byStatus: {
+      OPEN: 1,
+      IN_PROGRESS: 1,
+      CLOSED: 1
+    }
+  }
+};
 
 export default function QCDashboardPage() {
   const [summary, setSummary] = useState(null);
@@ -53,8 +76,10 @@ export default function QCDashboardPage() {
   useEffect(() => {
     async function load() {
       try {
-        const data = await qcDashboardApi.getSummary();
-        setSummary(data);
+        // Simulate API delay
+        await new Promise(resolve => setTimeout(resolve, 500));
+        // Use mock data instead of API
+        setSummary(MOCK_SUMMARY);
       } catch (e) {
         console.error("Failed to load QC summary", e);
       } finally {
@@ -74,7 +99,7 @@ export default function QCDashboardPage() {
     <div style={styles.container}>
       <h2 style={styles.title}>Material Quality Dashboard</h2>
 
-      {loading && <div>Loading summary...</div>}
+      {loading && <div style={{ textAlign: "center", padding: "40px" }}>Loading summary...</div>}
 
       {!loading && summary && (
         <div style={styles.cardsRow}>
@@ -83,8 +108,7 @@ export default function QCDashboardPage() {
             <div style={styles.cardTitle}>QC Lots</div>
             <div style={styles.cardValue}>{summary.lots.total}</div>
             <div style={styles.cardSub}>
-              Pending: {lotsPending} • Accepted: {lotsAccepted} • Rejected:{" "}
-              {lotsRejected}
+              Pending: {lotsPending} • Accepted: {lotsAccepted} • Rejected: {lotsRejected}
             </div>
           </div>
 

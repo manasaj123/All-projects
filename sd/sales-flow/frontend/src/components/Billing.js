@@ -144,6 +144,7 @@ const Billing = ({ token }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [creatingInvoiceFor, setCreatingInvoiceFor] = useState(null);
 
   const load = async () => {
     if (!token) return;
@@ -169,6 +170,14 @@ const Billing = ({ token }) => {
     load();
   }, [token]);
 
+  // Get product name from order
+  const getProductName = (order) => {
+    if (order.items && Array.isArray(order.items) && order.items.length > 0) {
+      return order.items.map(item => item.product).filter(Boolean).join(", ") || "";
+    }
+    return order.product || "";
+  };
+
   // Calculate order total
   const getOrderTotal = (order) => {
     if (order.total && Number(order.total) > 0) {
@@ -182,19 +191,13 @@ const Billing = ({ token }) => {
     return Number(order.price || 0) * Number(order.quantity || 1);
   };
 
-  const handleCreateInvoice = async (orderId) => {
+  const handleCreateInvoice = async (order) => {
     setError("");
     setSuccess("");
     
-    const order = orders.find(o => (o.id || o._id) == orderId);
-    if (!order) {
-      setError("Order not found");
-      return;
-    }
-
-    setLoading(true);
+    setCreatingInvoiceFor(order.id || order._id);
+    
     try {
-      // Send complete invoice data
       const payload = {
         orderId: order.id || order._id,
         customerName: order.customerName || "",
@@ -203,18 +206,18 @@ const Billing = ({ token }) => {
         status: "PENDING"
       };
       
-      console.log("Creating invoice with data:", payload); // Debug log
+      console.log("Creating invoice with data:", payload);
       
       await createInvoiceApi(token, payload);
-      setSuccess(`Invoice created for Order #${orderId}`);
+      setSuccess(`Invoice created for Order #${order.id || order._id}`);
+      setCreatingInvoiceFor(null);
       await load();
       
       setTimeout(() => setSuccess(""), 3000);
     } catch (err) {
-      setError(err.response?.data?.error || err.message || "Failed to create invoice");
+      setError(err.response?.data?.message || err.message || "Failed to create invoice");
       console.error("Create invoice error:", err);
-    } finally {
-      setLoading(false);
+      setCreatingInvoiceFor(null);
     }
   };
 
@@ -230,7 +233,7 @@ const Billing = ({ token }) => {
       
       setTimeout(() => setSuccess(""), 3000);
     } catch (err) {
-      setError(err.response?.data?.error || err.message || "Failed to pay invoice");
+      setError(err.response?.data?.message || err.message || "Failed to pay invoice");
       console.error("Pay invoice error:", err);
     } finally {
       setLoading(false);
@@ -257,29 +260,32 @@ const Billing = ({ token }) => {
       <h4 style={styles.subTitle}>Pending Orders</h4>
       {loading && !orders.length ? (
         <div style={styles.loadingText}>Loading orders...</div>
-      ) : orders.filter((o) => o.status !== "INVOICED").length === 0 ? (
+      ) : orders.filter((o) => o.status !== "INVOICED" && o.status !== "DELIVERED").length === 0 ? (
         <div style={styles.noOrders}>All orders have been invoiced.</div>
       ) : (
         <ul style={styles.orderList}>
           {orders
-            .filter((o) => o.status !== "INVOICED")
+            .filter((o) => o.status !== "INVOICED" && o.status !== "DELIVERED")
             .map((o) => {
               const orderTotal = getOrderTotal(o);
+              const productName = getProductName(o);
+              const isCreating = creatingInvoiceFor === (o.id || o._id);
+              
               return (
                 <li key={o.id || o._id} style={styles.orderItem}>
                   <span style={styles.orderText}>
-                    <strong>#{o.id || o._id}</strong> - {o.customerName || "Unknown"} 
-                    {" | "}{o.product || "No product"}
+                    <strong>{o.id || o._id}</strong> - {o.customerName || "Unknown"} 
+                    {" | "}{productName || "No product"}
                     {" | "}Qty: {o.quantity || 1}
                     {" | "}<span style={styles.amountText}>₹{orderTotal.toFixed(2)}</span>
                     {" | "}{o.status}
                   </span>
                   <button
-                    style={loading ? styles.createButtonDisabled : styles.createButton}
-                    onClick={() => handleCreateInvoice(o.id || o._id)}
-                    disabled={loading}
+                    style={isCreating ? styles.createButtonDisabled : styles.createButton}
+                    onClick={() => handleCreateInvoice(o)}
+                    disabled={isCreating}
                   >
-                    {loading ? "Creating..." : "Create Invoice"}
+                    {isCreating ? "Creating..." : "Create Invoice"}
                   </button>
                 </li>
               );
@@ -297,7 +303,7 @@ const Billing = ({ token }) => {
           <table style={styles.table}>
             <thead>
               <tr>
-                <th style={styles.th}>Invoice #</th>
+                <th style={styles.th}>Invoice </th>
                 <th style={styles.th}>Order</th>
                 <th style={styles.th}>Customer</th>
                 <th style={styles.th}>Amount</th>
@@ -309,9 +315,9 @@ const Billing = ({ token }) => {
             <tbody>
               {invoices.map((inv) => (
                 <tr key={inv.id || inv._id}>
-                  <td style={styles.td}>{inv.id || inv._id}</td>
-                  <td style={styles.td}>#{inv.orderId}</td>
-                  <td style={styles.td}>{inv.customerName || "-"}</td>
+                  <td style={styles.td}>{inv.invoiceNumber || `${inv.id || inv._id}`}</td>
+                  <td style={styles.td}>{inv.orderId}</td>
+                  <td style={styles.td}>{inv.customerName || inv.Order?.customerName || "-"}</td>
                   <td style={styles.td}>
                     <span style={styles.amountText}>₹{Number(inv.amount || 0).toFixed(2)}</span>
                   </td>

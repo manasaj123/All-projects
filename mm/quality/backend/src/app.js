@@ -1,13 +1,10 @@
-// backend/src/app.js
 import express from "express";
 import cors from "cors";
-app.use(require('./router'))
-
-
 import qcLotRoutes from "./routes/qcLotRoutes.js";
 import qcMasterRoutes from "./routes/qcMasterRoutes.js";
 import capaRoutes from "./routes/capaRoutes.js";
 import qcSummaryRoutes from "./routes/qcSummaryRoutes.js";
+
 const app = express();
 
 app.use(cors());
@@ -19,11 +16,9 @@ app.use("/api/qc/master", qcMasterRoutes);
 app.use("/api/qc/capa", capaRoutes);
 app.use("/api/qc", qcSummaryRoutes);
 
-
 app.get("/health", (req, res) => {
   res.json({ ok: true });
 });
-
 
 app.use((err, req, res, next) => {
   console.error(err);

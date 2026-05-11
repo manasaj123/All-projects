@@ -10,6 +10,6 @@ const router = express.Router();
 
 router.post("/", authMiddleware, createInvoice);
 router.get("/", authMiddleware, getInvoices);
-router.patch("/:id/pay", authMiddleware, markInvoicePaid);
+router.put("/:id/pay", authMiddleware, markInvoicePaid);  // Changed from PATCH to PUT
 
 module.exports = router;

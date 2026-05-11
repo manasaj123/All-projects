@@ -126,3 +126,133 @@ exports.getOrderById = async (req, res) => {
     res.status(500).json({ message: err.message || "Failed to fetch order" });
   }
 };
+
+// Add this new function for updating orders
+exports.updateOrder = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { customerName, customerRegion, product, quantity, price, total, status } = req.body;
+    
+    // Find the order first
+    const order = await Order.findByPk(id);
+    if (!order) {
+      return res.status(404).json({ message: "Order not found" });
+    }
+    
+    // Input validation
+    if (customerName !== undefined && !customerName.trim()) {
+      return res.status(400).json({ message: "Customer name cannot be empty" });
+    }
+    
+    if (customerRegion !== undefined && !customerRegion.trim()) {
+      return res.status(400).json({ message: "Region cannot be empty" });
+    }
+    
+    if (product !== undefined && !product.trim()) {
+      return res.status(400).json({ message: "Product cannot be empty" });
+    }
+    
+    if (quantity !== undefined && (quantity < 1 || isNaN(quantity))) {
+      return res.status(400).json({ message: "Quantity must be at least 1" });
+    }
+    
+    if (price !== undefined && (price < 0 || isNaN(price))) {
+      return res.status(400).json({ message: "Price cannot be negative" });
+    }
+    
+    // Build update data
+    const updateData = {};
+    
+    if (customerName) updateData.customerName = customerName.trim();
+    if (customerRegion) updateData.customerRegion = customerRegion.trim();
+    
+    // Update items if product, quantity, or price is provided
+    if (product || quantity !== undefined || price !== undefined) {
+      // Get existing items or parse them if stored as JSON string
+      let existingItems = [];
+      try {
+        const orderData = order.toJSON();
+        if (typeof orderData.items === 'string') {
+          existingItems = JSON.parse(orderData.items);
+        } else if (Array.isArray(orderData.items)) {
+          existingItems = orderData.items;
+        }
+      } catch (e) {
+        console.error("Error parsing existing items:", e);
+        existingItems = [];
+      }
+      
+      // Update the first item or create new items array
+      const updatedItems = existingItems.length > 0 ? [...existingItems] : [{}];
+      updatedItems[0] = {
+        ...updatedItems[0],
+        product: product ? product.trim() : updatedItems[0].product,
+        quantity: quantity !== undefined ? Number(quantity) : updatedItems[0].quantity,
+        price: price !== undefined ? Number(price) : updatedItems[0].price,
+        total: (quantity !== undefined && price !== undefined) 
+          ? Number(quantity) * Number(price)
+          : (quantity !== undefined ? Number(quantity) * (updatedItems[0].price || 0)
+            : (price !== undefined ? (updatedItems[0].quantity || 0) * Number(price)
+              : updatedItems[0].total))
+      };
+      
+      updateData.items = updatedItems;
+      updateData.total = updatedItems[0].total || 0;
+    }
+    
+    // Validate and update status if provided
+    if (status) {
+      const validStatuses = ['pending', 'processing', 'completed', 'cancelled'];
+      if (validStatuses.includes(status.toLowerCase())) {
+        updateData.status = status.toLowerCase();
+      }
+    }
+    
+    // Update total if explicitly provided
+    if (total !== undefined && !isNaN(total)) {
+      updateData.total = Number(total);
+    }
+    
+    console.log("Updating order with data:", updateData);
+    
+    // Perform the update
+    await order.update(updateData);
+    
+    // Reload the order to get fresh data
+    await order.reload();
+    
+    // Parse items for response
+    const response = order.toJSON();
+    try {
+      if (typeof response.items === 'string') {
+        response.items = JSON.parse(response.items);
+      }
+    } catch (e) {
+      console.error("Error parsing items for response:", e);
+      response.items = [];
+    }
+    
+    res.json(response);
+  } catch (err) {
+    console.error("Update order error:", err);
+    
+    // Handle specific Sequelize errors
+    if (err.name === 'SequelizeValidationError') {
+      const messages = err.errors.map(e => e.message);
+      return res.status(400).json({ 
+        message: "Validation error", 
+        errors: messages 
+      });
+    }
+    
+    if (err.name === 'SequelizeDatabaseError') {
+      return res.status(500).json({ 
+        message: "Database error. Please check your data and try again." 
+      });
+    }
+    
+    res.status(500).json({ 
+      message: err.message || "Failed to update order" 
+    });
+  }
+};

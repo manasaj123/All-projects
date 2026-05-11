@@ -14,3 +14,11 @@ export const createOrderApi = async (token, order) => {
   });
   return res.data;
 };
+
+// ADD THIS FUNCTION - it must be here
+export const updateOrderApi = async (token, orderId, orderData) => {
+  const res = await axios.put(`${API_URL}/${orderId}`, orderData, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  return res.data;
+};

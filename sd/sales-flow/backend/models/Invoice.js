@@ -16,6 +16,10 @@ const Invoice = sequelize.define("Invoice", {
       key: 'id'
     }
   },
+  customerName: {  // ADD THIS FIELD
+    type: DataTypes.STRING(255),
+    allowNull: true
+  },
   invoiceNumber: {
     type: DataTypes.STRING(100),
     allowNull: false

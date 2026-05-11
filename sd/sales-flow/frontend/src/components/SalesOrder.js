@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { getOrdersApi, createOrderApi } from "../api/orderApi";
+import { getOrdersApi, createOrderApi, updateOrderApi } from "../api/orderApi";
 
 const styles = {
   card: {
@@ -44,6 +44,25 @@ const styles = {
     color: "#fff",
     cursor: "pointer",
     fontSize: "14px"
+  },
+  cancelButton: {
+    padding: "6px 12px",
+    borderRadius: "4px",
+    border: "none",
+    backgroundColor: "#6c757d",
+    color: "#fff",
+    cursor: "pointer",
+    fontSize: "14px",
+    marginLeft: "4px"
+  },
+  editButton: {
+    padding: "3px 8px",
+    borderRadius: "4px",
+    border: "none",
+    backgroundColor: "#28a745",
+    color: "#fff",
+    cursor: "pointer",
+    fontSize: "12px"
   },
   table: {
     width: "100%",
@@ -97,6 +116,9 @@ const styles = {
     fontSize: "11px",
     marginTop: "-6px",
     marginBottom: "6px"
+  },
+  actionColumn: {
+    minWidth: "100px"
   }
 };
 
@@ -106,6 +128,7 @@ const SalesOrder = ({ token }) => {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [fieldErrors, setFieldErrors] = useState({});
+  const [editingOrderId, setEditingOrderId] = useState(null);
   const [form, setForm] = useState({
     customerName: "",
     customerRegion: "",
@@ -134,13 +157,14 @@ const SalesOrder = ({ token }) => {
     loadOrders();
   }, [token]);
 
-  // Check if customer name already exists
-  const isCustomerNameDuplicate = (name) => {
+  // Check if customer name already exists (excluding the current editing order)
+  const isCustomerNameDuplicate = (name, excludeOrderId = null) => {
     if (!name || !name.trim()) return false;
     const trimmedName = name.trim().toLowerCase();
     return orders.some(order => 
       order.customerName && 
-      order.customerName.toLowerCase().trim() === trimmedName
+      order.customerName.toLowerCase().trim() === trimmedName &&
+      (excludeOrderId ? (order.id || order._id) !== excludeOrderId : true)
     );
   };
 
@@ -162,7 +186,6 @@ const SalesOrder = ({ token }) => {
   const handleInputChange = (field, value) => {
     // For customer name, auto-clean special characters as you type
     if (field === "customerName") {
-      // Remove special characters and numbers, but allow letters and spaces
       value = value.replace(/[!@#$%^&*(),.?":{}|<>[\]\\\/`~;'_+=0-9]/g, '');
     }
     
@@ -182,6 +205,38 @@ const SalesOrder = ({ token }) => {
     if (error) setError("");
   };
 
+  const handleEdit = (order) => {
+    const orderId = order.id || order._id;
+    setEditingOrderId(orderId);
+    
+    // Populate form with order data
+    setForm({
+      customerName: order.customerName || "",
+      customerRegion: order.customerRegion || "",
+      product: order.items?.[0]?.product || order.product || "",
+      quantity: order.items?.[0]?.quantity || order.quantity || "",
+      price: order.items?.[0]?.price || order.price || ""
+    });
+    
+    setFieldErrors({});
+    setError("");
+    setSuccess("");
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleCancelEdit = () => {
+    setEditingOrderId(null);
+    setForm({
+      customerName: "",
+      customerRegion: "",
+      product: "",
+      quantity: "",
+      price: ""
+    });
+    setFieldErrors({});
+    setError("");
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
@@ -193,7 +248,7 @@ const SalesOrder = ({ token }) => {
     const customerNameError = validateTextField(form.customerName, "Customer name");
     if (customerNameError) {
       newFieldErrors.customerName = customerNameError;
-    } else if (isCustomerNameDuplicate(form.customerName)) {
+    } else if (isCustomerNameDuplicate(form.customerName, editingOrderId)) {
       newFieldErrors.customerName = "This customer name already exists. Please use a different name.";
     }
 
@@ -229,8 +284,17 @@ const SalesOrder = ({ token }) => {
     };
 
     try {
-      await createOrderApi(token, payload);
-      setSuccess("Order created successfully!");
+      if (editingOrderId) {
+        // Update existing order
+        await updateOrderApi(token, editingOrderId, payload);
+        setSuccess("Order updated successfully!");
+        setEditingOrderId(null);
+      } else {
+        // Create new order
+        await createOrderApi(token, payload);
+        setSuccess("Order created successfully!");
+      }
+      
       setForm({
         customerName: "",
         customerRegion: "",
@@ -243,7 +307,7 @@ const SalesOrder = ({ token }) => {
       
       setTimeout(() => setSuccess(""), 3000);
     } catch (err) {
-      setError(err.message || "Failed to create order");
+      setError(err.message || `Failed to ${editingOrderId ? 'update' : 'create'} order`);
     }
   };
 
@@ -264,7 +328,7 @@ const SalesOrder = ({ token }) => {
     if (order.items && Array.isArray(order.items) && order.items.length > 0) {
       return order.items.map(item => item.product).filter(Boolean).join(", ") || "";
     }
-    return "";
+    return order.product || "";
   };
 
   const getOrderTotal = (order) => {
@@ -276,7 +340,7 @@ const SalesOrder = ({ token }) => {
         return sum + (Number(item.total) || Number(item.quantity) * Number(item.price) || 0);
       }, 0);
     }
-    return 0;
+    return Number(order.quantity) * Number(order.price) || 0;
   };
 
   const formatDate = (dateString) => {
@@ -291,7 +355,9 @@ const SalesOrder = ({ token }) => {
 
   return (
     <div style={styles.card}>
-      <h3 style={styles.title}>Sales Orders</h3>
+      <h3 style={styles.title}>
+        {editingOrderId ? 'Edit Sales Order' : 'Sales Orders'}
+      </h3>
       
       {error && <div style={styles.error}>{error}</div>}
       {success && <div style={styles.success}>{success}</div>}
@@ -369,8 +435,18 @@ const SalesOrder = ({ token }) => {
           </div>
           
           <button style={styles.button} type="submit">
-            Create Order
+            {editingOrderId ? 'Update Order' : 'Create Order'}
           </button>
+          
+          {editingOrderId && (
+            <button 
+              style={styles.cancelButton} 
+              type="button"
+              onClick={handleCancelEdit}
+            >
+              Cancel
+            </button>
+          )}
         </div>
       </form>
 
@@ -383,13 +459,14 @@ const SalesOrder = ({ token }) => {
           <table style={styles.table}>
             <thead>
               <tr>
-                <th style={styles.th}>Order #</th>
+                <th style={styles.th}>Order </th>
                 <th style={styles.th}>Customer</th>
                 <th style={styles.th}>Region</th>
                 <th style={styles.th}>Product</th>
                 <th style={styles.th}>Total</th>
                 <th style={styles.th}>Status</th>
                 <th style={styles.th}>Date</th>
+                <th style={styles.th}>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -399,7 +476,7 @@ const SalesOrder = ({ token }) => {
                   <td style={styles.td}>{o.customerName || ""}</td>
                   <td style={styles.td}>{o.customerRegion || ""}</td>
                   <td style={styles.td}>{getProductName(o)}</td>
-                  <td style={styles.td}>{getOrderTotal(o)}</td>
+                  <td style={styles.td}>${getOrderTotal(o).toFixed(2)}</td>
                   <td style={styles.td}>
                     <span style={{
                       ...styles.statusBadge,
@@ -409,6 +486,15 @@ const SalesOrder = ({ token }) => {
                     </span>
                   </td>
                   <td style={styles.td}>{formatDate(o.createdAt)}</td>
+                  <td style={styles.td}>
+                    <button 
+                      style={styles.editButton}
+                      onClick={() => handleEdit(o)}
+                      title="Edit order"
+                    >
+                      ✏️ Edit
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
