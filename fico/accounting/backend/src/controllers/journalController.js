@@ -2,9 +2,13 @@
 const db = require('../config/db');
 const { sequelize } = db;
 
+
+
 // models
 const JournalHeader = db.JournalHeader;
 const JournalLine = db.JournalLine;
+
+console.log('JournalLine attributes:', Object.keys(JournalLine.rawAttributes));
 
 // Generate simple running document number: JR000001, JR000002, ...
 const generateDocNumber = async () => {
@@ -20,7 +24,7 @@ const generateDocNumber = async () => {
 exports.list = async (req, res) => {
   try {
     const rows = await JournalHeader.findAll({
-      order: [['postingDate', 'DESC'], ['id', 'DESC']],
+      order: [['id', 'DESC']],
     });
     res.json(rows);
   } catch (err) {

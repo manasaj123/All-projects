@@ -3,8 +3,14 @@ import api from '../api';
 import '../styles/Common.css';
 
 const CostCenter = () => {
-  const [form, setForm] = useState({ code: '', name: '', description: '' });
+  const [form, setForm] = useState({
+    code: '',
+    name: '',
+    description: ''
+  });
+
   const [rows, setRows] = useState([]);
+  const [error, setError] = useState('');
 
   const load = async () => {
     const res = await api.get('/cost-centers');
@@ -15,23 +21,66 @@ const CostCenter = () => {
     load().catch(console.error);
   }, []);
 
+  // ✅ Validation rules
+  const isValidCode = (value) => /^[A-Z0-9-]+$/i.test(value);
+  const isValidName = (value) => /^[A-Za-z\s]+$/.test(value);
+
   const handleChange = (e) => {
-    setForm((f) => ({ ...f, [e.target.name]: e.target.value }));
+    let { name, value } = e.target;
+
+    // 🔒 Block invalid characters while typing
+    if (name === 'code') {
+      value = value.replace(/[^a-zA-Z0-9-]/g, '');
+    }
+
+    if (name === 'name') {
+      value = value.replace(/[^a-zA-Z\s]/g, '');
+    }
+
+    setForm((f) => ({ ...f, [name]: value }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    await api.post('/cost-centers', form);
-    setForm({ code: '', name: '', description: '' });
-    load();
+    setError('');
+
+    // 🔴 Validation before API call
+    if (!isValidCode(form.code)) {
+      setError('Code allows only letters, numbers, and dash (-)');
+      return;
+    }
+
+    if (!isValidName(form.name)) {
+      setError('Name allows only letters and spaces');
+      return;
+    }
+
+    try {
+      await api.post('/cost-centers', form);
+
+      setForm({
+        code: '',
+        name: '',
+        description: ''
+      });
+
+      load();
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to save cost center');
+    }
   };
 
   return (
     <div>
       <h2>Cost Centers</h2>
+
       <div className="grid-2">
+        {/* CREATE FORM */}
         <div className="card">
           <h3>Create</h3>
+
+          {error && <div className="error-text">{error}</div>}
+
           <form onSubmit={handleSubmit}>
             <div className="form-group">
               <label>Code</label>
@@ -39,18 +88,22 @@ const CostCenter = () => {
                 name="code"
                 value={form.code}
                 onChange={handleChange}
+                placeholder="e.g. CC-001"
                 required
               />
             </div>
+
             <div className="form-group">
               <label>Name</label>
               <input
                 name="name"
                 value={form.name}
                 onChange={handleChange}
+                placeholder="e.g. Finance Department"
                 required
               />
             </div>
+
             <div className="form-group">
               <label>Description</label>
               <textarea
@@ -59,13 +112,17 @@ const CostCenter = () => {
                 onChange={handleChange}
               />
             </div>
+
             <button className="btn-primary" type="submit">
               Save
             </button>
           </form>
         </div>
+
+        {/* LIST */}
         <div className="card">
           <h3>List</h3>
+
           <table className="table">
             <thead>
               <tr>
@@ -73,6 +130,7 @@ const CostCenter = () => {
                 <th>Name</th>
               </tr>
             </thead>
+
             <tbody>
               {rows.map((c) => (
                 <tr key={c.id}>
@@ -80,6 +138,7 @@ const CostCenter = () => {
                   <td>{c.name}</td>
                 </tr>
               ))}
+
               {rows.length === 0 && (
                 <tr>
                   <td colSpan="2">No cost centers yet.</td>

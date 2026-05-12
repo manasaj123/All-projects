@@ -21,4 +21,11 @@ router.get(
   paymentController.listPayments
 );
 
+
+router.get(
+  '/for-invoice/:invoiceId',
+  roleMiddleware('ADMIN', 'ACCOUNTANT', 'AUDITOR', 'VIEWER'),
+  paymentController.listPaymentsForInvoice
+);
+
 module.exports = router;

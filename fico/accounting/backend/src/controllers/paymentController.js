@@ -3,21 +3,37 @@ const { Payment, Invoice, Ledger } = db;
 
 // -------- helper: generate next payment number --------
 const generatePaymentNumber = async () => {
-  const last = await Payment.findOne({
+  let last = await Payment.findOne({
     order: [['id', 'DESC']]
   });
 
   let nextSeq = 1;
+
   if (last && last.paymentNumber) {
     const parts = String(last.paymentNumber).split('-');
     const lastSeq = parseInt(parts[parts.length - 1], 10);
+
     if (!isNaN(lastSeq)) {
       nextSeq = lastSeq + 1;
     }
   }
 
-  const seqStr = String(nextSeq).padStart(3, '0'); // PAY-001, PAY-002...
-  return `DB4-PAY-${seqStr}`;
+  let newNumber;
+
+  // 🔥 LOOP UNTIL UNIQUE (fixes ALL duplicates safely)
+  while (true) {
+    newNumber = `DB4-PAY-${String(nextSeq).padStart(3, '0')}`;
+
+    const exists = await Payment.findOne({
+      where: { paymentNumber: newNumber }
+    });
+
+    if (!exists) break;
+
+    nextSeq++;
+  }
+
+  return newNumber;
 };
 
 // -------- helper: post ledger --------
@@ -210,6 +226,7 @@ exports.listPayments = async (req, res, next) => {
     const payments = await Payment.findAll({
       order: [['date', 'DESC'], ['id', 'DESC']]
     });
+    
     res.json(payments);
   } catch (err) {
     next(err);
@@ -231,6 +248,21 @@ exports.markReconciled = async (req, res, next) => {
     await payment.save();
 
     res.json(payment);
+  } catch (err) {
+    next(err);
+  }
+};
+
+
+// paymentController.js
+exports.listPaymentsForInvoice = async (req, res, next) => {
+  try {
+    const { invoiceId } = req.params;
+    const payments = await Payment.findAll({
+      where: { invoiceId },           // no extra filter
+      order: [['date', 'DESC'], ['id', 'DESC']],
+    });
+    res.json(payments);
   } catch (err) {
     next(err);
   }

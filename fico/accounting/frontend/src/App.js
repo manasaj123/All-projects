@@ -6,6 +6,8 @@ import Navbar from './components/Navbar';
 import Sidebar from './components/Sidebar';
 import Register from './pages/Register';
 import Login from './pages/Login';
+import ForgotPassword from './pages/ForgotPassword';
+
 import Dashboard from './pages/Dashboard';
 import Invoice from './pages/Invoice';
 import Payment from './pages/Payment';
@@ -14,15 +16,20 @@ import Budget from './pages/Budget';
 import CostCenter from './pages/CostCenter';
 import ProfitCenter from './pages/ProfitCenter';
 import Expense from './pages/Expense';
-import GLAccount from './pages/GLAccount';
-import Journal from './pages/Journal';
-import Ledger from './pages/Ledger';
+import AuditLogs from './pages/AuditLogs';
+import GLAccounts from './pages/GLAccounts';
+import AssetClasses from './pages/AssetClasses';
 import AccDocument from './pages/AccDocument';
-import VendorCustomerInvoice from './pages/VendorCustomerInvoice';
-
-
-
-
+import Journal from './pages/Journal';
+import CustomerCreditMemo from './pages/CustomerCreditMemo';
+import Clearing from './pages/Clearing';
+import DownPayments from './pages/DownPayments';
+import ParkedInvoices from './pages/ParkedInvoices';
+import ApprovalWorkflow from './pages/ApprovalWorkflow';
+import GRIRClearing from './pages/GRIRClearing';
+import PeriodClosing from './pages/PeriodClosing';
+import TrialBalance from './pages/TrialBalance';
+import FinancialReports from './pages/FinancialReports';
 
 import './styles/App.css';
 
@@ -42,9 +49,9 @@ const App = () => {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/register" element={<Register />} />
       <Route element={<ProtectedRoute />}>
-      
         <Route
           path="/"
           element={<Navigate to="/dashboard" replace />}
@@ -105,28 +112,39 @@ const App = () => {
             </AppLayout>
           }
         />
-     
+        <Route
+          path="/expenses"
+          element={
+            <AppLayout>
+              <Expense />
+            </AppLayout>
+          }
+        />
 <Route
-    path="/gl-accounts"
-    element={
-      <AppLayout>
-        <GLAccount />
-      </AppLayout>
-    }
-  />
-<Route
-  path="/journal"
+  path="/audit-logs"
   element={
     <AppLayout>
-      <Journal />
+      <AuditLogs />
+    </AppLayout>
+  }
+/>
+
+
+
+
+<Route
+  path="/gl-accounts"
+  element={
+    <AppLayout>
+      <GLAccounts />
     </AppLayout>
   }
 />
 <Route
-  path="/ledger"
+  path="/asset-classes"
   element={
     <AppLayout>
-      <Ledger />
+      <AssetClasses />
     </AppLayout>
   }
 />
@@ -139,24 +157,94 @@ const App = () => {
   }
 />
 <Route
-  path="/vendor-customer-invoices"
+  path="/journal"
   element={
     <AppLayout>
-      <VendorCustomerInvoice />
+      <Journal />
+    </AppLayout>
+  }
+/>
+<Route
+  path="/customer-credit-memo"
+  element={
+    <AppLayout>
+      <CustomerCreditMemo />
+    </AppLayout>
+  }
+/>
+<Route
+  path="/clearing"
+  element={
+    <AppLayout>
+      <Clearing />
+    </AppLayout>
+  }
+/>
+<Route
+  path="/down-payments"
+  element={
+    <AppLayout>
+      <DownPayments />
+    </AppLayout>
+  }
+/>
+<Route
+  path="/parked-invoices"
+  element={
+    <AppLayout>
+      <ParkedInvoices />
+    </AppLayout>
+  }
+/>
+<Route
+  path="/approval-workflow"
+  element={
+    <AppLayout>
+      <ApprovalWorkflow />
+    </AppLayout>
+  }
+/>
+<Route
+  path="/grir-clearing"
+  element={
+    <AppLayout>
+      <GRIRClearing />
+    </AppLayout>
+  }
+/>
+<Route
+  path="/period-closing"
+  element={
+    <AppLayout>
+      <PeriodClosing />
+    </AppLayout>
+  }
+/>
+<Route
+  path="/trial-balance"
+  element={
+    <AppLayout>
+      <TrialBalance />
+    </AppLayout>
+  }
+/>
+<Route
+  path="/financial-reports"
+  element={
+    <AppLayout>
+      <FinancialReports />
+    </AppLayout>
+  }
+/>
+<Route
+  path="/forgot-password"
+  element={
+    <AppLayout>
+      <ForgotPassword />
     </AppLayout>
   }
 />
 
-
-        <Route
-          path="/expenses"
-          element={
-            <AppLayout>
-              <Expense />
-            </AppLayout>
-          }
-        />
-       
       </Route>
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>

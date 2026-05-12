@@ -2,44 +2,72 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
 import './pagestyle.css';
+import { FaEye, FaEyeSlash } from 'react-icons/fa';
 
 const Register = () => {
   const navigate = useNavigate();
-  const [form, setForm] = useState({ name: '', email: '', password: '' });
+
+  const [form, setForm] = useState({
+    name: '',
+    email: '',
+    password: '',
+    role: 'ACCOUNTANT',
+  });
+
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleChange = (e) => {
     setForm((f) => ({ ...f, [e.target.name]: e.target.value }));
   };
 
+  // ✅ Strong password validation
+  const isStrongPassword = (password) => {
+    const regex =
+      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&]).{8,}$/;
+    return regex.test(password);
+  };
+
   const handleSubmit = async (e) => {
-  e.preventDefault();
-  setError('');
-  setSuccess('');
-  try {
-    await api.post('/auth/register', form);
-    setSuccess('Registered successfully. Redirecting to login...');
-    setTimeout(() => navigate('/login'), 1000);
-  } catch (err) {
-    const msg = err.response?.data?.message || 'Registration failed';
-    setError(msg);
+    e.preventDefault();
+    setError('');
+    setSuccess('');
 
-    
-    if (msg === 'Email already registered') {
-      setTimeout(() => navigate('/login'), 1000);
+    // ✅ password validation before API call
+    if (!isStrongPassword(form.password)) {
+      setError(
+        'Password must be 8+ chars, include uppercase, lowercase, number & special character'
+      );
+      return;
     }
-  }
-};
 
+    try {
+      await api.post('/auth/register', form);
+
+      setSuccess('Registered successfully. Redirecting to login...');
+
+      setTimeout(() => navigate('/login'), 1000);
+    } catch (err) {
+      const msg = err.response?.data?.message || 'Registration failed';
+      setError(msg);
+
+      if (msg === 'Email already registered') {
+        setTimeout(() => navigate('/login'), 1000);
+      }
+    }
+  };
 
   return (
     <div className="center-container">
       <div className="card">
         <h2>Register</h2>
+
         {error && <div className="error-text">{error}</div>}
         {success && <div className="success-text">{success}</div>}
+
         <form onSubmit={handleSubmit}>
+          {/* NAME */}
           <div className="form-group">
             <label>Name</label>
             <input
@@ -49,6 +77,8 @@ const Register = () => {
               required
             />
           </div>
+
+          {/* EMAIL */}
           <div className="form-group">
             <label>Email</label>
             <input
@@ -59,16 +89,38 @@ const Register = () => {
               required
             />
           </div>
+
+          {/* PASSWORD */}
           <div className="form-group">
             <label>Password</label>
-            <input
-              name="password"
-              type="password"
-              value={form.password}
-              onChange={handleChange}
-              required
-            />
+
+            <div style={{ position: 'relative' }}>
+              <input
+                name="password"
+                type={showPassword ? 'text' : 'password'}
+                value={form.password}
+                onChange={handleChange}
+                required
+                style={{ paddingRight: '10px' }}
+              />
+
+              <span
+                onClick={() => setShowPassword(!showPassword)}
+                style={{
+                  position: 'absolute',
+                  right: '10px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  cursor: 'pointer',
+                  color: '#555',
+                }}
+              >
+                {showPassword ? <FaEyeSlash /> : <FaEye />}
+              </span>
+            </div>
           </div>
+
+          {/* ROLE */}
           <div className="form-group">
             <label>Role</label>
             <select
@@ -82,6 +134,7 @@ const Register = () => {
               <option value="VIEWER">VIEWER</option>
             </select>
           </div>
+
           <button className="btn-primary" type="submit">
             Register
           </button>

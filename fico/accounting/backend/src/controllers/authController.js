@@ -90,3 +90,25 @@ exports.me = async (req, res, next) => {
     next(err);
   }
 };
+
+
+exports.resetPasswordSimple = async (req, res) => {
+  try {
+    const { email, newPassword } = req.body;
+
+    const user = await User.findOne({ where: { email } });
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const hashed = await bcrypt.hash(newPassword, 10);
+    user.passwordHash = hashed;
+
+    await user.save();
+
+    res.json({ message: 'Password updated successfully' });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error' });
+  }
+};

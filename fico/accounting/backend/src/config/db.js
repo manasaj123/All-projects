@@ -1,3 +1,4 @@
+// backend/src/config/db.js
 const { Sequelize, DataTypes } = require('sequelize');
 
 const {
@@ -6,14 +7,14 @@ const {
   DB_USER,
   DB_PASSWORD,
   DB_NAME,
-  DB_DIALECT
+  DB_DIALECT,
 } = process.env;
 
 const sequelize = new Sequelize(DB_NAME, DB_USER, DB_PASSWORD, {
   host: DB_HOST,
   port: DB_PORT || 3306,
   dialect: DB_DIALECT || 'mysql',
-  logging: false
+  logging: false, // set to console.log for debugging if needed
 });
 
 const db = {};
@@ -32,19 +33,32 @@ db.BankStatement = require('../models/BankStatement')(sequelize, DataTypes);
 db.Budget = require('../models/Budget')(sequelize, DataTypes);
 db.Expense = require('../models/Expense')(sequelize, DataTypes);
 db.Audit = require('../models/Audit')(sequelize, DataTypes);
+db.GLAccount = require('../models/GLAccount')(sequelize, DataTypes);
+db.AssetClass = require('../models/AssetClass')(sequelize, DataTypes);
+db.AccDocument = require('../models/AccDocument')(sequelize, DataTypes);
 db.JournalHeader = require('../models/JournalHeader')(sequelize, DataTypes);
 db.JournalLine = require('../models/JournalLine')(sequelize, DataTypes);
 
-db.GLAccount = require('../models/GlAccount')(sequelize, DataTypes);
-db.AccDocument = require('../models/AccDocument')(sequelize, DataTypes);
 
-// ✅ NEW: Fixed Asset model
-db.FixedAsset = require('../models/fixedAsset')(sequelize, DataTypes);
+db.APARDocument = require('../models/APARDocument')(sequelize, DataTypes);
+db.APARDocumentLine = require('../models/APARDocumentLine')(sequelize, DataTypes);
+db.APARWithholdingTax = require('../models/APARWithholdingTax')(sequelize, DataTypes);
+db.APAROpenItem = require('../models/APAROpenItem')(sequelize, DataTypes);
 
-db.VendorCustomerInvoice = require('../models/VendorCustomerInvoice')(sequelize, DataTypes);
-db.VendorCustomerInvoiceLine = require('../models/VendorCustomerInvoiceLine')(sequelize, DataTypes);
+db.CreditMemo = require('../models/CreditMemo')(sequelize, DataTypes);
 
-// Associations
+db.DownPayment = require('../models/DownPayment')(sequelize, DataTypes);
+db.Clearing = require('../models/Clearing')(sequelize, DataTypes);
+
+db.ApprovalWorkflow = require('../models/ApprovalWorkflow')(sequelize, DataTypes);
+db.ApprovalInstance = require('../models/ApprovalInstance')(sequelize, DataTypes);
+
+db.GRIRClearing = require('../models/grirClearing')(sequelize, Sequelize.DataTypes);
+db.PeriodClosing = require('../models/periodClosing')(sequelize, Sequelize.DataTypes);
+
+db.PeriodClosing = require('../models/periodClosing')(sequelize, Sequelize.DataTypes);
+
+// Associations (existing ones)
 db.User.hasMany(db.Invoice, { foreignKey: 'createdBy' });
 db.Invoice.belongsTo(db.User, { foreignKey: 'createdBy' });
 
@@ -81,33 +95,24 @@ db.CostCenter.hasMany(db.Budget, { foreignKey: 'costCenterId' });
 db.Budget.belongsTo(db.ProfitCenter, { foreignKey: 'profitCenterId' });
 db.ProfitCenter.hasMany(db.Budget, { foreignKey: 'profitCenterId' });
 
-// Existing associations above...
-
-db.CostCenter.hasMany(db.Ledger, { foreignKey: 'costCenterId' });
-db.Ledger.belongsTo(db.CostCenter, { foreignKey: 'costCenterId' });
-
-db.ProfitCenter.hasMany(db.Ledger, { foreignKey: 'profitCenterId' });
-db.Ledger.belongsTo(db.ProfitCenter, { foreignKey: 'profitCenterId' });
-
 db.User.hasMany(db.Audit, { foreignKey: 'userId' });
 db.Audit.belongsTo(db.User, { foreignKey: 'userId' });
 
-db.JournalHeader.hasMany(db.JournalLine, { foreignKey: 'journalId', as: 'lines' });
-db.JournalLine.belongsTo(db.JournalHeader, { foreignKey: 'journalId', as: 'header' });
+db.JournalHeader.hasMany(db.JournalLine, { foreignKey: 'journalId' });
+db.JournalLine.belongsTo(db.JournalHeader, { foreignKey: 'journalId' });
 
-db.Category = require('../models/Category')(sequelize, DataTypes);
-db.Project = require('../models/Project')(sequelize, DataTypes);
+// Optional: if Ledger has glAccountId FK
+
+Object.keys(db).forEach((modelName) => {
+  const model = db[modelName];
+  if (model && typeof model.associate === 'function') {
+    model.associate(db);
+  }
+});
 
 
-
-if (db.VendorCustomerInvoice && db.VendorCustomerInvoiceLine) {
-  db.VendorCustomerInvoice.hasMany(db.VendorCustomerInvoiceLine, {
-    as: 'lines',
-    foreignKey: 'invoiceId',
-  });
-  db.VendorCustomerInvoiceLine.belongsTo(db.VendorCustomerInvoice, {
-    as: 'invoice',
-    foreignKey: 'invoiceId',
-  });
-}
+db.PeriodClosing.belongsTo(db.User, {
+  foreignKey: 'closedBy',
+  as: 'ClosedByUser'
+});
 module.exports = db;

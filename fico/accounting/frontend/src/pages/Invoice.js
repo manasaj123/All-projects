@@ -59,39 +59,99 @@ const Invoice = () => {
     });
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
-    try {
-      const payload = {
-        // invoiceNumber is not sent; backend generates it
-        type: form.type,
-        partyName: form.partyName,
-        partyGSTIN: form.partyGSTIN,
-        date: form.date,
-        dueDate: form.dueDate,
-        baseAmount: Number(form.baseAmount),
-        gstRate: Number(form.gstRate),
-        tdsRate: Number(form.tdsRate) || 0,
-        narration: form.narration,
-      };
-      const res = await api.post('/invoices', payload);
 
-      setForm((f) => ({
-        ...f,
-        invoiceNumber: res.data.invoiceNumber || '',
-        partyName: '',
-        partyGSTIN: '',
-        baseAmount: '',
-        narration: '',
-        gstAmount: 0,
-        totalAmount: 0,
-      }));
-      loadPartySummary();
-    } catch (err) {
-      setError(err.response?.data?.message || 'Failed to create invoice');
-    }
-  };
+const isValidGSTIN = (gstin) => {
+  const regex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/;
+  return regex.test(gstin);
+};
+
+const isValidBaseAmount = (amount) => {
+  const num = Number(amount);
+
+  if (num <= 0) return false;
+  if (!Number.isFinite(num)) return false;
+
+  return num % 100 === 0; // change to 1000 if needed
+};
+
+  const handleSubmit = async (e) => {
+  e.preventDefault();
+  setError('');
+
+  // basic date checks
+  const invDate = form.date ? new Date(form.date) : null;
+  const dueDate = form.dueDate ? new Date(form.dueDate) : null;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  if (!invDate || Number.isNaN(invDate.getTime())) {
+    setError('Invoice Date is required');
+    return;
+  }
+
+  if (!dueDate || Number.isNaN(dueDate.getTime())) {
+    setError('Due Date is required');
+    return;
+  }
+
+  // 1) Invoice date cannot be in the past (optional)
+  if (invDate < today) {
+    setError('Invoice Date cannot be earlier than today');
+    return;
+  }
+
+  // 2) Due date must be on or after invoice date
+  if (dueDate < invDate) {
+    setError('Due Date cannot be earlier than Invoice Date');
+    return;
+  }
+
+  if (!isValidGSTIN(form.partyGSTIN)) {
+    setError('Invalid GSTIN format (e.g. 27AAACH7409R1ZZ)');
+    return;
+  }
+  if (!isValidBaseAmount(form.baseAmount)) {
+    setError('Base Amount must be in clean multiples (e.g. 100, 1000, 2000)');
+    return;
+  }
+  if (
+    Number(form.baseAmount) < 0 ||
+    Number(form.gstRate) < 0 ||
+    Number(form.tdsRate) < 0
+  ) {
+    setError('Negative values are not allowed');
+    return;
+  }
+
+  try {
+    const payload = {
+      type: form.type,
+      partyName: form.partyName,
+      partyGSTIN: form.partyGSTIN,
+      date: form.date,
+      dueDate: form.dueDate,
+      baseAmount: Number(form.baseAmount),
+      gstRate: Number(form.gstRate),
+      tdsRate: Number(form.tdsRate) || 0,
+      narration: form.narration,
+    };
+    const res = await api.post('/invoices', payload);
+
+    setForm((f) => ({
+      ...f,
+      invoiceNumber: res.data.invoiceNumber || '',
+      partyName: '',
+      partyGSTIN: '',
+      baseAmount: '',
+      narration: '',
+      gstAmount: 0,
+      totalAmount: 0,
+    }));
+    loadPartySummary();
+  } catch (err) {
+    setError(err.response?.data?.message || 'Failed to create invoice');
+  }
+};
 
   // fetch and open party transactions popup (from summary row)
   const openPartyTransactionsFor = async (partyName) => {
@@ -179,10 +239,18 @@ const Invoice = () => {
                 Party GSTIN <span className="required-star">*</span>
               </label>
               <input
-                name="partyGSTIN"
-                value={form.partyGSTIN}
-                onChange={handleChange}
-              />
+  name="partyGSTIN"
+  value={form.partyGSTIN}
+  onChange={(e) =>
+    setForm({
+      ...form,
+      partyGSTIN: e.target.value.toUpperCase().slice(0, 15),
+    })
+  }
+  maxLength={15}
+  placeholder="27AAACH7409R1ZZ"
+  required
+/>
             </div>
 
             <div className="form-group">
@@ -342,6 +410,7 @@ const Invoice = () => {
                   <table className="table">
                     <thead>
                       <tr>
+                        <th>Party Name</th>
                         <th>No</th>
                         <th>Date</th>
                         <th>Type</th>
@@ -353,6 +422,7 @@ const Invoice = () => {
                     <tbody>
                       {partyInvoices.map((inv) => (
                         <tr key={inv.id}>
+                          <td>{inv.partyName}</td>
                           <td>{inv.invoiceNumber}</td>
                           <td>{inv.date}</td>
                           <td>{inv.type}</td>

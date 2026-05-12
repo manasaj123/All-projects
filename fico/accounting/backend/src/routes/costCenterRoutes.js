@@ -9,7 +9,7 @@ router.use(authMiddleware);
 
 router.post(
   '/',
-  roleMiddleware('ADMIN','ACCOUNTANT'),
+  roleMiddleware('ADMIN'),
   costCenterController.create
 );
 

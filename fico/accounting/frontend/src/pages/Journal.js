@@ -96,19 +96,24 @@ const Journal = () => {
       setError('Document date, posting date and company code are required');
       return;
     }
+console.log("Submitting lines:", lines);
 
     // Validate lines: non-empty G/L and either debit or credit
     if (
-      lines.some(
-        (l) =>
-          !l.glAccount ||
-          !l.glAccount.trim() ||
-          (!l.debit && !l.credit)
-      )
-    ) {
-      setError('Each line needs a G/L account and either debit or credit');
-      return;
-    }
+  lines.some((l) => {
+    const gl = l.glAccount?.toString().trim();
+    const debit = Number(l.debit) || 0;
+    const credit = Number(l.credit) || 0;
+
+    return (
+      !gl ||                    // GL missing
+      (debit === 0 && credit === 0) // both zero
+    );
+  })
+) {
+  setError('Each line needs a G/L account and either debit or credit');
+  return;
+}
 
     if (totalDebit.toFixed(2) !== totalCredit.toFixed(2)) {
       setError('Total debit and credit must be equal');

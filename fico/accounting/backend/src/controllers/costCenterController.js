@@ -3,18 +3,10 @@ const { CostCenter } = db;
 
 exports.create = async (req, res, next) => {
   try {
-    const [center, created] = await CostCenter.upsert({
-      code: req.body.code,
-      name: req.body.name,
-      description: req.body.description || null,
-      isActive: req.body.isActive !== undefined ? req.body.isActive : true
-    });
-    if (created) {
-      return res.status(201).json(center);
-    }
-    return res.status(200).json({ message: 'Cost center exists, updated', data: center });
+    const center = await CostCenter.create(req.body);
+    res.status(201).json(center);
   } catch (err) {
-    next(err);  // Your error middleware handles SequelizeUniqueConstraintError
+    next(err);
   }
 };
 

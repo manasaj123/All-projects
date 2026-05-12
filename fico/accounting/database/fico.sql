@@ -218,117 +218,138 @@ ON DUPLICATE KEY UPDATE code=code;
 -- so that all double-entry logic in controllers runs correctly.
 
 
-CREATE TABLE categories (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  name VARCHAR(100) NOT NULL,
-  type ENUM('INCOME','EXPENSE') NOT NULL,
-  createdAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  updatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-);
-
-
-CREATE TABLE projects (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  name VARCHAR(100) NOT NULL,
-  code VARCHAR(50) NOT NULL,
-  status ENUM('OPEN','CLOSED') NOT NULL DEFAULT 'OPEN',
-  createdAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  updatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-);
-
-ALTER TABLE ledger
-  ADD COLUMN projectId INT NULL,
-  ADD CONSTRAINT fk_ledger_project
-    FOREIGN KEY (projectId) REFERENCES projects(id);
 
 CREATE TABLE gl_accounts (
-  id INT AUTO_INCREMENT PRIMARY KEY,              -- Account ID
-  glCode VARCHAR(20) NOT NULL UNIQUE,             -- G/L Account
-  name VARCHAR(255) NOT NULL,                     -- Account name (extra, useful)
-  companyCode VARCHAR(10) NOT NULL,               -- Company Code
-  accountController VARCHAR(100),                 -- Account Controller
-  accountCurrency VARCHAR(10) NOT NULL,           -- Account Currency
-  taxCategory VARCHAR(50),                        -- Tax Category
-  reconciliationType ENUM('NONE','CUSTOMER','VENDOR') DEFAULT 'NONE', -- Recon acct type
-  altAccountNumber VARCHAR(50),                   -- Alternative Account Number
-  toleranceGroup VARCHAR(50),                     -- Tolerance Group
-  fieldStatusGroup VARCHAR(50),                   -- Field Status Group
-  planningLevel VARCHAR(50),                      -- Planning Level
-  createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  glCode VARCHAR(50) NOT NULL UNIQUE,
+  name VARCHAR(255) NOT NULL,
+  companyCode VARCHAR(10) NOT NULL,
+  accountType VARCHAR(20) NOT NULL,
+  accountCurrency VARCHAR(10) NOT NULL DEFAULT 'INR',
+  taxCategory VARCHAR(50),
+  reconciliationType VARCHAR(20) NOT NULL DEFAULT 'NONE',
+  altAccountNumber VARCHAR(50),
+  toleranceGroup VARCHAR(50),
+  fieldStatusGroup VARCHAR(50),
+  planningLevel VARCHAR(50),
+  isBlockedForPosting TINYINT(1) NOT NULL DEFAULT 0
 );
+
+
+
+CREATE TABLE fs_versions (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  code VARCHAR(20) NOT NULL UNIQUE,
+  name VARCHAR(255) NOT NULL,
+  chartOfAccounts VARCHAR(20) NOT NULL,
+  maintenanceLanguage VARCHAR(5) NOT NULL DEFAULT 'EN',
+  itemKeysAuto TINYINT(1) NOT NULL DEFAULT 1,
+  groupAccountNumber VARCHAR(50)
+);
+
+CREATE TABLE fs_items (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  versionId INT NOT NULL,
+  itemKey VARCHAR(20) NOT NULL,
+  parentItemKey VARCHAR(20),
+  description VARCHAR(255) NOT NULL,
+  itemType VARCHAR(20) NOT NULL DEFAULT 'HEADER',
+  sortOrder INT NOT NULL DEFAULT 0,
+  CONSTRAINT fk_fs_items_version
+    FOREIGN KEY (versionId) REFERENCES fs_versions(id)
+);
+
+CREATE TABLE fs_item_accounts (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  itemId INT NOT NULL,
+  glAccountId INT NOT NULL,
+  CONSTRAINT fk_fs_item_accounts_item
+    FOREIGN KEY (itemId) REFERENCES fs_items(id),
+  CONSTRAINT fk_fs_item_accounts_gl
+    FOREIGN KEY (glAccountId) REFERENCES gl_accounts(id)
+);
+
 
 CREATE TABLE journal_headers (
   id INT AUTO_INCREMENT PRIMARY KEY,
-  documentNumber VARCHAR(20) NOT NULL UNIQUE,
+  documentNumber VARCHAR(30) NOT NULL UNIQUE,
+  documentType VARCHAR(4) NOT NULL,
   documentDate DATE NOT NULL,
   postingDate DATE NOT NULL,
-  documentType VARCHAR(4) NOT NULL,
+  companyCode VARCHAR(10) NOT NULL,
+  currency VARCHAR(10) NOT NULL DEFAULT 'INR',
   reference VARCHAR(50),
   headerText VARCHAR(255),
-  companyCode VARCHAR(10) NOT NULL,
-  status VARCHAR(10) NOT NULL DEFAULT 'POSTED',
-  createdBy VARCHAR(50),
-  createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-) ENGINE=InnoDB;
+  crossCCNo VARCHAR(50),
+  status VARCHAR(10) NOT NULL DEFAULT 'POSTED'
+);
 
 CREATE TABLE journal_lines (
   id INT AUTO_INCREMENT PRIMARY KEY,
-  journalId INT NOT NULL,
+  headerId INT NOT NULL,
   lineNo INT NOT NULL,
-  glAccount VARCHAR(20) NOT NULL,
-  debit DECIMAL(18,2) NOT NULL DEFAULT 0,
-  credit DECIMAL(18,2) NOT NULL DEFAULT 0,
-  costCenterId VARCHAR(20),
-  profitCenterId VARCHAR(20),
-  narration VARCHAR(255),
-  FOREIGN KEY (journalId) REFERENCES journal_headers(id)
-) ENGINE=InnoDB;
-
-
-CREATE TABLE acc_documents (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  documentNumber VARCHAR(20) NOT NULL,
-  companyCode   VARCHAR(10) NOT NULL,
-  fiscalYear    INT NOT NULL,
-  documentDate  DATE NOT NULL,
-  postingDate   DATE NOT NULL,
-  period        TINYINT NOT NULL,
-  reference     VARCHAR(50),
-  crossCompNumber VARCHAR(20),
-  currency      VARCHAR(3) NOT NULL,
-  text          VARCHAR(255),
-  ledgerGroup   VARCHAR(10),
-  createdAt     TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-) ENGINE=InnoDB;
-
-
-CREATE TABLE vendor_customer_invoices (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  mode ENUM('VENDOR','CUSTOMER') NOT NULL,
-  postingDate DATE NOT NULL,
-  documentDate DATE NOT NULL,
+  postingKey VARCHAR(4) NOT NULL,
+  accountType VARCHAR(20) NOT NULL,
+  accountId INT NOT NULL,
   amount DECIMAL(15,2) NOT NULL,
-  reference VARCHAR(50),
-  businessPlace VARCHAR(30),
+  debitCredit VARCHAR(1) NOT NULL,
   text VARCHAR(255),
-  baselineDate DATE,
-  vendorCode VARCHAR(20),
-  sectionCode VARCHAR(20),
-  customerCode VARCHAR(20),
-  createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+  costCenterId INT,
+  profitCenterId INT,
+  taxCode VARCHAR(10),
+  CONSTRAINT fk_journal_lines_header
+    FOREIGN KEY (headerId) REFERENCES journal_headers(id)
+);
+CREATE TABLE posting_keys (
+  code VARCHAR(4) PRIMARY KEY,
+  description VARCHAR(255) NOT NULL,
+  debitCredit VARCHAR(1) NOT NULL,
+  accountType VARCHAR(20) NOT NULL,
+  isReversalAllowed TINYINT(1) NOT NULL DEFAULT 1,
+  isTaxRelevant TINYINT(1) NOT NULL DEFAULT 0,
+  isSpecialGL TINYINT(1) NOT NULL DEFAULT 0
 );
 
-CREATE TABLE vendor_customer_invoice_lines (
+DROP TABLE IF EXISTS document_types;
+
+CREATE TABLE document_types (
   id INT AUTO_INCREMENT PRIMARY KEY,
-  invoiceId INT NOT NULL,
-  glAccount VARCHAR(20) NOT NULL,
-  amount DECIMAL(15,2) NOT NULL,
-  taxCode VARCHAR(10),
-  assignment VARCHAR(50),
-  lineText VARCHAR(255),
-  costCenter VARCHAR(20),
-  hsnCode VARCHAR(20),
-  FOREIGN KEY (invoiceId) REFERENCES vendor_customer_invoices(id)
+  code VARCHAR(2) NOT NULL UNIQUE,
+  name VARCHAR(120) NOT NULL,
+  numberRange VARCHAR(40),
+  numberRangeType ENUM('INTERNAL','EXTERNAL') NOT NULL DEFAULT 'INTERNAL',
+  reverseDocumentType VARCHAR(2),
+
+  allowCustomer TINYINT(1) NOT NULL DEFAULT 1,
+  allowVendor TINYINT(1) NOT NULL DEFAULT 1,
+  allowMaterial TINYINT(1) NOT NULL DEFAULT 1,
+  allowGLAccount TINYINT(1) NOT NULL DEFAULT 1,
+
+  documentCurrencyRequired TINYINT(1) NOT NULL DEFAULT 0,
+  postingPeriodCheck TINYINT(1) NOT NULL DEFAULT 1,
+  reversalAllowed TINYINT(1) NOT NULL DEFAULT 1,
+  partnerFunctionsRequired TINYINT(1) NOT NULL DEFAULT 0,
+  postingKeysAllowed VARCHAR(80),
+  headerTextRequired TINYINT(1) NOT NULL DEFAULT 0,
+  referenceTextRequired TINYINT(1) NOT NULL DEFAULT 0,
+
+  isActive TINYINT(1) NOT NULL DEFAULT 1
+) ENGINE=InnoDB;
+
+
+CREATE TABLE `credit_memos` (
+  `id` int unsigned NOT NULL AUTO_INCREMENT,
+  `creditMemoNumber` varchar(50) NOT NULL UNIQUE,
+  `type` enum('AR','AP') NOT NULL,
+  `partyId` int unsigned NOT NULL,
+  `partyName` varchar(160) NOT NULL,
+  `referenceInvoice` varchar(50),
+  `amount` decimal(15,2) NOT NULL,
+  `taxAmount` decimal(15,2) DEFAULT 0,
+  `totalAmount` decimal(15,2) NOT NULL,
+  `date` date NOT NULL,
+  `reason` varchar(255),
+  `status` enum('DRAFT','POSTED','CANCELLED') DEFAULT 'DRAFT',
+  `createdBy` int unsigned NOT NULL,
+  PRIMARY KEY (`id`)
 );

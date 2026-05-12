@@ -1,3 +1,4 @@
+// backend/src/models/JournalLine.js
 module.exports = (sequelize, DataTypes) => {
   const JournalLine = sequelize.define(
     'JournalLine',
@@ -47,6 +48,13 @@ module.exports = (sequelize, DataTypes) => {
       timestamps: false,
     }
   );
+
+  JournalLine.associate = (models) => {
+    JournalLine.belongsTo(models.JournalHeader, {
+      as: 'header',
+      foreignKey: 'journalId',
+    });
+  };
 
   return JournalLine;
 };

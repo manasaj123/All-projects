@@ -11,10 +11,19 @@ const formatDateYMD = (value) => {
   try {
     const d = new Date(value);
     if (Number.isNaN(d.getTime())) return "";
-    return d.toISOString().split("T")[0]; // yyyy-MM-dd
+    return d.toISOString().split("T")[0];
   } catch {
     return "";
   }
+};
+
+// Get today's date in YYYY-MM-DD format
+const getTodayDate = () => {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, '0');
+  const day = String(today.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 };
 
 const titleStyle = {
@@ -35,7 +44,8 @@ const cardStyle = {
 const formRowStyle = {
   display: "flex",
   gap: "8px",
-  marginBottom: "8px"
+  marginBottom: "8px",
+  flexWrap: "wrap"
 };
 
 const labelStyle = {
@@ -43,7 +53,8 @@ const labelStyle = {
   flexDirection: "column",
   fontSize: "12px",
   color: "#4b5563",
-  flex: 1
+  flex: 1,
+  minWidth: "150px"
 };
 
 const inputStyle = {
@@ -51,6 +62,20 @@ const inputStyle = {
   fontSize: "13px",
   borderRadius: "4px",
   border: "1px solid #d1d5db"
+};
+
+const inputErrorStyle = {
+  padding: "6px 8px",
+  fontSize: "13px",
+  borderRadius: "4px",
+  border: "2px solid #dc2626",
+  backgroundColor: "#fef2f2"
+};
+
+const errorTextStyle = {
+  color: "#dc2626",
+  fontSize: "11px",
+  marginTop: "4px"
 };
 
 const buttonStyle = {
@@ -62,6 +87,11 @@ const buttonStyle = {
   backgroundColor: "#2563eb",
   color: "#ffffff",
   cursor: "pointer"
+};
+
+const cancelButtonStyle = {
+  ...buttonStyle,
+  backgroundColor: "#6b7280"
 };
 
 const tableStyle = {
@@ -89,6 +119,7 @@ export default function POPage() {
   const [prs, setPRs] = useState([]);
   const [pos, setPOs] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState({});
 
   const [editingId, setEditingId] = useState(null);
 
@@ -141,9 +172,71 @@ export default function POPage() {
     loadPOs();
   }, []);
 
+  // Validation functions
+  const validateNoSpecialChars = (value, fieldName) => {
+    if (!value) return "";
+    const regex = /^[A-Za-z0-9\s]+$/;
+    if (!regex.test(value)) {
+      return `${fieldName} should only contain letters, numbers and spaces (no special characters)`;
+    }
+    return "";
+  };
+
+  const validateNotPastDate = (date, fieldName) => {
+    if (!date) return "";
+    const selectedDate = new Date(date);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    if (selectedDate < today) {
+      return `${fieldName} cannot be a past date`;
+    }
+    return "";
+  };
+
+  const validateQuantity = (qty) => {
+    if (!qty && qty !== 0) return "";
+    const num = Number(qty);
+    if (isNaN(num)) return "Quantity must be a number";
+    if (num <= 0) return "Quantity must be greater than 0";
+    return "";
+  };
+
+  const validatePrice = (price) => {
+    if (!price && price !== 0) return "";
+    const num = Number(price);
+    if (isNaN(num)) return "Price must be a number";
+    if (num < 0) return "Price cannot be negative";
+    return "";
+  };
+
+  const validateTax = (tax) => {
+    if (!tax && tax !== 0) return "";
+    const num = Number(tax);
+    if (isNaN(num)) return "Tax must be a number";
+    if (num < 0) return "Tax cannot be negative";
+    if (num > 100) return "Tax cannot exceed 100%";
+    return "";
+  };
+
   const handleHeaderChange = (e) => {
     const { name, value } = e.target;
-    setHeader((h) => ({ ...h, [name]: value }));
+    let processedValue = value;
+    
+    // Remove special characters from text fields
+    if (name === "payment_terms") {
+      processedValue = value.replace(/[^A-Za-z0-9\s]/g, '');
+    }
+    if (name === "currency") {
+      processedValue = value.replace(/[^A-Za-z]/g, '').toUpperCase();
+    }
+    
+    setHeader((h) => ({ ...h, [name]: processedValue }));
+    
+    // Clear error for this field
+    if (errors[name]) {
+      setErrors(prev => ({ ...prev, [name]: "" }));
+    }
 
     if (name === "source_type" && value !== "PR") {
       setSelectedPrId("");
@@ -155,9 +248,20 @@ export default function POPage() {
   };
 
   const handleItemChange = (index, field, value) => {
+    let processedValue = value;
+    
+    if (field === "qty" && value < 0) processedValue = "";
+    if (field === "price" && value < 0) processedValue = "";
+    if (field === "tax_percent" && value < 0) processedValue = "";
+    
     setItems((prev) =>
-      prev.map((it, i) => (i === index ? { ...it, [field]: value } : it))
+      prev.map((it, i) => (i === index ? { ...it, [field]: processedValue } : it))
     );
+    
+    // Clear error for this item field
+    if (errors[`item_${index}_${field}`]) {
+      setErrors(prev => ({ ...prev, [`item_${index}_${field}`]: "" }));
+    }
   };
 
   const addRow = () => {
@@ -171,6 +275,7 @@ export default function POPage() {
     setEditingId(null);
     setSelectedPrId("");
     setSelectedPrDetails(null);
+    setErrors({});
     setHeader({
       po_no: "",
       po_date: "",
@@ -185,8 +290,81 @@ export default function POPage() {
     ]);
   };
 
+  const validateForm = () => {
+    const newErrors = {};
+    
+    // Validate PO Date
+    if (!header.po_date) {
+      newErrors.po_date = "PO Date is required";
+    } else {
+      const pastDateError = validateNotPastDate(header.po_date, "PO Date");
+      if (pastDateError) newErrors.po_date = pastDateError;
+    }
+    
+    // Validate Vendor
+    if (!header.vendor_id) {
+      newErrors.vendor_id = "Vendor is required";
+    }
+    
+    // Validate Payment Terms
+    if (header.payment_terms) {
+      const specialCharError = validateNoSpecialChars(header.payment_terms, "Payment Terms");
+      if (specialCharError) newErrors.payment_terms = specialCharError;
+    }
+    
+    // Validate Currency
+    if (!header.currency) {
+      newErrors.currency = "Currency is required";
+    } else if (header.currency.length !== 3) {
+      newErrors.currency = "Currency must be 3 letters (e.g., INR, USD, EUR)";
+    }
+    
+    // Validate items
+    let hasValidItem = false;
+    items.forEach((item, idx) => {
+      if (item.material_id && item.qty && item.price) {
+        hasValidItem = true;
+        
+        // Validate quantity
+        const qtyError = validateQuantity(item.qty);
+        if (qtyError) newErrors[`item_${idx}_qty`] = qtyError;
+        
+        // Validate price
+        const priceError = validatePrice(item.price);
+        if (priceError) newErrors[`item_${idx}_price`] = priceError;
+        
+        // Validate tax
+        const taxError = validateTax(item.tax_percent);
+        if (taxError) newErrors[`item_${idx}_tax`] = taxError;
+        
+        // Validate delivery date
+        if (item.delivery_date) {
+          const pastDateError = validateNotPastDate(item.delivery_date, "Delivery Date");
+          if (pastDateError) newErrors[`item_${idx}_delivery_date`] = pastDateError;
+        }
+      } else if (item.material_id || item.qty || item.price) {
+        if (!item.material_id) newErrors[`item_${idx}_material`] = "Please select material";
+        if (!item.qty) newErrors[`item_${idx}_qty`] = "Quantity is required";
+        if (!item.price) newErrors[`item_${idx}_price`] = "Price is required";
+      }
+    });
+    
+    if (!hasValidItem) {
+      newErrors.general = "At least one item with material, quantity and price is required";
+    }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    if (!validateForm()) {
+      alert("Please fix the validation errors before submitting");
+      return;
+    }
+    
     try {
       const payload = {
         header: {
@@ -212,14 +390,17 @@ export default function POPage() {
 
       if (editingId) {
         await poApi.update(editingId, payload);
+        alert("PO Updated Successfully");
       } else {
         await poApi.create(payload);
+        alert("PO Created Successfully");
       }
 
       resetForm();
       await loadPOs();
     } catch (e) {
       console.error(e);
+      alert("Failed to save PO");
     }
   };
 
@@ -229,7 +410,7 @@ export default function POPage() {
       return;
     }
     try {
-      const res = await prApi.getById(prId); // must return { header, items }
+      const res = await prApi.getById(prId);
       const { header: prHeader, items: prItems } = res.data;
 
       setSelectedPrDetails({ header: prHeader, items: prItems });
@@ -252,37 +433,27 @@ export default function POPage() {
     setEditingId(po.id);
     setSelectedPrId("");
     setSelectedPrDetails(null);
-
-    const baseHeader = {
-      po_no: po.po_no || "",
-      po_date: po.po_date,
-      vendor_id: po.vendor_id,
-      payment_terms: po.payment_terms,
-      currency: po.currency,
-      po_type: po.po_type || "STOCK",
-      source_type: po.source_type || "DIRECT"
-    };
-    setHeader(baseHeader);
+    setErrors({});
 
     try {
       const res = await poApi.getById(po.id);
       const { header: fullHeader, items: fullItems } = res.data;
       setHeader({
         po_no: fullHeader.po_no || "",
-        po_date: fullHeader.po_date,
-        vendor_id: fullHeader.vendor_id,
-        payment_terms: fullHeader.payment_terms,
-        currency: fullHeader.currency,
+        po_date: fullHeader.po_date ? formatDateYMD(fullHeader.po_date) : "",
+        vendor_id: fullHeader.vendor_id || "",
+        payment_terms: fullHeader.payment_terms || "",
+        currency: fullHeader.currency || "INR",
         po_type: fullHeader.po_type || "STOCK",
         source_type: fullHeader.source_type || "DIRECT"
       });
       setItems(
         (fullItems || []).map((it) => ({
-          material_id: it.material_id,
-          qty: it.qty,
-          price: it.price,
-          tax_percent: it.tax_percent,
-          delivery_date: it.delivery_date
+          material_id: it.material_id || "",
+          qty: it.qty || "",
+          price: it.price || "",
+          tax_percent: it.tax_percent || "",
+          delivery_date: it.delivery_date ? formatDateYMD(it.delivery_date) : ""
         }))
       );
     } catch (e) {
@@ -298,6 +469,14 @@ export default function POPage() {
     } catch (e) {
       console.error(e);
     }
+  };
+
+  const handleCancelEdit = () => {
+    resetForm();
+  };
+
+  const getInputStyle = (fieldName) => {
+    return errors[fieldName] ? inputErrorStyle : inputStyle;
   };
 
   return (
@@ -318,20 +497,22 @@ export default function POPage() {
               />
             </label>
             <label style={labelStyle}>
-              PO Date
+              PO Date *
               <input
-                style={inputStyle}
+                style={getInputStyle("po_date")}
                 type="date"
                 name="po_date"
                 value={formatDateYMD(header.po_date)}
                 onChange={handleHeaderChange}
+                min={getTodayDate()}
                 required
               />
+              {errors.po_date && <div style={errorTextStyle}>{errors.po_date}</div>}
             </label>
             <label style={labelStyle}>
-              Vendor
+              Vendor *
               <select
-                style={inputStyle}
+                style={getInputStyle("vendor_id")}
                 name="vendor_id"
                 value={header.vendor_id}
                 onChange={handleHeaderChange}
@@ -344,6 +525,7 @@ export default function POPage() {
                   </option>
                 ))}
               </select>
+              {errors.vendor_id && <div style={errorTextStyle}>{errors.vendor_id}</div>}
             </label>
           </div>
 
@@ -351,20 +533,25 @@ export default function POPage() {
             <label style={labelStyle}>
               Payment Terms
               <input
-                style={inputStyle}
+                style={getInputStyle("payment_terms")}
                 name="payment_terms"
                 value={header.payment_terms}
                 onChange={handleHeaderChange}
+                placeholder="Letters, numbers and spaces only"
               />
+              {errors.payment_terms && <div style={errorTextStyle}>{errors.payment_terms}</div>}
             </label>
             <label style={labelStyle}>
-              Currency
+              Currency *
               <input
-                style={inputStyle}
+                style={getInputStyle("currency")}
                 name="currency"
                 value={header.currency}
                 onChange={handleHeaderChange}
+                placeholder="3 letters (INR, USD, EUR)"
+                maxLength="3"
               />
+              {errors.currency && <div style={errorTextStyle}>{errors.currency}</div>}
             </label>
 
             <label style={labelStyle}>
@@ -458,15 +645,15 @@ export default function POPage() {
           )}
 
           <div style={{ fontSize: "13px", fontWeight: 500, margin: "8px 0" }}>
-            Items
+            Items *
           </div>
 
           {items.map((it, idx) => (
             <div key={idx} style={formRowStyle}>
               <label style={labelStyle}>
-                Material
+                Material *
                 <select
-                  style={inputStyle}
+                  style={errors[`item_${idx}_material`] ? inputErrorStyle : inputStyle}
                   value={it.material_id}
                   onChange={(e) =>
                     handleItemChange(idx, "material_id", e.target.value)
@@ -479,53 +666,73 @@ export default function POPage() {
                     </option>
                   ))}
                 </select>
+                {errors[`item_${idx}_material`] && <div style={errorTextStyle}>{errors[`item_${idx}_material`]}</div>}
               </label>
               <label style={labelStyle}>
-                Qty
+                Qty *
                 <input
-                  style={inputStyle}
+                  style={errors[`item_${idx}_qty`] ? inputErrorStyle : inputStyle}
                   type="number"
+                  step="1"
+                  min="1"
                   value={it.qty}
                   onChange={(e) =>
                     handleItemChange(idx, "qty", e.target.value)
                   }
+                  placeholder=" 0"
                 />
+                {errors[`item_${idx}_qty`] && <div style={errorTextStyle}>{errors[`item_${idx}_qty`]}</div>}
               </label>
               <label style={labelStyle}>
-                Price
+                Price *
                 <input
-                  style={inputStyle}
+                  style={errors[`item_${idx}_price`] ? inputErrorStyle : inputStyle}
                   type="number"
+                  step="1"
+                  min="1"
                   value={it.price}
                   onChange={(e) =>
                     handleItemChange(idx, "price", e.target.value)
                   }
+                  placeholder="Price"
                 />
+                {errors[`item_${idx}_price`] && <div style={errorTextStyle}>{errors[`item_${idx}_price`]}</div>}
               </label>
               <label style={labelStyle}>
                 Tax %
                 <input
-                  style={inputStyle}
+                  style={errors[`item_${idx}_tax`] ? inputErrorStyle : inputStyle}
                   type="number"
+                  step="1"
+                  min="1"
+                  max="100"
                   value={it.tax_percent}
                   onChange={(e) =>
                     handleItemChange(idx, "tax_percent", e.target.value)
                   }
+                  placeholder="0-100"
                 />
+                {errors[`item_${idx}_tax`] && <div style={errorTextStyle}>{errors[`item_${idx}_tax`]}</div>}
               </label>
               <label style={labelStyle}>
                 Delivery Date
                 <input
-                  style={inputStyle}
+                  style={errors[`item_${idx}_delivery_date`] ? inputErrorStyle : inputStyle}
                   type="date"
                   value={formatDateYMD(it.delivery_date)}
                   onChange={(e) =>
                     handleItemChange(idx, "delivery_date", e.target.value)
                   }
+                  min={getTodayDate()}
                 />
+                {errors[`item_${idx}_delivery_date`] && <div style={errorTextStyle}>{errors[`item_${idx}_delivery_date`]}</div>}
               </label>
             </div>
           ))}
+
+          {errors.general && (
+            <div style={{ ...errorTextStyle, marginBottom: "8px" }}>{errors.general}</div>
+          )}
 
           <button
             type="button"
@@ -542,6 +749,16 @@ export default function POPage() {
           <button type="submit" style={buttonStyle}>
             {editingId ? "Update PO" : "Save PO"}
           </button>
+
+          {editingId && (
+            <button
+              type="button"
+              style={cancelButtonStyle}
+              onClick={handleCancelEdit}
+            >
+              Cancel Edit
+            </button>
+          )}
         </form>
       </div>
 

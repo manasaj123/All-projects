@@ -13,24 +13,21 @@ const Sidebar = () => {
       <NavLink to="/cost-centers">💰 Cost Centers</NavLink>
       <NavLink to="/profit-centers">📉 Profit Centers</NavLink>
       <NavLink to="/expenses">🧮 Expenses</NavLink>
-      
-      
-      <NavLink to="/gl-accounts">G/L Accounts</NavLink>
-      <NavLink to="/vendor-customer-invoices">_VENDOR/CUSTOMER INVOICES</NavLink>
-      <NavLink to="/journal">✔ Journal</NavLink>
-      <NavLink to="/accounting-documents">📝 A/c-Documents</NavLink>
-      
-      
-      <NavLink
-  to="/reports"
-  style={({ isActive }) => ({
-    color: isActive ? "yellow" : "white"
-  })}
->
-  📊 Reports
-</NavLink>
-      {/*<NavLink to="/ledger">✔ Ledger</NavLink> */}
-      <NavLink to="/audit">🔍 Audit</NavLink>
+      <NavLink to="/audit-logs">🔍 Audit</NavLink>
+
+      <NavLink to="/gl-accounts">📒 G/L Accounts</NavLink>
+      {/* <NavLink to="/asset-classes">🏢 Asset Classes</NavLink> */}
+      <NavLink to="/accounting-documents">📄 Acc-Documents</NavLink>
+      <NavLink to="/journal">📔 Journal</NavLink>
+      <NavLink to="/customer-credit-memo">🧾 Credit Memo</NavLink>
+      <NavLink to="/clearing">⚖️ Clearing</NavLink>
+      <NavLink to="/down-payments">💸 Down Payments</NavLink>
+      <NavLink to="/parked-invoices">🅿️ Parked Invoices</NavLink>
+      <NavLink to="/approval-workflow">✅ Approval Workflow</NavLink>
+      <NavLink to="/grir-clearing">🔄 GR/IR Clearing</NavLink>
+      <NavLink to="/period-closing">📅 Period Closing</NavLink>
+      <NavLink to="/trial-balance">⚖️ Trial Balance</NavLink>
+      <NavLink to="/financial-reports">📊 Financial Reports</NavLink>
     </aside>
   );
 };

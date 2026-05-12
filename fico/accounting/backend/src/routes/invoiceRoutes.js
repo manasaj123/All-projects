@@ -35,9 +35,27 @@ router.get(
 );
 
 router.get(
+  '/open',
+  roleMiddleware('ADMIN', 'ACCOUNTANT', 'AUDITOR', 'VIEWER'),
+  invoiceController.listOpenInvoices
+);
+
+// src/routes/invoiceRoutes.js
+router.get(
+  '/parties',
+  roleMiddleware('ADMIN', 'ACCOUNTANT', 'AUDITOR', 'VIEWER'),
+  invoiceController.listInvoiceParties
+);
+
+
+// routes/invoiceRoutes.js
+router.get('/next-number', authMiddleware, invoiceController.getNextInvoiceNumber);
+
+router.get(
   '/:id',
   roleMiddleware('ADMIN', 'ACCOUNTANT', 'AUDITOR', 'VIEWER'),
   invoiceController.getInvoice
 );
+
 
 module.exports = router;

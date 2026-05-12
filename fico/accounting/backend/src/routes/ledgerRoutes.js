@@ -1,3 +1,4 @@
+// backend/src/routes/ledgerRoutes.js
 const express = require('express');
 const router = express.Router();
 
@@ -9,14 +10,26 @@ router.use(authMiddleware);
 
 router.get(
   '/',
-  roleMiddleware('ADMIN', 'ACCOUNTANT', 'AUDITOR'),
-  ledgerController.list
+  roleMiddleware('ADMIN', 'ACCOUNTANT'),
+  ledgerController.listJournals
 );
 
 router.get(
-  '/trial-balance',
-  roleMiddleware('ADMIN', 'ACCOUNTANT', 'AUDITOR'),
-  ledgerController.trialBalance
+  '/:id',
+  roleMiddleware('ADMIN', 'ACCOUNTANT'),
+  ledgerController.getJournal
+);
+
+router.post(
+  '/',
+  roleMiddleware('ADMIN', 'ACCOUNTANT'),
+  ledgerController.createJournal
+);
+
+router.put(
+  '/:id/hold-toggle',
+  roleMiddleware('ADMIN', 'ACCOUNTANT'),
+  ledgerController.toggleHold
 );
 
 module.exports = router;

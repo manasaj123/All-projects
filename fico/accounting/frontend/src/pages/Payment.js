@@ -11,7 +11,7 @@ const Payment = () => {
     invoiceId: '',
     date: '',
     mode: 'BANK_TRANSFER',
-    bankAccountCode: '100001',
+    bankAccountCode: '',
     amount: '',
     tdsAmount: '',
     referenceNumber: '',
@@ -343,6 +343,7 @@ const Payment = () => {
                 </tr>
               )}
             </tbody>
+            
           </table>
         </div>
       </div>

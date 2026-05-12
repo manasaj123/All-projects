@@ -43,6 +43,19 @@ export default function PRPage() {
       border: "1px solid #ccc",
       boxSizing: "border-box"
     },
+    inputError: {
+      padding: "7px",
+      width: "100%",
+      borderRadius: "5px",
+      border: "2px solid #dc2626",
+      boxSizing: "border-box",
+      backgroundColor: "#fef2f2"
+    },
+    errorText: {
+      color: "#dc2626",
+      fontSize: "11px",
+      marginTop: "4px"
+    },
     table: {
       width: "100%",
       borderCollapse: "collapse",
@@ -107,6 +120,7 @@ export default function PRPage() {
   const [prs, setPRs] = useState([]);
   const [search, setSearch] = useState("");
   const [editingId, setEditingId] = useState(null);
+  const [errors, setErrors] = useState({});
 
   const [header, setHeader] = useState({
     req_date: "",
@@ -138,17 +152,87 @@ export default function PRPage() {
     loadMaterials();
   }, []);
 
-  /* ---------------- HANDLERS ---------------- */
+  /* ---------------- VALIDATION FUNCTIONS ---------------- */
+
+  // Get today's date in YYYY-MM-DD format
+  const getTodayDate = () => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  // Validate no special characters (only letters, numbers, spaces)
+  const validateNoSpecialChars = (value, fieldName) => {
+    if (!value) return "";
+    const regex = /^[A-Za-z0-9\s]+$/;
+    if (!regex.test(value)) {
+      return `${fieldName} should only contain letters, numbers and spaces (no special characters)`;
+    }
+    return "";
+  };
+
+  // Validate date is not in the past
+  const validateNotPastDate = (date, fieldName) => {
+    if (!date) return "";
+    const selectedDate = new Date(date);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    if (selectedDate < today) {
+      return `${fieldName} cannot be a past date`;
+    }
+    return "";
+  };
+
+  // Validate quantity is positive
+  const validateQuantity = (qty) => {
+    if (!qty) return "";
+    const num = Number(qty);
+    if (isNaN(num)) return "Quantity must be a number";
+    if (num <= 0) return "Quantity must be greater than 0";
+    return "";
+  };
 
   const handleHeaderChange = (e) => {
     const { name, value } = e.target;
-    setHeader((h) => ({ ...h, [name]: value }));
+    let processedValue = value;
+    
+    // Remove special characters from text fields
+    if (name === "requester" || name === "batch" || name === "plant" || name === "purchase_org") {
+      processedValue = value.replace(/[^A-Za-z0-9\s]/g, '');
+    }
+    
+    setHeader((h) => ({ ...h, [name]: processedValue }));
+    
+    // Clear error for this field
+    if (errors[name]) {
+      setErrors(prev => ({ ...prev, [name]: "" }));
+    }
   };
 
   const handleItemChange = (index, field, value) => {
+    let processedValue = value;
+    
+    // For remarks, remove special characters
+    if (field === "remarks") {
+      processedValue = value.replace(/[^A-Za-z0-9\s]/g, '');
+    }
+    
+    // For qty, ensure it's positive
+    if (field === "qty") {
+      if (value < 0) processedValue = "";
+    }
+    
     setItems((prev) =>
-      prev.map((it, i) => (i === index ? { ...it, [field]: value } : it))
+      prev.map((it, i) => (i === index ? { ...it, [field]: processedValue } : it))
     );
+    
+    // Clear error for this item field
+    if (errors[`item_${index}_${field}`]) {
+      setErrors(prev => ({ ...prev, [`item_${index}_${field}`]: "" }));
+    }
   };
 
   const addRow = () => {
@@ -169,10 +253,85 @@ export default function PRPage() {
       purchase_org: ""
     });
     setItems([{ material_id: "", qty: "", required_date: "", remarks: "" }]);
+    setErrors({});
+  };
+
+  const validateForm = () => {
+    const newErrors = {};
+    
+    // Validate header fields
+    if (!header.req_date) {
+      newErrors.req_date = "Req Date is required";
+    } else {
+      const pastDateError = validateNotPastDate(header.req_date, "Req Date");
+      if (pastDateError) newErrors.req_date = pastDateError;
+    }
+    
+    if (header.requester) {
+      const specialCharError = validateNoSpecialChars(header.requester, "Requestor");
+      if (specialCharError) newErrors.requester = specialCharError;
+    }
+    
+    if (header.batch) {
+      const specialCharError = validateNoSpecialChars(header.batch, "Batch");
+      if (specialCharError) newErrors.batch = specialCharError;
+    }
+    
+    if (header.plant) {
+      const specialCharError = validateNoSpecialChars(header.plant, "Plant");
+      if (specialCharError) newErrors.plant = specialCharError;
+    }
+    
+    if (header.purchase_org) {
+      const specialCharError = validateNoSpecialChars(header.purchase_org, "Purchase Organization");
+      if (specialCharError) newErrors.purchase_org = specialCharError;
+    }
+    
+    // Validate items
+    let hasValidItem = false;
+    items.forEach((item, idx) => {
+      if (item.material_id && item.qty) {
+        hasValidItem = true;
+        
+        // Validate quantity
+        const qtyError = validateQuantity(item.qty);
+        if (qtyError) {
+          newErrors[`item_${idx}_qty`] = qtyError;
+        }
+        
+        // Validate required date is not past
+        if (item.required_date) {
+          const pastDateError = validateNotPastDate(item.required_date, "Required Date");
+          if (pastDateError) {
+            newErrors[`item_${idx}_required_date`] = pastDateError;
+          }
+        }
+        
+        // Validate remarks for special characters
+        if (item.remarks) {
+          const specialCharError = validateNoSpecialChars(item.remarks, "Remarks");
+          if (specialCharError) {
+            newErrors[`item_${idx}_remarks`] = specialCharError;
+          }
+        }
+      }
+    });
+    
+    if (!hasValidItem) {
+      newErrors.general = "At least one item with material and quantity is required";
+    }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    if (!validateForm()) {
+      alert("Please fix the validation errors before submitting");
+      return;
+    }
 
     const payload = {
       header,
@@ -184,16 +343,21 @@ export default function PRPage() {
         }))
     };
 
-    if (editingId) {
-      await prApi.update(editingId, payload);
-      alert("PR Updated");
-    } else {
-      const res = await prApi.create(payload);
-      alert(`PR Created : ${res.data.req_no}`);
-    }
+    try {
+      if (editingId) {
+        await prApi.update(editingId, payload);
+        alert("PR Updated");
+      } else {
+        const res = await prApi.create(payload);
+        alert(`PR Created : ${res.data.req_no}`);
+      }
 
-    resetForm();
-    loadPRs();
+      resetForm();
+      loadPRs();
+    } catch (err) {
+      console.error(err);
+      alert("Failed to save PR");
+    }
   };
 
   const editPR = async (pr) => {
@@ -203,7 +367,7 @@ export default function PRPage() {
       const { header: h, items: its } = res.data;
 
       setHeader({
-        req_date: h.req_date || "",
+        req_date: h.req_date ? h.req_date.split('T')[0] : "",
         requester: h.requester || "",
         uom: h.uom || "",
         batch: h.batch || "",
@@ -219,6 +383,7 @@ export default function PRPage() {
           remarks: it.remarks || ""
         }))
       );
+      setErrors({});
     } catch (err) {
       console.error(err);
     }
@@ -239,6 +404,10 @@ export default function PRPage() {
     );
   });
 
+  const getInputStyle = (fieldName) => {
+    return errors[fieldName] ? styles.inputError : styles.input;
+  };
+
   /* ---------------- UI ---------------- */
 
   return (
@@ -258,25 +427,29 @@ export default function PRPage() {
         {/* Row 1: Req Date + Requestor */}
         <div style={styles.formRow}>
           <div style={styles.formCol}>
-            <label style={styles.label}>Req Date</label>
+            <label style={styles.label}>Req Date *</label>
             <input
-              style={styles.input}
+              style={getInputStyle("req_date")}
               type="date"
               name="req_date"
               value={header.req_date}
               onChange={handleHeaderChange}
+              min={getTodayDate()}
               required
             />
+            {errors.req_date && <div style={styles.errorText}>{errors.req_date}</div>}
           </div>
 
           <div style={styles.formCol}>
             <label style={styles.label}>Requestor</label>
             <input
-              style={styles.input}
+              style={getInputStyle("requester")}
               name="requester"
               value={header.requester}
               onChange={handleHeaderChange}
+              placeholder="Letters, numbers and spaces only"
             />
+            {errors.requester && <div style={styles.errorText}>{errors.requester}</div>}
           </div>
         </div>
 
@@ -284,22 +457,30 @@ export default function PRPage() {
         <div style={styles.formRow}>
           <div style={styles.formCol}>
             <label style={styles.label}>UOM</label>
-            <input
+            <select
               style={styles.input}
               name="uom"
               value={header.uom}
               onChange={handleHeaderChange}
-            />
+            >
+              <option value="">Select UOM</option>
+              <option value="KG">KG</option>
+              <option value="LTR">LTR</option>
+              <option value="PCS">PCS</option>
+              <option value="BOXES">BOXES</option>
+            </select>
           </div>
 
           <div style={styles.formCol}>
             <label style={styles.label}>Batch</label>
             <input
-              style={styles.input}
+              style={getInputStyle("batch")}
               name="batch"
               value={header.batch}
               onChange={handleHeaderChange}
+              placeholder="Letters, numbers and spaces only"
             />
+            {errors.batch && <div style={styles.errorText}>{errors.batch}</div>}
           </div>
         </div>
 
@@ -308,21 +489,25 @@ export default function PRPage() {
           <div style={styles.formCol}>
             <label style={styles.label}>Plant</label>
             <input
-              style={styles.input}
+              style={getInputStyle("plant")}
               name="plant"
               value={header.plant}
               onChange={handleHeaderChange}
+              placeholder="Letters, numbers and spaces only"
             />
+            {errors.plant && <div style={styles.errorText}>{errors.plant}</div>}
           </div>
 
           <div style={styles.formCol}>
             <label style={styles.label}>Purchase Organization</label>
             <input
-              style={styles.input}
+              style={getInputStyle("purchase_org")}
               name="purchase_org"
               value={header.purchase_org}
               onChange={handleHeaderChange}
+              placeholder="Letters, numbers and spaces only"
             />
+            {errors.purchase_org && <div style={styles.errorText}>{errors.purchase_org}</div>}
           </div>
         </div>
 
@@ -332,8 +517,8 @@ export default function PRPage() {
         <table style={styles.table}>
           <thead>
             <tr>
-              <th style={{ ...styles.th, width: "35%" }}>Material</th>
-              <th style={{ ...styles.th, width: "15%" }}>Qty</th>
+              <th style={{ ...styles.th, width: "35%" }}>Material *</th>
+              <th style={{ ...styles.th, width: "15%" }}>Qty *</th>
               <th style={{ ...styles.th, width: "25%" }}>Required Date</th>
               <th style={{ ...styles.th, width: "25%" }}>Remarks</th>
             </tr>
@@ -380,39 +565,57 @@ export default function PRPage() {
 
                 <td style={styles.td}>
                   <input
-                    style={styles.input}
+                    style={errors[`item_${idx}_qty`] ? styles.inputError : styles.input}
                     type="number"
+                    step="1"
+                    min="1"
                     value={it.qty}
                     onChange={(e) =>
                       handleItemChange(idx, "qty", e.target.value)
                     }
+                    placeholder=" 0"
                   />
+                  {errors[`item_${idx}_qty`] && (
+                    <div style={styles.errorText}>{errors[`item_${idx}_qty`]}</div>
+                  )}
                 </td>
 
                 <td style={styles.td}>
                   <input
-                    style={styles.input}
+                    style={errors[`item_${idx}_required_date`] ? styles.inputError : styles.input}
                     type="date"
                     value={it.required_date}
                     onChange={(e) =>
                       handleItemChange(idx, "required_date", e.target.value)
                     }
+                    min={getTodayDate()}
                   />
+                  {errors[`item_${idx}_required_date`] && (
+                    <div style={styles.errorText}>{errors[`item_${idx}_required_date`]}</div>
+                  )}
                 </td>
 
                 <td style={styles.td}>
                   <input
-                    style={styles.input}
+                    style={errors[`item_${idx}_remarks`] ? styles.inputError : styles.input}
                     value={it.remarks}
                     onChange={(e) =>
                       handleItemChange(idx, "remarks", e.target.value)
                     }
+                    placeholder="Letters, numbers and spaces only"
                   />
+                  {errors[`item_${idx}_remarks`] && (
+                    <div style={styles.errorText}>{errors[`item_${idx}_remarks`]}</div>
+                  )}
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
+
+        {errors.general && (
+          <div style={{ ...styles.errorText, marginTop: "10px" }}>{errors.general}</div>
+        )}
 
         <button
           type="button"
@@ -460,7 +663,7 @@ export default function PRPage() {
           {filteredPRs.map((pr) => (
             <tr key={pr.id}>
               <td style={styles.td}>{pr.req_no}</td>
-              <td style={styles.td}>{pr.req_date}</td>
+              <td style={styles.td}>{pr.req_date ? pr.req_date.split('T')[0] : ""}</td>
               <td style={styles.td}>{pr.requester}</td>
               <td style={styles.td}>{pr.uom}</td>
               <td style={styles.td}>{pr.batch}</td>

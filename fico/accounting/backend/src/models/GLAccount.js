@@ -1,72 +1,46 @@
+// backend/src/models/GLAccount.js
 module.exports = (sequelize, DataTypes) => {
   const GLAccount = sequelize.define(
     'GLAccount',
     {
-      id: {
-        type: DataTypes.INTEGER,
-        primaryKey: true,
-        autoIncrement: true,
-      },
-      glCode: {
-        type: DataTypes.STRING(50),
-        allowNull: false,
-        unique: true,
-      },
-      name: {
-        type: DataTypes.STRING(255),
-        allowNull: false,
-      },
-      companyCode: {
-        type: DataTypes.STRING(10),
-        allowNull: false,
-      },
+      id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+
+      // Identification
+      glCode: { type: DataTypes.STRING, allowNull: false, unique: true },
+      name: { type: DataTypes.STRING, allowNull: false },
+      companyCode: { type: DataTypes.STRING, allowNull: false },
+
+      // Classification
       accountType: {
-        type: DataTypes.STRING(20),
+        // ASSET, LIABILITY, EQUITY, INCOME, EXPENSE
+        type: DataTypes.STRING,
         allowNull: false,
       },
       accountCurrency: {
-        type: DataTypes.STRING(10),
+        type: DataTypes.STRING,
         allowNull: false,
         defaultValue: 'INR',
       },
-      taxCategory: {
-        type: DataTypes.STRING(50),
-        allowNull: true,
-      },
+
+      // FICO control fields
+      taxCategory: { type: DataTypes.STRING },
       reconciliationType: {
-        type: DataTypes.STRING(20),
+        // NONE, CUSTOMER, VENDOR
+        type: DataTypes.STRING,
         allowNull: false,
         defaultValue: 'NONE',
       },
-      altAccountNumber: {
-        type: DataTypes.STRING(50),
-        allowNull: true,
-      },
-      toleranceGroup: {
-        type: DataTypes.STRING(50),
-        allowNull: true,
-      },
-      fieldStatusGroup: {
-        type: DataTypes.STRING(50),
-        allowNull: true,
-      },
-      planningLevel: {
-        type: DataTypes.STRING(50),
-        allowNull: true,
-      },
-      isBlockedForPosting: {
-        type: DataTypes.BOOLEAN,
-        allowNull: false,
-        defaultValue: false,
-      },
-      accountController: {
-        type: DataTypes.STRING(80),
-        allowNull: true,
-      },
+      altAccountNumber: { type: DataTypes.STRING },
+      toleranceGroup: { type: DataTypes.STRING },
+      fieldStatusGroup: { type: DataTypes.STRING },
+      planningLevel: { type: DataTypes.STRING },
+
+      // Control flags
+      isBlockedForPosting: { type: DataTypes.BOOLEAN, defaultValue: false },
     },
     {
       tableName: 'gl_accounts',
-      timestamps: false, // your DESCRIBE output has no createdAt/updatedAt
+      timestamps: false,
     }
   );
 

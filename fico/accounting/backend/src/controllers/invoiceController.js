@@ -1,7 +1,8 @@
-// controllers/invoiceController.js
+// backend/src/controllers/invoiceController.js
 const db = require('../config/db');
 const { Invoice, Ledger } = db;
 const { fn, col } = db.sequelize;
+
 
 // helper: calculate GST/TDS and totals
 const computeInvoiceAmounts = ({ baseAmount, gstRate, tdsRate }) => {
@@ -9,12 +10,13 @@ const computeInvoiceAmounts = ({ baseAmount, gstRate, tdsRate }) => {
   const gstR = Number(gstRate) || 0;
   const tdsR = Number(tdsRate) || 0;
 
-  const gstAmount = base * gstR / 100;
-  const tdsAmount = base * tdsR / 100;
+  const gstAmount = (base * gstR) / 100;
+  const tdsAmount = (base * tdsR) / 100;
 
   const totalAmount = base + gstAmount - tdsAmount;
   return { gstAmount, tdsAmount, totalAmount };
 };
+
 
 // helper: generate invoice number DB4-INV-001, DB4-INV-002, ...
 const generateInvoiceNumber = async () => {
@@ -35,6 +37,7 @@ const generateInvoiceNumber = async () => {
   return `DB4-INV-${seqStr}`;
 };
 
+
 const postInvoiceLedger = async (invoice, transaction) => {
   const {
     id,
@@ -46,7 +49,7 @@ const postInvoiceLedger = async (invoice, transaction) => {
     tdsAmount,
     totalAmount,
     costCenterId,
-    profitCenterId
+    profitCenterId,
   } = invoice;
 
   const base = Number(baseAmount);
@@ -70,81 +73,105 @@ const postInvoiceLedger = async (invoice, transaction) => {
     referenceNumber: invoiceNumber,
     invoiceId: id,
     costCenterId,
-    profitCenterId
+    profitCenterId,
   };
 
   if (type === 'AR') {
-    await Ledger.bulkCreate([
-      {
-        ...common,
-        accountCode: AR_ACCOUNT,
-        description: `Customer invoice ${invoiceNumber}`,
-        debit: total,
-        credit: 0
-      },
-      {
-        ...common,
-        accountCode: REVENUE_ACCOUNT,
-        description: `Revenue for invoice ${invoiceNumber}`,
-        debit: 0,
-        credit: base
-      },
-      gst > 0
-        ? {
-            ...common,
-            accountCode: GST_OUTPUT,
-            description: `GST output for invoice ${invoiceNumber}`,
-            debit: 0,
-            credit: gst
-          }
-        : null,
-      tds > 0
-        ? {
-            ...common,
-            accountCode: TDS_RECEIVABLE,
-            description: `TDS receivable for invoice ${invoiceNumber}`,
-            debit: tds,
-            credit: 0
-          }
-        : null
-    ].filter(Boolean), { transaction });
+    await Ledger.bulkCreate(
+      [
+        {
+          ...common,
+          accountCode: AR_ACCOUNT,
+          description: `Customer invoice ${invoiceNumber}`,
+          debit: total,
+          credit: 0,
+        },
+        {
+          ...common,
+          accountCode: REVENUE_ACCOUNT,
+          description: `Revenue for invoice ${invoiceNumber}`,
+          debit: 0,
+          credit: base,
+        },
+        gst > 0
+          ? {
+              ...common,
+              accountCode: GST_OUTPUT,
+              description: `GST output for invoice ${invoiceNumber}`,
+              debit: 0,
+              credit: gst,
+            }
+          : null,
+        tds > 0
+          ? {
+              ...common,
+              accountCode: TDS_RECEIVABLE,
+              description: `TDS receivable for invoice ${invoiceNumber}`,
+              debit: tds,
+              credit: 0,
+            }
+          : null,
+      ].filter(Boolean),
+      { transaction }
+    );
   } else {
-    await Ledger.bulkCreate([
-      {
-        ...common,
-        accountCode: EXPENSE_ACCOUNT,
-        description: `Vendor expense for invoice ${invoiceNumber}`,
-        debit: base,
-        credit: 0
-      },
-      gst > 0
-        ? {
-            ...common,
-            accountCode: GST_INPUT,
-            description: `GST input for invoice ${invoiceNumber}`,
-            debit: gst,
-            credit: 0
-          }
-        : null,
-      {
-        ...common,
-        accountCode: AP_ACCOUNT,
-        description: `Vendor invoice ${invoiceNumber}`,
-        debit: 0,
-        credit: total
-      },
-      tds > 0
-        ? {
-            ...common,
-            accountCode: TDS_PAYABLE,
-            description: `TDS payable for invoice ${invoiceNumber}`,
-            debit: 0,
-            credit: tds
-          }
-        : null
-    ].filter(Boolean), { transaction });
+    await Ledger.bulkCreate(
+      [
+        {
+          ...common,
+          accountCode: EXPENSE_ACCOUNT,
+          description: `Vendor expense for invoice ${invoiceNumber}`,
+          debit: base,
+          credit: 0,
+        },
+        gst > 0
+          ? {
+              ...common,
+              accountCode: GST_INPUT,
+              description: `GST input for invoice ${invoiceNumber}`,
+              debit: gst,
+              credit: 0,
+            }
+          : null,
+        {
+          ...common,
+          accountCode: AP_ACCOUNT,
+          description: `Vendor invoice ${invoiceNumber}`,
+          debit: 0,
+          credit: total,
+        },
+        tds > 0
+          ? {
+              ...common,
+              accountCode: TDS_PAYABLE,
+              description: `TDS payable for invoice ${invoiceNumber}`,
+              debit: 0,
+              credit: tds,
+            }
+          : null,
+      ].filter(Boolean),
+      { transaction }
+    );
   }
 };
+
+///// ADD THIS ONE LINE ONLY /////
+exports.postInvoiceLedger = postInvoiceLedger;
+//////////////////////////////////
+
+
+exports.list = async (req, res) => {
+  try {
+    const accounts = await GLAccount.findAll({
+      order: [['glCode', 'ASC']],
+    });
+    res.json(accounts);
+  } catch (err) {
+    console.error('GLAccount list error', err);
+    res.status(500).json({ message: 'Failed to load GL accounts' });
+  }
+};
+
 
 exports.createInvoice = async (req, res, next) => {
   const t = await db.sequelize.transaction();
@@ -161,13 +188,13 @@ exports.createInvoice = async (req, res, next) => {
       tdsRate,
       costCenterId,
       profitCenterId,
-      narration
+      narration,
     } = req.body;
 
     const { gstAmount, tdsAmount, totalAmount } = computeInvoiceAmounts({
       baseAmount,
       gstRate,
-      tdsRate
+      tdsRate,
     });
 
     let invoice;
@@ -177,26 +204,29 @@ exports.createInvoice = async (req, res, next) => {
     for (let attempt = 0; attempt < 2; attempt++) {
       const invoiceNumber = await generateInvoiceNumber();
       try {
-        invoice = await Invoice.create({
-          invoiceNumber,
-          type,
-          partyName,
-          partyGSTIN,
-          date,
-          dueDate,
-          baseAmount,
-          gstRate,
-          gstAmount,
-          tdsRate,
-          tdsAmount,
-          totalAmount,
-          balanceAmount: totalAmount,
-          status: 'POSTED',
-          createdBy: req.user.id,
-          costCenterId,
-          profitCenterId,
-          narration
-        }, { transaction: t });
+        invoice = await Invoice.create(
+          {
+            invoiceNumber,
+            type,
+            partyName,
+            partyGSTIN,
+            date,
+            dueDate,
+            baseAmount,
+            gstRate,
+            gstAmount,
+            tdsRate,
+            tdsAmount,
+            totalAmount,
+            balanceAmount: totalAmount,
+            status: 'PARKED',
+            createdBy: req.user.id,
+            costCenterId,
+            profitCenterId,
+            narration,
+          },
+          { transaction: t }
+        );
         lastError = null;
         break;
       } catch (err) {
@@ -228,16 +258,18 @@ exports.createInvoice = async (req, res, next) => {
   }
 };
 
+
 exports.listInvoices = async (req, res, next) => {
   try {
     const invoices = await Invoice.findAll({
-      order: [['date', 'DESC'], ['id', 'DESC']]
+      order: [['date', 'DESC'], ['id', 'DESC']],
     });
     res.json(invoices);
   } catch (err) {
     next(err);
   }
 };
+
 
 exports.getInvoice = async (req, res, next) => {
   try {
@@ -248,6 +280,7 @@ exports.getInvoice = async (req, res, next) => {
     next(err);
   }
 };
+
 
 // list all invoices for a given party name
 exports.listInvoicesByParty = async (req, res, next) => {
@@ -265,6 +298,7 @@ exports.listInvoicesByParty = async (req, res, next) => {
   }
 };
 
+
 // Summary: one row per party with summed totals
 exports.listInvoiceSummaryByParty = async (req, res, next) => {
   try {
@@ -278,6 +312,92 @@ exports.listInvoiceSummaryByParty = async (req, res, next) => {
       order: [['partyName', 'ASC']],
     });
     res.json(rows);
+  } catch (err) {
+    next(err);
+  }
+};
+
+
+exports.listOpenInvoices = async (req, res, next) => {
+  try {
+    const invoices = await Invoice.findAll({
+      where: {
+        balanceAmount: { [db.Sequelize.Op.gt]: 0 },
+        status: { [db.Sequelize.Op.notIn]: ['CANCELLED'] },
+      },
+      order: [['dueDate', 'ASC']],
+    });
+    res.json(invoices);
+  } catch (err) {
+    next(err);
+  }
+};
+
+
+exports.listPaymentsForInvoice = async (req, res, next) => {
+  try {
+    const { invoiceId } = req.params;
+
+    // Get invoice to know AR / AP
+    const invoice = await Invoice.findByPk(invoiceId);
+    if (!invoice) {
+      return res.status(404).json({ message: 'Invoice not found' });
+    }
+
+    let where = { invoiceId };
+
+    // For AR invoice: show RECEIPT; for AP invoice: show PAYMENT
+    if (invoice.type === 'AR') {
+      where.type = 'RECEIPT';
+    } else if (invoice.type === 'AP') {
+      where.type = 'PAYMENT';
+    }
+
+    const payments = await Payment.findAll({
+      where,
+      order: [['date', 'DESC'], ['id', 'DESC']],
+    });
+
+    res.json(payments);
+  } catch (err) {
+    next(err);
+  }
+};
+
+
+exports.listInvoiceParties = async (req, res, next) => {
+  try {
+    const rows = await Invoice.findAll({
+      attributes: [
+        [db.sequelize.fn('DISTINCT', db.sequelize.col('partyName')), 'partyName'],
+        'type'
+      ],
+      order: [['partyName', 'ASC']]
+    });
+    res.json(rows);
+  } catch (err) {
+    next(err);
+  }
+};
+
+// in invoiceController.js
+exports.getNextInvoiceNumber = async (req, res, next) => {
+  try {
+    const last = await Invoice.findOne({
+      where: { type: 'AR' },
+      order: [['id', 'DESC']]
+    });
+
+    let nextNumber = 'DB4-INV-001';
+    if (last) {
+      const match = last.invoiceNumber.match(/DB4-INV-(\d+)/);
+      if (match) {
+        const next = String(parseInt(match[1], 10) + 1).padStart(3, '0');
+        nextNumber = `DB4-INV-${next}`;
+      }
+    }
+
+    res.json({ nextInvoiceNumber: nextNumber });
   } catch (err) {
     next(err);
   }
