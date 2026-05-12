@@ -53,12 +53,43 @@ const Quota = () => {
     loadData();
   }, []);
 
+  const validateAlphaNumeric = (value) => {
+    return /^[a-zA-Z0-9\s\-]*$/.test(value);
+  };
+
+  const validateNumberOnly = (value) => {
+    return /^\d*$/.test(value);
+  };
+
   const handleChange = (e) => {
     const { name, value } = e.target;
 
+    // Text field validation
+    if (
+      [
+        "purchasingGroup",
+        "plant",
+        "plantSpecialMaterialStatus",
+        "taxIndicatorForMaterial",
+        "materialFreightGroup",
+        "materialGroup",
+      ].includes(name)
+    ) {
+      if (!validateAlphaNumeric(value)) {
+        return;
+      }
+    }
+
+    // Quota usage validation
+    if (name === "quotaUsage") {
+      if (!validateNumberOnly(value)) {
+        return;
+      }
+    }
+
     setFormData((prev) => ({
       ...prev,
-      [name]: value,
+      [name]: typeof value === "string" ? value.toUpperCase() : value,
     }));
   };
 
@@ -72,6 +103,36 @@ const Quota = () => {
 
     if (!formData.plant) {
       alert("Enter Plant");
+      return;
+    }
+
+    if (!formData.materialGroup.trim()) {
+      alert("Material Group is required");
+      return;
+    }
+
+    if (!formData.validFrom) {
+      alert("Select Valid From date");
+      return;
+    }
+
+    if (!formData.validTo) {
+      alert("Select Valid To date");
+      return;
+    }
+
+    if (formData.validFrom > formData.validTo) {
+      alert("Valid To date must be greater than Valid From date");
+      return;
+    }
+
+    if (!formData.quotaUsage.trim()) {
+      alert("Enter Quota Usage");
+      return;
+    }
+
+    if (Number(formData.quotaUsage) < 0) {
+      alert("Negative quota usage is not allowed");
       return;
     }
 
@@ -127,8 +188,7 @@ const Quota = () => {
 
   return (
     <div className="quota-page">
-
-<style>{`
+      <style>{`
 
 .quota-page{
 max-width:1100px;
@@ -285,209 +345,183 @@ color:white;
 
 `}</style>
 
-<h2>Quota Arrangement</h2>
+      <h2>Quota Arrangement</h2>
 
-<form className="form-card" onSubmit={handleSubmit}>
+      <form className="form-card" onSubmit={handleSubmit}>
+        <h4>Key</h4>
 
-<h4>Key</h4>
+        <div className="form-grid">
+          <div className="form-row">
+            <label>Purchasing Group</label>
+            <input
+              name="purchasingGroup"
+              value={formData.purchasingGroup}
+              onChange={handleChange}
+            />
+          </div>
 
-<div className="form-grid">
+          <div className="form-row">
+            <label>Plant</label>
+            <input
+              name="plant"
+              value={formData.plant}
+              onChange={handleChange}
+              maxLength={10}
+            />
+          </div>
+        </div>
 
-<div className="form-row">
-<label>Purchasing Group</label>
-<input
-name="purchasingGroup"
-value={formData.purchasingGroup}
-onChange={handleChange}
-/>
-</div>
+        <h4>Material Attributes</h4>
 
-<div className="form-row">
-<label>Plant</label>
-<input
-name="plant"
-value={formData.plant}
-onChange={handleChange}
-/>
-</div>
+        <div className="form-grid">
+          <div className="form-row">
+            <label>Plant Special Material Status</label>
+            <input
+              name="plantSpecialMaterialStatus"
+              value={formData.plantSpecialMaterialStatus}
+              onChange={handleChange}
+              maxLength={4}
+            />
+          </div>
 
-</div>
+          <div className="form-row">
+            <label>Tax Indicator</label>
+            <input
+              name="taxIndicatorForMaterial"
+              value={formData.taxIndicatorForMaterial}
+              onChange={handleChange}
+              maxLength={4}
+            />
+          </div>
 
-<h4>Material Attributes</h4>
+          <div className="form-row">
+            <label>Material Freight Group</label>
+            <input
+              name="materialFreightGroup"
+              value={formData.materialFreightGroup}
+              onChange={handleChange}
+            />
+          </div>
 
-<div className="form-grid">
+          <div className="form-row">
+            <label>Material Group</label>
+            <input
+              name="materialGroup"
+              value={formData.materialGroup}
+              onChange={handleChange}
+            />
+          </div>
+        </div>
 
-<div className="form-row">
-<label>Plant Special Material Status</label>
-<input
-  name="plantSpecialMaterialStatus"
-  value={formData.plantSpecialMaterialStatus}
-  onChange={handleChange}
-  maxLength={4}
-/>
-</div>
+        <h4>Validity & Usage</h4>
 
-<div className="form-row">
-<label>Tax Indicator</label>
-<input
-  name="taxIndicatorForMaterial"
-  value={formData.taxIndicatorForMaterial}
-  onChange={handleChange}
-  maxLength={4}
-/>
-</div>
+        <div className="form-grid">
+          <div className="form-row">
+            <label>Valid From</label>
+            <input
+              type="date"
+              name="validFrom"
+              value={formData.validFrom}
+              onChange={handleChange}
+            />
+          </div>
 
-<div className="form-row">
-<label>Material Freight Group</label>
-<input
-name="materialFreightGroup"
-value={formData.materialFreightGroup}
-onChange={handleChange}
-/>
-</div>
+          <div className="form-row">
+            <label>Valid To</label>
+            <input
+              type="date"
+              name="validTo"
+              value={formData.validTo}
+              onChange={handleChange}
+            />
+          </div>
 
-<div className="form-row">
-<label>Material Group</label>
-<input
-name="materialGroup"
-value={formData.materialGroup}
-onChange={handleChange}
-/>
-</div>
+          <div className="form-row">
+            <label>Quota Usage</label>
+            <input
+              name="quotaUsage"
+              value={formData.quotaUsage}
+              onChange={handleChange}
+              maxLength={4}
+            />
+          </div>
+        </div>
 
-</div>
+        <div className="form-actions">
+          <button type="submit">
+            {editingId ? "Update Quota" : "Create Quota"}
+          </button>
 
-<h4>Validity & Usage</h4>
+          {editingId && (
+            <button type="button" onClick={handleCancelEdit}>
+              Cancel
+            </button>
+          )}
+        </div>
+      </form>
 
-<div className="form-grid">
+      <div className="list-header">
+        <h3>{showDeleted ? "Recycle Bin" : "Active Quota Records"}</h3>
 
-<div className="form-row">
-<label>Valid From</label>
-<input
-type="date"
-name="validFrom"
-value={formData.validFrom}
-onChange={handleChange}
-/>
-</div>
+        <button onClick={() => setShowDeleted((v) => !v)}>
+          {showDeleted ? "Show Active" : "Show Recycle Bin"}
+        </button>
+      </div>
 
-<div className="form-row">
-<label>Valid To</label>
-<input
-type="date"
-name="validTo"
-value={formData.validTo}
-onChange={handleChange}
-/>
-</div>
+      {loading ? (
+        <p>Loading...</p>
+      ) : currentList.length === 0 ? (
+        <p>No records.</p>
+      ) : (
+        <table className="data-table">
+          <thead>
+            <tr>
+              <th>Purch. Group</th>
+              <th>Plant</th>
+              <th>Plant Status</th>
+              <th>Tax</th>
+              <th>Freight</th>
+              <th>Material Group</th>
+              <th>Valid From</th>
+              <th>Valid To</th>
+              <th>Usage</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
 
-<div className="form-row">
-<label>Quota Usage</label>
-<input
-  name="quotaUsage"
-  value={formData.quotaUsage}
-  onChange={handleChange}
-  maxLength={4}
-/>
-</div>
+          <tbody>
+            {currentList.map((q) => (
+              <tr key={q.id}>
+                <td>{q.purchasingGroup}</td>
+                <td>{q.plant}</td>
+                <td>{q.plantSpecialMaterialStatus}</td>
+                <td>{q.taxIndicatorForMaterial}</td>
+                <td>{q.materialFreightGroup}</td>
+                <td>{q.materialGroup}</td>
+                <td>{q.validFrom}</td>
+                <td>{q.validTo}</td>
+                <td>{q.quotaUsage}</td>
 
-</div>
+                <td>
+                  {!showDeleted && (
+                    <>
+                      <button onClick={() => handleEdit(q)}>Edit</button>
+                      <button onClick={() => handleSoftDelete(q.id)}>
+                        Delete
+                      </button>
+                    </>
+                  )}
 
-<div className="form-actions">
-
-<button type="submit">
-{editingId ? "Update Quota" : "Create Quota"}
-</button>
-
-{editingId && (
-<button type="button" onClick={handleCancelEdit}>
-Cancel
-</button>
-)}
-
-</div>
-
-</form>
-
-<div className="list-header">
-
-<h3>{showDeleted ? "Recycle Bin" : "Active Quota Records"}</h3>
-
-<button onClick={() => setShowDeleted((v) => !v)}>
-{showDeleted ? "Show Active" : "Show Recycle Bin"}
-</button>
-
-</div>
-
-{loading ? (
-<p>Loading...</p>
-) : currentList.length === 0 ? (
-<p>No records.</p>
-) : (
-
-<table className="data-table">
-
-<thead>
-<tr>
-<th>Purch. Group</th>
-<th>Plant</th>
-<th>Plant Status</th>
-<th>Tax</th>
-<th>Freight</th>
-<th>Material Group</th>
-<th>Valid From</th>
-<th>Valid To</th>
-<th>Usage</th>
-<th>Actions</th>
-</tr>
-</thead>
-
-<tbody>
-
-{currentList.map((q) => (
-
-<tr key={q.id}>
-
-<td>{q.purchasingGroup}</td>
-<td>{q.plant}</td>
-<td>{q.plantSpecialMaterialStatus}</td>
-<td>{q.taxIndicatorForMaterial}</td>
-<td>{q.materialFreightGroup}</td>
-<td>{q.materialGroup}</td>
-<td>{q.validFrom}</td>
-<td>{q.validTo}</td>
-<td>{q.quotaUsage}</td>
-
-<td>
-
-{!showDeleted && (
-<>
-<button onClick={() => handleEdit(q)}>Edit</button>
-<button onClick={() => handleSoftDelete(q.id)}>
-Delete
-</button>
-</>
-)}
-
-{showDeleted && (
-<button onClick={() => handleRestore(q.id)}>
-Restore
-</button>
-)}
-
-</td>
-
-</tr>
-
-))}
-
-</tbody>
-
-</table>
-
-)}
-
-</div>
+                  {showDeleted && (
+                    <button onClick={() => handleRestore(q.id)}>Restore</button>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </div>
   );
 };
 

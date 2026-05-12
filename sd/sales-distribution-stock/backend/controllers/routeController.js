@@ -1,6 +1,6 @@
 // backend/controllers/routeController.js
-const asyncHandler = require('../middleware/asyncHandler');
-const db = require('../models');
+const asyncHandler = require("../middleware/asyncHandler");
+const db = require("../models");
 
 // GET /api/routes
 exports.getRoutes = asyncHandler(async (req, res) => {
@@ -18,7 +18,7 @@ exports.getDeletedRoutes = asyncHandler(async (req, res) => {
 exports.getRouteById = asyncHandler(async (req, res) => {
   const route = await db.Route.findByPk(req.params.id);
   if (!route) {
-    res.status(404).json({ message: 'Route not found' });
+    res.status(404).json({ message: "Route not found" });
     return;
   }
   res.json(route);
@@ -26,18 +26,59 @@ exports.getRouteById = asyncHandler(async (req, res) => {
 
 // POST /api/routes
 exports.createRoute = asyncHandler(async (req, res) => {
+  const { routeCode, description } = req.body;
+
+  const alphaNumRegex = /^[A-Za-z0-9\s-]+$/;
+
+  if (!routeCode || !alphaNumRegex.test(routeCode)) {
+    return res.status(400).json({
+      message: "Invalid Route Code",
+    });
+  }
+
+  if (!description || !alphaNumRegex.test(description)) {
+    return res.status(400).json({
+      message: "Invalid Description",
+    });
+  }
+
+  const existing = await db.Route.findOne({
+    where: { routeCode },
+  });
+
+  if (existing) {
+    return res.status(400).json({
+      message: "Route Code already exists",
+    });
+  }
+
   const route = await db.Route.create(req.body);
+
   res.status(201).json(route);
 });
 
 // PUT /api/routes/:id
 exports.updateRoute = asyncHandler(async (req, res) => {
   const route = await db.Route.findByPk(req.params.id);
+
   if (!route) {
-    res.status(404).json({ message: 'Route not found' });
-    return;
+    return res.status(404).json({
+      message: "Route not found",
+    });
   }
+
+  const { description } = req.body;
+
+  const alphaNumRegex = /^[A-Za-z0-9\s-]+$/;
+
+  if (!description || !alphaNumRegex.test(description)) {
+    return res.status(400).json({
+      message: "Invalid Description",
+    });
+  }
+
   await route.update(req.body);
+
   res.json(route);
 });
 
@@ -45,18 +86,18 @@ exports.updateRoute = asyncHandler(async (req, res) => {
 exports.softDeleteRoute = asyncHandler(async (req, res) => {
   const route = await db.Route.findByPk(req.params.id);
   if (!route) {
-    res.status(404).json({ message: 'Route not found' });
+    res.status(404).json({ message: "Route not found" });
     return;
   }
   await route.update({ isDeleted: true });
-  res.json({ message: 'Route moved to recycle bin' });
+  res.json({ message: "Route moved to recycle bin" });
 });
 
 // PUT /api/routes/:id/restore
 exports.restoreRoute = asyncHandler(async (req, res) => {
   const route = await db.Route.findByPk(req.params.id);
   if (!route) {
-    res.status(404).json({ message: 'Route not found' });
+    res.status(404).json({ message: "Route not found" });
     return;
   }
   await route.update({ isDeleted: false });

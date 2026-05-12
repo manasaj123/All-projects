@@ -1,5 +1,5 @@
 // frontend/src/pages/Agreement.js
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from "react";
 import {
   getAgreements,
   getDeletedAgreements,
@@ -7,15 +7,15 @@ import {
   updateAgreement,
   softDeleteAgreement,
   restoreAgreement,
-} from '../services/agreementService';
+} from "../services/agreementService";
 
 const initialForm = {
-  vendorName: '',
-  contractType: '',
-  purchasingOrg: '',
-  purchasingGroup: '',
-  plant: '',
-  agreementDate: '',
+  vendorName: "",
+  contractType: "",
+  purchasingOrg: "",
+  purchasingGroup: "",
+  plant: "",
+  agreementDate: "",
 };
 
 const Agreement = () => {
@@ -37,7 +37,7 @@ const Agreement = () => {
       setAgreements(activeRes.data);
       setDeletedAgreements(deletedRes.data);
     } catch (err) {
-      console.error('Error loading agreements', err);
+      console.error("Error loading agreements", err);
     } finally {
       setLoading(false);
     }
@@ -47,31 +47,101 @@ const Agreement = () => {
     loadData();
   }, []);
 
-  const handleChange = e => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+  const validateAlphaNumeric = (value) => {
+    return /^[a-zA-Z0-9\s\-\/().]*$/.test(value);
   };
 
-  const handleSubmit = async e => {
+  const validateVendorName = (value) => {
+    return /^[a-zA-Z\s\-().]*$/.test(value);
+  };
+
+  const validateMaxLength = (value, max) => {
+    return value.length <= max;
+  };
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+
+    // Vendor Name
+    if (name === "vendorName") {
+      if (!validateVendorName(value)) {
+        return;
+      }
+
+      if (!validateMaxLength(value, 150)) {
+        return;
+      }
+    }
+
+    // Contract Type
+    if (name === "contractType") {
+      if (!validateAlphaNumeric(value)) {
+        return;
+      }
+
+      if (!validateMaxLength(value, 4)) {
+        return;
+      }
+    }
+
+    // Purchasing fields
+    if (["purchasingOrg", "purchasingGroup", "plant"].includes(name)) {
+      if (!validateAlphaNumeric(value)) {
+        return;
+      }
+
+      if (!validateMaxLength(value, 10)) {
+        return;
+      }
+    }
+
+    const updatedValue = name === "vendorName" ? value : value.toUpperCase();
+
+    setFormData((prev) => ({
+      ...prev,
+      [name]: updatedValue,
+    }));
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.vendorName) {
-      alert('Enter vendor name');
+      alert("Enter vendor name");
       return;
     }
     if (!formData.contractType) {
-      alert('Enter contract type');
+      alert("Enter contract type");
       return;
     }
     if (!formData.purchasingOrg) {
-      alert('Enter purchasing organization');
+      alert("Enter purchasing organization");
       return;
     }
     if (!formData.plant) {
-      alert('Enter plant');
+      alert("Enter plant");
       return;
     }
     if (!formData.agreementDate) {
-      alert('Select agreement date');
+      alert("Select agreement date");
+      return;
+    }
+
+    const today = new Date().toISOString().split("T")[0];
+
+    if (formData.agreementDate > today) {
+      alert("Future date is not allowed");
+      return;
+    }
+
+    const validContractTypes = ["MK", "WK"];
+
+    if (!validContractTypes.includes(formData.contractType)) {
+      alert("Contract Type must be MK or WK");
+      return;
+    }
+
+    if (!formData.purchasingGroup.trim()) {
+      alert("Purchasing Group is required");
       return;
     }
 
@@ -87,19 +157,19 @@ const Agreement = () => {
       setEditingId(null);
       loadData();
     } catch (err) {
-      console.error('Error saving agreement', err);
+      console.error("Error saving agreement", err);
     }
   };
 
-  const handleEdit = a => {
+  const handleEdit = (a) => {
     setEditingId(a.id);
     setFormData({
-      vendorName: a.vendorName || '',
-      contractType: a.contractType || '',
-      purchasingOrg: a.purchasingOrg || '',
-      purchasingGroup: a.purchasingGroup || '',
-      plant: a.plant || '',
-      agreementDate: a.agreementDate || '',
+      vendorName: a.vendorName || "",
+      contractType: a.contractType || "",
+      purchasingOrg: a.purchasingOrg || "",
+      purchasingGroup: a.purchasingGroup || "",
+      plant: a.plant || "",
+      agreementDate: a.agreementDate || "",
     });
   };
 
@@ -108,22 +178,22 @@ const Agreement = () => {
     setFormData(initialForm);
   };
 
-  const handleSoftDelete = async id => {
-    if (!window.confirm('Move this agreement to recycle bin?')) return;
+  const handleSoftDelete = async (id) => {
+    if (!window.confirm("Move this agreement to recycle bin?")) return;
     try {
       await softDeleteAgreement(id);
       loadData();
     } catch (err) {
-      console.error('Error deleting agreement', err);
+      console.error("Error deleting agreement", err);
     }
   };
 
-  const handleRestore = async id => {
+  const handleRestore = async (id) => {
     try {
       await restoreAgreement(id);
       loadData();
     } catch (err) {
-      console.error('Error restoring agreement', err);
+      console.error("Error restoring agreement", err);
     }
   };
 
@@ -272,6 +342,7 @@ const Agreement = () => {
               name="vendorName"
               value={formData.vendorName}
               onChange={handleChange}
+              maxLength={150}
               required
             />
           </div>
@@ -282,6 +353,7 @@ const Agreement = () => {
               value={formData.contractType}
               onChange={handleChange}
               placeholder="e.g. MK, WK"
+              maxLength={4}
               required
             />
           </div>
@@ -291,6 +363,7 @@ const Agreement = () => {
               name="purchasingOrg"
               value={formData.purchasingOrg}
               onChange={handleChange}
+              maxLength={10}
               required
             />
           </div>
@@ -303,6 +376,7 @@ const Agreement = () => {
               name="purchasingGroup"
               value={formData.purchasingGroup}
               onChange={handleChange}
+              maxLength={10}
             />
           </div>
           <div className="form-field">
@@ -312,6 +386,7 @@ const Agreement = () => {
               value={formData.plant}
               onChange={handleChange}
               required
+              maxLength={10}
             />
           </div>
           <div className="form-field">
@@ -328,7 +403,7 @@ const Agreement = () => {
 
         <div className="form-actions">
           <button type="submit">
-            {editingId ? 'Update Agreement' : 'Create Agreement'}
+            {editingId ? "Update Agreement" : "Create Agreement"}
           </button>
           {editingId && (
             <button type="button" onClick={handleCancelEdit}>
@@ -339,9 +414,9 @@ const Agreement = () => {
       </form>
 
       <div className="list-header">
-        <h3>{showDeleted ? 'Recycle Bin' : 'Active Agreements'}</h3>
-        <button onClick={() => setShowDeleted(v => !v)}>
-          {showDeleted ? 'Show Active' : 'Show Recycle Bin'}
+        <h3>{showDeleted ? "Recycle Bin" : "Active Agreements"}</h3>
+        <button onClick={() => setShowDeleted((v) => !v)}>
+          {showDeleted ? "Show Active" : "Show Recycle Bin"}
         </button>
       </div>
 
@@ -363,7 +438,7 @@ const Agreement = () => {
             </tr>
           </thead>
           <tbody>
-            {currentList.map(a => (
+            {currentList.map((a) => (
               <tr key={a.id}>
                 <td>{a.vendorName}</td>
                 <td>{a.contractType}</td>
@@ -381,9 +456,7 @@ const Agreement = () => {
                     </>
                   )}
                   {showDeleted && (
-                    <button onClick={() => handleRestore(a.id)}>
-                      Restore
-                    </button>
+                    <button onClick={() => handleRestore(a.id)}>Restore</button>
                   )}
                 </td>
               </tr>

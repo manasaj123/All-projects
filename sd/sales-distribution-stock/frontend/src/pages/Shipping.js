@@ -1,5 +1,5 @@
 // frontend/src/pages/Shipping.js
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from "react";
 import {
   getShippingConfigs,
   getDeletedShippingConfigs,
@@ -7,12 +7,12 @@ import {
   updateShippingConfig,
   softDeleteShippingConfig,
   restoreShippingConfig,
-} from '../services/shippingService';
+} from "../services/shippingService";
 
 const initialForm = {
-  shippingPoint: '',
-  description: '',
-  defaultRoute: '',
+  shippingPoint: "",
+  description: "",
+  defaultRoute: "",
   planningRelevant: true,
 };
 
@@ -35,7 +35,7 @@ const Shipping = () => {
       setShippingList(activeRes.data);
       setDeletedShippingList(deletedRes.data);
     } catch (err) {
-      console.error('Error loading shipping data', err);
+      console.error("Error loading shipping data", err);
     } finally {
       setLoading(false);
     }
@@ -45,41 +45,67 @@ const Shipping = () => {
     loadData();
   }, []);
 
-  const handleChange = e => {
+  const validateAlphaNumeric = (value) => {
+    return /^[A-Za-z0-9\s-]*$/.test(value);
+  };
+
+  const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setFormData(prev => ({
+
+    // prevent special characters
+    if (["shippingPoint", "description", "defaultRoute"].includes(name)) {
+      if (!validateAlphaNumeric(value)) {
+        return;
+      }
+    }
+
+    setFormData((prev) => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value,
+      [name]:
+        type === "checkbox"
+          ? checked
+          : typeof value === "string"
+            ? value.toUpperCase()
+            : value,
     }));
   };
 
-  const handleSubmit = async e => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.shippingPoint) {
-      alert('Enter shipping point');
+
+    if (!formData.shippingPoint.trim()) {
+      alert("Enter Shipping Point");
       return;
     }
+
+    if (!formData.defaultRoute.trim()) {
+      alert("Enter Default Route");
+      return;
+    }
+
     const payload = { ...formData };
+
     try {
       if (editingId) {
         await updateShippingConfig(editingId, payload);
       } else {
         await createShippingConfig(payload);
       }
+
       setFormData(initialForm);
       setEditingId(null);
       loadData();
     } catch (err) {
-      console.error('Error saving shipping config', err);
+      console.error("Error saving shipping config", err);
     }
   };
 
-  const handleEdit = s => {
+  const handleEdit = (s) => {
     setEditingId(s.id);
     setFormData({
-      shippingPoint: s.shippingPoint || '',
-      description: s.description || '',
-      defaultRoute: s.defaultRoute || '',
+      shippingPoint: s.shippingPoint || "",
+      description: s.description || "",
+      defaultRoute: s.defaultRoute || "",
       planningRelevant: !!s.planningRelevant,
     });
   };
@@ -89,22 +115,22 @@ const Shipping = () => {
     setFormData(initialForm);
   };
 
-  const handleSoftDelete = async id => {
-    if (!window.confirm('Move this shipping point to recycle bin?')) return;
+  const handleSoftDelete = async (id) => {
+    if (!window.confirm("Move this shipping point to recycle bin?")) return;
     try {
       await softDeleteShippingConfig(id);
       loadData();
     } catch (err) {
-      console.error('Error deleting shipping config', err);
+      console.error("Error deleting shipping config", err);
     }
   };
 
-  const handleRestore = async id => {
+  const handleRestore = async (id) => {
     try {
       await restoreShippingConfig(id);
       loadData();
     } catch (err) {
-      console.error('Error restoring shipping config', err);
+      console.error("Error restoring shipping config", err);
     }
   };
 
@@ -268,6 +294,7 @@ const Shipping = () => {
               required
               disabled={!!editingId}
               type="text"
+              maxLength={10}
             />
           </div>
           <div className="form-field">
@@ -277,6 +304,7 @@ const Shipping = () => {
               value={formData.description}
               onChange={handleChange}
               type="text"
+              maxLength={100}
             />
           </div>
           <div className="form-field">
@@ -286,6 +314,8 @@ const Shipping = () => {
               value={formData.defaultRoute}
               onChange={handleChange}
               type="text"
+              maxLength={10}
+              required
             />
           </div>
         </div>
@@ -307,7 +337,7 @@ const Shipping = () => {
 
         <div className="form-actions">
           <button type="submit">
-            {editingId ? 'Update Shipping Point' : 'Create Shipping Point'}
+            {editingId ? "Update Shipping Point" : "Create Shipping Point"}
           </button>
           {editingId && (
             <button type="button" onClick={handleCancelEdit}>
@@ -318,9 +348,9 @@ const Shipping = () => {
       </form>
 
       <div className="list-header">
-        <h3>{showDeleted ? 'Recycle Bin' : 'Active Shipping Points'}</h3>
-        <button onClick={() => setShowDeleted(v => !v)}>
-          {showDeleted ? 'Show Active' : 'Show Recycle Bin'}
+        <h3>{showDeleted ? "Recycle Bin" : "Active Shipping Points"}</h3>
+        <button onClick={() => setShowDeleted((v) => !v)}>
+          {showDeleted ? "Show Active" : "Show Recycle Bin"}
         </button>
       </div>
 
@@ -340,12 +370,12 @@ const Shipping = () => {
             </tr>
           </thead>
           <tbody>
-            {currentList.map(s => (
+            {currentList.map((s) => (
               <tr key={s.id}>
                 <td>{s.shippingPoint}</td>
                 <td>{s.description}</td>
                 <td>{s.defaultRoute}</td>
-                <td>{s.planningRelevant ? 'Yes' : 'No'}</td>
+                <td>{s.planningRelevant ? "Yes" : "No"}</td>
                 <td>
                   {!showDeleted && (
                     <>
@@ -356,9 +386,7 @@ const Shipping = () => {
                     </>
                   )}
                   {showDeleted && (
-                    <button onClick={() => handleRestore(s.id)}>
-                      Restore
-                    </button>
+                    <button onClick={() => handleRestore(s.id)}>Restore</button>
                   )}
                 </td>
               </tr>
