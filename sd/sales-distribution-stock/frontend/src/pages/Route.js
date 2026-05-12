@@ -1,5 +1,5 @@
 // frontend/src/pages/Route.js
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from "react";
 import {
   getRoutes,
   getDeletedRoutes,
@@ -7,19 +7,19 @@ import {
   updateRoute,
   softDeleteRoute,
   restoreRoute,
-} from '../services/routeService';
+} from "../services/routeService";
 
 const initialForm = {
-  routeCode: '',
-  description: '',
+  routeCode: "",
+  description: "",
 };
 
 const initialStage = {
-  stageName: '',
-  fromLocation: '',
-  toLocation: '',
-  transitTime: '',
-  legSequence: '',
+  stageName: "",
+  fromLocation: "",
+  toLocation: "",
+  transitTime: "",
+  legSequence: "",
 };
 
 const RoutePage = () => {
@@ -44,7 +44,7 @@ const RoutePage = () => {
       setRoutes(activeRes.data);
       setDeletedRoutes(deletedRes.data);
     } catch (err) {
-      console.error('Error loading routes', err);
+      console.error("Error loading routes", err);
     } finally {
       setLoading(false);
     }
@@ -54,37 +54,91 @@ const RoutePage = () => {
     loadData();
   }, []);
 
-  const handleChange = e => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+  const validateAlphaNumeric = (value) => {
+    return /^[A-Za-z0-9\s-]*$/.test(value);
   };
 
-  const handleStageChange = e => {
+  const validateNumberOnly = (value) => {
+    return /^\d*$/.test(value);
+  };
+
+  const handleChange = (e) => {
     const { name, value } = e.target;
-    setStageForm(prev => ({ ...prev, [name]: value }));
+
+    if (["routeCode", "description"].includes(name)) {
+      if (!validateAlphaNumeric(value)) {
+        return;
+      }
+    }
+
+    setFormData((prev) => ({
+      ...prev,
+      [name]: typeof value === "string" ? value.toUpperCase() : value,
+    }));
+  };
+
+  const handleStageChange = (e) => {
+    const { name, value } = e.target;
+
+    if (["stageName", "fromLocation", "toLocation"].includes(name)) {
+      if (!validateAlphaNumeric(value)) {
+        return;
+      }
+    }
+
+    if (["transitTime", "legSequence"].includes(name)) {
+      if (!validateNumberOnly(value)) {
+        return;
+      }
+    }
+
+    setStageForm((prev) => ({
+      ...prev,
+      [name]: typeof value === "string" ? value.toUpperCase() : value,
+    }));
   };
 
   const addStage = () => {
-    if (!stageForm.stageName || !stageForm.fromLocation || !stageForm.toLocation) {
-      alert('Enter stage name, from and to locations');
+    if (
+      !stageForm.stageName ||
+      !stageForm.fromLocation ||
+      !stageForm.toLocation
+    ) {
+      alert("Enter stage name, from and to locations");
       return;
     }
-    setStages(prev => [...prev, { ...stageForm }]);
+
+    if (Number(stageForm.transitTime) < 0) {
+      alert("Negative transit time not allowed");
+      return;
+    }
+
+    setStages((prev) => [...prev, { ...stageForm }]);
     setStageForm(initialStage);
   };
 
-  const removeStage = index => {
-    setStages(prev => prev.filter((_, i) => i !== index));
+  const removeStage = (index) => {
+    setStages((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const handleSubmit = async e => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.routeCode) {
-      alert('Enter route code');
+      alert("Enter route code");
       return;
     }
     if (stages.length === 0) {
-      alert('Add at least one stage');
+      alert("Add at least one stage");
+      return;
+    }
+
+    if (!formData.routeCode.trim()) {
+      alert("Enter Route Code");
+      return;
+    }
+
+    if (!formData.description.trim()) {
+      alert("Enter Description");
       return;
     }
     const payload = {
@@ -103,15 +157,15 @@ const RoutePage = () => {
       setEditingId(null);
       loadData();
     } catch (err) {
-      console.error('Error saving route', err);
+      console.error("Error saving route", err);
     }
   };
 
-  const handleEdit = r => {
+  const handleEdit = (r) => {
     setEditingId(r.id);
     setFormData({
-      routeCode: r.routeCode || '',
-      description: r.description || '',
+      routeCode: r.routeCode || "",
+      description: r.description || "",
     });
     let parsedStages = [];
     try {
@@ -129,39 +183,39 @@ const RoutePage = () => {
     setStageForm(initialStage);
   };
 
-  const handleSoftDelete = async id => {
-    if (!window.confirm('Move this route to recycle bin?')) return;
+  const handleSoftDelete = async (id) => {
+    if (!window.confirm("Move this route to recycle bin?")) return;
     try {
       await softDeleteRoute(id);
       loadData();
     } catch (err) {
-      console.error('Error deleting route', err);
+      console.error("Error deleting route", err);
     }
   };
 
-  const handleRestore = async id => {
+  const handleRestore = async (id) => {
     try {
       await restoreRoute(id);
       loadData();
     } catch (err) {
-      console.error('Error restoring route', err);
+      console.error("Error restoring route", err);
     }
   };
 
   const currentList = showDeleted ? deletedRoutes : routes;
 
-  const displayStagesSummary = r => {
+  const displayStagesSummary = (r) => {
     try {
       const arr = r.stagesJson ? JSON.parse(r.stagesJson) : [];
-      if (!Array.isArray(arr) || arr.length === 0) return '';
+      if (!Array.isArray(arr) || arr.length === 0) return "";
       return arr
         .map((s, idx) => {
           const seq = s.legSequence || idx + 1;
           return `${seq}. ${s.fromLocation} → ${s.toLocation} (${s.stageName})`;
         })
-        .join(' | ');
+        .join(" | ");
     } catch {
-      return '';
+      return "";
     }
   };
 
@@ -339,6 +393,7 @@ const RoutePage = () => {
             value={formData.routeCode}
             onChange={handleChange}
             required
+            maxLength={10}
             disabled={!!editingId}
           />
         </div>
@@ -348,6 +403,7 @@ const RoutePage = () => {
             name="description"
             value={formData.description}
             onChange={handleChange}
+            maxLength={100}
           />
         </div>
 
@@ -375,6 +431,7 @@ const RoutePage = () => {
             name="transitTime"
             placeholder="Transit Time (hrs)"
             value={stageForm.transitTime}
+            maxLength={5}
             onChange={handleStageChange}
           />
           <input
@@ -382,6 +439,7 @@ const RoutePage = () => {
             placeholder="Sequence"
             value={stageForm.legSequence}
             onChange={handleStageChange}
+            maxLength={5}
           />
           <button type="button" onClick={addStage}>
             Add Stage
@@ -421,7 +479,7 @@ const RoutePage = () => {
 
         <div className="form-actions">
           <button type="submit">
-            {editingId ? 'Update Route' : 'Create Route'}
+            {editingId ? "Update Route" : "Create Route"}
           </button>
           {editingId && (
             <button type="button" onClick={handleCancelEdit}>
@@ -432,9 +490,9 @@ const RoutePage = () => {
       </form>
 
       <div className="list-header">
-        <h3>{showDeleted ? 'Recycle Bin' : 'Active Routes'}</h3>
-        <button onClick={() => setShowDeleted(v => !v)}>
-          {showDeleted ? 'Show Active' : 'Show Recycle Bin'}
+        <h3>{showDeleted ? "Recycle Bin" : "Active Routes"}</h3>
+        <button onClick={() => setShowDeleted((v) => !v)}>
+          {showDeleted ? "Show Active" : "Show Recycle Bin"}
         </button>
       </div>
 
@@ -453,7 +511,7 @@ const RoutePage = () => {
             </tr>
           </thead>
           <tbody>
-            {currentList.map(r => (
+            {currentList.map((r) => (
               <tr key={r.id}>
                 <td>{r.routeCode}</td>
                 <td>{r.description}</td>
@@ -468,9 +526,7 @@ const RoutePage = () => {
                     </>
                   )}
                   {showDeleted && (
-                    <button onClick={() => handleRestore(r.id)}>
-                      Restore
-                    </button>
+                    <button onClick={() => handleRestore(r.id)}>Restore</button>
                   )}
                 </td>
               </tr>

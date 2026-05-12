@@ -1,5 +1,5 @@
 // frontend/src/pages/Picking.js
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from "react";
 import {
   getPickings,
   getDeletedPickings,
@@ -8,14 +8,14 @@ import {
   softDeletePicking,
   restorePicking,
   getDeliveries,
-} from '../services/pickingService';
+} from "../services/pickingService";
 
 const initialForm = {
-  deliveryId: '',
-  warehouse: '',
-  plant: '',
-  pickingStatus: 'OPEN',
-  packingStatus: 'OPEN',
+  deliveryId: "",
+  warehouse: "",
+  plant: "",
+  pickingStatus: "OPEN",
+  packingStatus: "OPEN",
   postGoodsIssue: false,
 };
 
@@ -42,7 +42,7 @@ const Picking = () => {
       setDeletedPickings(delPickRes.data);
       setDeliveries(delRes.data);
     } catch (err) {
-      console.error('Error loading picking data', err);
+      console.error("Error loading picking data", err);
     } finally {
       setLoading(false);
     }
@@ -52,18 +52,52 @@ const Picking = () => {
     loadData();
   }, []);
 
-  const handleChange = e => {
+  const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value,
+      [name]: type === "checkbox" ? checked : value,
     }));
   };
 
-  const handleSubmit = async e => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+
+    const alphaNumRegex = /^[A-Za-z0-9\s-]+$/;
+
+    // 1. Required fields first
     if (!formData.deliveryId) {
-      alert('Select delivery');
+      alert("Select delivery");
+      return;
+    }
+
+    if (!formData.warehouse?.trim()) {
+      alert("Warehouse is required");
+      return;
+    }
+
+    if (!formData.plant?.trim()) {
+      alert("Plant is required");
+      return;
+    }
+
+    // 2. Format validation
+    if (!alphaNumRegex.test(formData.warehouse)) {
+      alert("Invalid Warehouse (no special characters)");
+      return;
+    }
+
+    if (!alphaNumRegex.test(formData.plant)) {
+      alert("Invalid Plant (no special characters)");
+      return;
+    }
+
+    // 3. Business rule
+    if (
+      formData.pickingStatus === "PICKED" &&
+      formData.packingStatus !== "PACKED"
+    ) {
+      alert("Cannot PICK before PACKING is completed");
       return;
     }
 
@@ -82,18 +116,19 @@ const Picking = () => {
       setEditingId(null);
       loadData();
     } catch (err) {
-      console.error('Error saving picking', err);
+      console.error("Error saving picking", err);
+      alert(err.response?.data?.message || "Error saving picking");
     }
   };
 
-  const handleEdit = p => {
+  const handleEdit = (p) => {
     setEditingId(p.id);
     setFormData({
-      deliveryId: p.deliveryId || '',
-      warehouse: p.warehouse || '',
-      plant: p.plant || '',
-      pickingStatus: p.pickingStatus || 'OPEN',
-      packingStatus: p.packingStatus || 'OPEN',
+      deliveryId: p.deliveryId || "",
+      warehouse: p.warehouse || "",
+      plant: p.plant || "",
+      pickingStatus: p.pickingStatus || "OPEN",
+      packingStatus: p.packingStatus || "OPEN",
       postGoodsIssue: !!p.postGoodsIssue,
     });
   };
@@ -103,30 +138,30 @@ const Picking = () => {
     setFormData(initialForm);
   };
 
-  const handleSoftDelete = async id => {
-    if (!window.confirm('Move this picking record to recycle bin?')) return;
+  const handleSoftDelete = async (id) => {
+    if (!window.confirm("Move this picking record to recycle bin?")) return;
     try {
       await softDeletePicking(id);
       loadData();
     } catch (err) {
-      console.error('Error deleting picking', err);
+      console.error("Error deleting picking", err);
     }
   };
 
-  const handleRestore = async id => {
+  const handleRestore = async (id) => {
     try {
       await restorePicking(id);
       loadData();
     } catch (err) {
-      console.error('Error restoring picking', err);
+      console.error("Error restoring picking", err);
     }
   };
 
   const currentList = showDeleted ? deletedPickings : pickings;
 
-  const displayDeliveryRef = id => {
-    const d = deliveries.find(x => x.id === id);
-    return d ? `DEL-${d.id} (${d.shippingPoint || ''})` : id;
+  const displayDeliveryRef = (id) => {
+    const d = deliveries.find((x) => x.id === id);
+    return d ? `DEL-${d.id} (${d.shippingPoint || ""})` : id;
   };
 
   return (
@@ -275,7 +310,7 @@ const Picking = () => {
             required
           >
             <option value="">Select Delivery</option>
-            {deliveries.map(d => (
+            {deliveries.map((d) => (
               <option key={d.id} value={d.id}>
                 DEL-{d.id}
               </option>
@@ -294,11 +329,7 @@ const Picking = () => {
         </div>
         <div className="form-row">
           <label>Plant</label>
-          <input
-            name="plant"
-            value={formData.plant}
-            onChange={handleChange}
-          />
+          <input name="plant" value={formData.plant} onChange={handleChange} />
         </div>
 
         <h4>Status</h4>
@@ -338,7 +369,7 @@ const Picking = () => {
 
         <div className="form-actions">
           <button type="submit">
-            {editingId ? 'Update Picking' : 'Create Picking'}
+            {editingId ? "Update Picking" : "Create Picking"}
           </button>
           {editingId && (
             <button type="button" onClick={handleCancelEdit}>
@@ -349,9 +380,9 @@ const Picking = () => {
       </form>
 
       <div className="list-header">
-        <h3>{showDeleted ? 'Recycle Bin' : 'Active Picking Records'}</h3>
-        <button onClick={() => setShowDeleted(v => !v)}>
-          {showDeleted ? 'Show Active' : 'Show Recycle Bin'}
+        <h3>{showDeleted ? "Recycle Bin" : "Active Picking Records"}</h3>
+        <button onClick={() => setShowDeleted((v) => !v)}>
+          {showDeleted ? "Show Active" : "Show Recycle Bin"}
         </button>
       </div>
 
@@ -373,14 +404,14 @@ const Picking = () => {
             </tr>
           </thead>
           <tbody>
-            {currentList.map(p => (
+            {currentList.map((p) => (
               <tr key={p.id}>
                 <td>{displayDeliveryRef(p.deliveryId)}</td>
                 <td>{p.warehouse}</td>
                 <td>{p.plant}</td>
                 <td>{p.pickingStatus}</td>
                 <td>{p.packingStatus}</td>
-                <td>{p.postGoodsIssue ? 'Yes' : 'No'}</td>
+                <td>{p.postGoodsIssue ? "Yes" : "No"}</td>
                 <td>
                   {!showDeleted && (
                     <>
@@ -391,9 +422,7 @@ const Picking = () => {
                     </>
                   )}
                   {showDeleted && (
-                    <button onClick={() => handleRestore(p.id)}>
-                      Restore
-                    </button>
+                    <button onClick={() => handleRestore(p.id)}>Restore</button>
                   )}
                 </td>
               </tr>

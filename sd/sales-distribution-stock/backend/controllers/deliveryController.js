@@ -1,12 +1,12 @@
 // backend/controllers/deliveryController.js
-const asyncHandler = require('../middleware/asyncHandler');
-const db = require('../models');
+const asyncHandler = require("../middleware/asyncHandler");
+const db = require("../models");
 
 // GET /api/deliveries
 exports.getDeliveries = asyncHandler(async (req, res) => {
   const list = await db.Delivery.findAll({
     where: { isDeleted: false },
-    include: [{ model: db.SalesOrder }]
+    include: [{ model: db.SalesOrder }],
   });
   res.json(list);
 });
@@ -15,7 +15,7 @@ exports.getDeliveries = asyncHandler(async (req, res) => {
 exports.getDeletedDeliveries = asyncHandler(async (req, res) => {
   const list = await db.Delivery.findAll({
     where: { isDeleted: true },
-    include: [{ model: db.SalesOrder }]
+    include: [{ model: db.SalesOrder }],
   });
   res.json(list);
 });
@@ -23,10 +23,10 @@ exports.getDeletedDeliveries = asyncHandler(async (req, res) => {
 // GET /api/deliveries/:id
 exports.getDeliveryById = asyncHandler(async (req, res) => {
   const delivery = await db.Delivery.findByPk(req.params.id, {
-    include: [{ model: db.SalesOrder }]
+    include: [{ model: db.SalesOrder }],
   });
   if (!delivery) {
-    res.status(404).json({ message: 'Delivery not found' });
+    res.status(404).json({ message: "Delivery not found" });
     return;
   }
   res.json(delivery);
@@ -34,18 +34,161 @@ exports.getDeliveryById = asyncHandler(async (req, res) => {
 
 // POST /api/deliveries
 exports.createDelivery = asyncHandler(async (req, res) => {
+  const {
+    shippingPoint,
+    salesOrderId,
+    warehouse,
+    plant,
+    deliveryGroup,
+    postGoodsIssueDate,
+  } = req.body;
+
+  const alphaNumRegex = /^[A-Za-z0-9\s-]+$/;
+
+  if (!shippingPoint || !alphaNumRegex.test(shippingPoint)) {
+    return res.status(400).json({
+      message: "Invalid Shipping Point",
+    });
+  }
+
+  if (!salesOrderId) {
+    return res.status(400).json({
+      message: "Sales Order is required",
+    });
+  }
+
+  if (!warehouse || !alphaNumRegex.test(warehouse)) {
+    return res.status(400).json({
+      message: "Invalid Warehouse",
+    });
+  }
+
+  if (!plant || !alphaNumRegex.test(plant)) {
+    return res.status(400).json({
+      message: "Invalid Plant",
+    });
+  }
+
+  if (deliveryGroup && !alphaNumRegex.test(deliveryGroup)) {
+    return res.status(400).json({
+      message: "Invalid Delivery Group",
+    });
+  }
+
+  if (postGoodsIssueDate) {
+    const date = new Date(postGoodsIssueDate);
+
+    if (isNaN(date.getTime())) {
+      return res.status(400).json({
+        message: "Invalid PGI Date",
+      });
+    }
+  }
+
+  // duplicate exact delivery check
+  const existing = await db.Delivery.findOne({
+    where: {
+      salesOrderId,
+      shippingPoint,
+      warehouse,
+      plant,
+      postGoodsIssueDate,
+      isDeleted: false,
+    },
+  });
+
+  if (existing) {
+    return res.status(400).json({
+      message: "Duplicate delivery already exists",
+    });
+  }
+
   const delivery = await db.Delivery.create(req.body);
+
   res.status(201).json(delivery);
 });
 
 // PUT /api/deliveries/:id
 exports.updateDelivery = asyncHandler(async (req, res) => {
   const delivery = await db.Delivery.findByPk(req.params.id);
+
   if (!delivery) {
-    res.status(404).json({ message: 'Delivery not found' });
-    return;
+    return res.status(404).json({
+      message: "Delivery not found",
+    });
   }
+
+  const {
+    shippingPoint,
+    salesOrderId,
+    warehouse,
+    plant,
+    deliveryGroup,
+    postGoodsIssueDate,
+  } = req.body;
+
+  const alphaNumRegex = /^[A-Za-z0-9\s-]+$/;
+
+  // Mandatory fields
+  if (!shippingPoint || !shippingPoint.trim()) {
+    return res.status(400).json({
+      message: "Shipping Point is required",
+    });
+  }
+
+  if (!salesOrderId) {
+    return res.status(400).json({
+      message: "Sales Order is required",
+    });
+  }
+
+  if (!plant || !plant.trim()) {
+    return res.status(400).json({
+      message: "Plant is required",
+    });
+  }
+
+  // Special character validation
+  if (warehouse && !alphaNumRegex.test(warehouse)) {
+    return res.status(400).json({
+      message: "Warehouse contains invalid characters",
+    });
+  }
+
+  // Date validation
+  if (postGoodsIssueDate) {
+    const date = new Date(postGoodsIssueDate);
+
+    if (isNaN(date.getTime())) {
+      return res.status(400).json({
+        message: "Invalid PGI Date",
+      });
+    }
+  }
+
+  // Duplicate check excluding current record
+  const existing = await db.Delivery.findOne({
+    where: {
+      salesOrderId,
+      shippingPoint,
+      warehouse,
+      plant,
+      postGoodsIssueDate,
+      isDeleted: false,
+      id: {
+        [db.Sequelize.Op.ne]: req.params.id,
+      },
+    },
+  });
+
+  if (existing) {
+    return res.status(400).json({
+      message: "Duplicate delivery already exists",
+    });
+  }
+
   await delivery.update(req.body);
+
   res.json(delivery);
 });
 
@@ -53,18 +196,18 @@ exports.updateDelivery = asyncHandler(async (req, res) => {
 exports.softDeleteDelivery = asyncHandler(async (req, res) => {
   const delivery = await db.Delivery.findByPk(req.params.id);
   if (!delivery) {
-    res.status(404).json({ message: 'Delivery not found' });
+    res.status(404).json({ message: "Delivery not found" });
     return;
   }
   await delivery.update({ isDeleted: true });
-  res.json({ message: 'Delivery moved to recycle bin' });
+  res.json({ message: "Delivery moved to recycle bin" });
 });
 
 // PUT /api/deliveries/:id/restore
 exports.restoreDelivery = asyncHandler(async (req, res) => {
   const delivery = await db.Delivery.findByPk(req.params.id);
   if (!delivery) {
-    res.status(404).json({ message: 'Delivery not found' });
+    res.status(404).json({ message: "Delivery not found" });
     return;
   }
   await delivery.update({ isDeleted: false });
