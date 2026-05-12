@@ -117,6 +117,7 @@ const Picking = () => {
       loadData();
     } catch (err) {
       console.error("Error saving picking", err);
+      alert(err.response?.data?.message || "Error saving picking");
     }
   };
 

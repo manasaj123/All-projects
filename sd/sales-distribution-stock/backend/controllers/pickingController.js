@@ -44,7 +44,7 @@ exports.createPicking = asyncHandler(async (req, res) => {
     return res.status(400).json({ message: "Delivery is required" });
   }
 
-  if (!warehouse) {
+  if (!warehouse?.trim()) {
     return res.status(400).json({ message: "Warehouse is required" });
   }
 
@@ -61,10 +61,22 @@ exports.createPicking = asyncHandler(async (req, res) => {
     return res.status(400).json({ message: "Invalid Plant" });
   }
 
+  if (warehouse && warehouse.length > 10) {
+    return res.status(400).json({
+      message: "Warehouse cannot exceed 10 characters",
+    });
+  }
+
+  if (plant && plant.length > 10) {
+    return res.status(400).json({
+      message: "Plant cannot exceed 10 characters",
+    });
+  }
+
   // 3. Business rule: Packing before Picking
   if (pickingStatus === "PICKED" && packingStatus !== "PACKED") {
     return res.status(400).json({
-      message: "Packing must be completed before Picking",
+      message: "Cannot PICKED before PACKED is completed",
     });
   }
 
@@ -108,7 +120,7 @@ exports.updatePicking = asyncHandler(async (req, res) => {
     return res.status(400).json({ message: "Warehouse is required" });
   }
 
-  if (!plant) {
+  if (!plant?.trim()) {
     return res.status(400).json({ message: "Plant is required" });
   }
 
@@ -119,6 +131,18 @@ exports.updatePicking = asyncHandler(async (req, res) => {
 
   if (!alphaNumRegex.test(plant)) {
     return res.status(400).json({ message: "Invalid Plant" });
+  }
+
+  if (warehouse && warehouse.length > 10) {
+    return res.status(400).json({
+      message: "Warehouse cannot exceed 10 characters",
+    });
+  }
+
+  if (plant && plant.length > 10) {
+    return res.status(400).json({
+      message: "Plant cannot exceed 10 characters",
+    });
   }
 
   // Business rule
