@@ -319,3 +319,5 @@ const AccDocument = () => {
 };
 
 export default AccDocument;
+
+ // This component allows users to create a new accounting document header and view recent documents. It includes form validation, error handling, and displays success messages. The recent documents are fetched from the backend and displayed in a table format.
