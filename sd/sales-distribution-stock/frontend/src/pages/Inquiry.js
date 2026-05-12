@@ -1,5 +1,5 @@
 // frontend/src/pages/Inquiry.js
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from "react";
 import {
   getInquiries,
   getDeletedInquiries,
@@ -9,21 +9,21 @@ import {
   restoreInquiry,
   getCustomers,
   getMaterials,
-} from '../services/inquiryService';
+} from "../services/inquiryService";
 
 const initialForm = {
-  inquiryType: 'IN',
-  salesOrg: '',
-  distributionChannel: '',
-  division: '',
-  soldToPartyId: '',
-  shipToPartyId: '',
+  inquiryType: "IN",
+  salesOrg: "",
+  distributionChannel: "",
+  division: "",
+  soldToPartyId: "",
+  shipToPartyId: "",
 };
 
 const initialItem = {
-  materialId: '',
-  quantity: '',
-  uom: '',
+  materialId: "",
+  quantity: "",
+  uom: "",
 };
 
 const Inquiry = () => {
@@ -53,7 +53,7 @@ const Inquiry = () => {
       setInquiries(activeRes.data);
       setDeletedInquiries(deletedRes.data);
     } catch (err) {
-      console.error('Error loading inquiry data', err);
+      console.error("Error loading inquiry data", err);
     } finally {
       setLoading(false);
     }
@@ -63,37 +63,112 @@ const Inquiry = () => {
     loadData();
   }, []);
 
-  const handleChange = e => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+  // const alphaNumericFields = [
+  //   "inquiryType",
+  //   "salesOrg",
+  //   "distributionChannel",
+  //   "division",
+  // ];
+
+  // const validateAlphaNumeric = (value) => {
+  //   return /^[a-zA-Z0-9\s\-\/().]*$/.test(value);
+  // };
+
+  const validateMax10AlphaNumeric = (value) => {
+    return /^[a-zA-Z0-9]{0,10}$/.test(value);
   };
 
-  const handleItemChange = e => {
+  // const validateUom = (value) => {
+  //   return ["KG", "LITERS", "PACKETS", "PIECES", "NOS"].includes(
+  //     value.toUpperCase(),
+  //   );
+  // };
+
+  const handleChange = (e) => {
     const { name, value } = e.target;
-    setItemForm(prev => ({ ...prev, [name]: value }));
+
+    // inquiry type
+    if (name === "inquiryType" && !/^[a-zA-Z0-9]{0,4}$/.test(value)) {
+      return;
+    }
+
+    // sales org / dist channel / division
+    if (
+      ["salesOrg", "distributionChannel", "division"].includes(name) &&
+      !validateMax10AlphaNumeric(value)
+    ) {
+      return;
+    }
+
+    const updatedValue = [
+      "inquiryType",
+      "salesOrg",
+      "distributionChannel",
+      "division",
+    ].includes(name)
+      ? value.toUpperCase()
+      : value;
+
+    setFormData((prev) => ({
+      ...prev,
+      [name]: updatedValue,
+    }));
   };
+
+  const handleItemChange = (e) => {
+    const { name, value } = e.target;
+
+    // quantity validation
+    if (name === "quantity") {
+      if (value && (!/^\d+(\.\d{0,3})?$/.test(value) || Number(value) <= 0)) {
+        return;
+      }
+    }
+
+    setItemForm((prev) => ({
+      ...prev,
+      [name]: name === "uom" ? value.toUpperCase() : value,
+    }));
+  };
+
+  // const handleChange = (e) => {
+  //   const { name, value } = e.target;
+  //   setFormData((prev) => ({ ...prev, [name]: value }));
+  // };
+
+  // const handleItemChange = (e) => {
+  //   const { name, value } = e.target;
+  //   setItemForm((prev) => ({ ...prev, [name]: value }));
+  // };
 
   const addItem = () => {
     if (!itemForm.materialId || !itemForm.quantity || !itemForm.uom) {
-      alert('Fill material, quantity and UoM');
+      alert("Fill material, quantity and UoM");
       return;
     }
-    setItems(prev => [...prev, { ...itemForm }]);
+    setItems((prev) => [...prev, { ...itemForm }]);
     setItemForm(initialItem);
   };
 
-  const removeItem = index => {
-    setItems(prev => prev.filter((_, i) => i !== index));
+  const removeItem = (index) => {
+    setItems((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const handleSubmit = async e => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+
     if (!formData.soldToPartyId || !formData.shipToPartyId) {
-      alert('Select Sold-To and Ship-To parties');
+      alert("Select Sold-To and Ship-To parties");
       return;
     }
+
+    if (formData.soldToPartyId === formData.shipToPartyId) {
+      alert("Sold-To Party and Ship-To Party cannot be the same");
+      return;
+    }
+
     if (items.length === 0) {
-      alert('Add at least one item');
+      alert("Add at least one item");
       return;
     }
     const payload = {
@@ -112,19 +187,19 @@ const Inquiry = () => {
       setEditingId(null);
       loadData();
     } catch (err) {
-      console.error('Error saving inquiry', err);
+      console.error("Error saving inquiry", err);
     }
   };
 
-  const handleEdit = inq => {
+  const handleEdit = (inq) => {
     setEditingId(inq.id);
     setFormData({
-      inquiryType: inq.inquiryType || 'IN',
-      salesOrg: inq.salesOrg || '',
-      distributionChannel: inq.distributionChannel || '',
-      division: inq.division || '',
-      soldToPartyId: inq.soldToPartyId || '',
-      shipToPartyId: inq.shipToPartyId || '',
+      inquiryType: inq.inquiryType || "IN",
+      salesOrg: inq.salesOrg || "",
+      distributionChannel: inq.distributionChannel || "",
+      division: inq.division || "",
+      soldToPartyId: inq.soldToPartyId || "",
+      shipToPartyId: inq.shipToPartyId || "",
     });
     let parsedItems = [];
     try {
@@ -142,45 +217,45 @@ const Inquiry = () => {
     setItemForm(initialItem);
   };
 
-  const handleSoftDelete = async id => {
-    if (!window.confirm('Move this inquiry to recycle bin?')) return;
+  const handleSoftDelete = async (id) => {
+    if (!window.confirm("Move this inquiry to recycle bin?")) return;
     try {
       await softDeleteInquiry(id);
       loadData();
     } catch (err) {
-      console.error('Error deleting inquiry', err);
+      console.error("Error deleting inquiry", err);
     }
   };
 
-  const handleRestore = async id => {
+  const handleRestore = async (id) => {
     try {
       await restoreInquiry(id);
       loadData();
     } catch (err) {
-      console.error('Error restoring inquiry', err);
+      console.error("Error restoring inquiry", err);
     }
   };
 
   const currentList = showDeleted ? deletedInquiries : inquiries;
 
-  const displayCustomerName = id => {
-    const c = customers.find(x => x.id === id);
+  const displayCustomerName = (id) => {
+    const c = customers.find((x) => x.id === id);
     return c ? `${c.customerCode} - ${c.name}` : id;
   };
 
-  const displayItemsSummary = inq => {
+  const displayItemsSummary = (inq) => {
     try {
       const arr = inq.itemsJson ? JSON.parse(inq.itemsJson) : [];
-      if (!Array.isArray(arr) || arr.length === 0) return '';
+      if (!Array.isArray(arr) || arr.length === 0) return "";
       return arr
-        .map(it => {
-          const m = materials.find(mm => mm.id === Number(it.materialId));
+        .map((it) => {
+          const m = materials.find((mm) => mm.id === Number(it.materialId));
           const matLabel = m ? m.materialCode : it.materialId;
           return `${matLabel} (${it.quantity} ${it.uom})`;
         })
-        .join(', ');
+        .join(", ");
     } catch {
-      return '';
+      return "";
     }
   };
 
@@ -325,8 +400,6 @@ const Inquiry = () => {
         }
       `}</style>
 
-      
-
       <form className="form-card" onSubmit={handleSubmit}>
         {/* Header */}
         <h4>Header</h4>
@@ -337,6 +410,8 @@ const Inquiry = () => {
               name="inquiryType"
               value={formData.inquiryType}
               onChange={handleChange}
+              required
+              maxLength={4}
             />
           </div>
           <div></div>
@@ -353,6 +428,7 @@ const Inquiry = () => {
               value={formData.salesOrg}
               onChange={handleChange}
               required
+              maxLength={10}
             />
           </div>
           <div className="form-label">Distribution Channel</div>
@@ -362,6 +438,7 @@ const Inquiry = () => {
               value={formData.distributionChannel}
               onChange={handleChange}
               required
+              maxLength={10}
             />
           </div>
           <div className="form-label">Division</div>
@@ -371,6 +448,7 @@ const Inquiry = () => {
               value={formData.division}
               onChange={handleChange}
               required
+              maxLength={10}
             />
           </div>
           <div></div>
@@ -389,7 +467,7 @@ const Inquiry = () => {
               required
             >
               <option value="">Select Sold-To Party</option>
-              {customers.map(c => (
+              {customers.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.customerCode} - {c.name}
                 </option>
@@ -406,7 +484,7 @@ const Inquiry = () => {
               required
             >
               <option value="">Select Ship-To Party</option>
-              {customers.map(c => (
+              {customers.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.customerCode} - {c.name}
                 </option>
@@ -424,7 +502,7 @@ const Inquiry = () => {
             onChange={handleItemChange}
           >
             <option value="">Material</option>
-            {materials.map(m => (
+            {materials.map((m) => (
               <option key={m.id} value={m.id}>
                 {m.materialCode} - {m.description}
               </option>
@@ -433,22 +511,25 @@ const Inquiry = () => {
           <input
             name="quantity"
             type="number"
-            min="1"
+            min="0.001"
+            step="0.001"
             placeholder="Qty"
             value={itemForm.quantity}
             onChange={handleItemChange}
           />
-          <input
+          <select
             name="uom"
-            placeholder="UoM"
             value={itemForm.uom}
             onChange={handleItemChange}
-          />
-          <button
-            type="button"
-            className="btn btn-secondary"
-            onClick={addItem}
           >
+            <option value="">Select UoM</option>
+            <option value="KG">KG</option>
+            <option value="LITERS">LITERS</option>
+            <option value="PACKETS">PACKETS</option>
+            <option value="PIECES">PIECES</option>
+            <option value="NOS">NOS</option>
+          </select>
+          <button type="button" className="btn btn-secondary" onClick={addItem}>
             Add Item
           </button>
         </div>
@@ -465,7 +546,9 @@ const Inquiry = () => {
             </thead>
             <tbody>
               {items.map((it, idx) => {
-                const m = materials.find(mm => mm.id === Number(it.materialId));
+                const m = materials.find(
+                  (mm) => mm.id === Number(it.materialId),
+                );
                 return (
                   <tr key={idx}>
                     <td>
@@ -493,7 +576,7 @@ const Inquiry = () => {
 
         <div className="form-actions">
           <button type="submit" className="btn btn-primary">
-            {editingId ? 'Update Inquiry' : 'Create Inquiry'}
+            {editingId ? "Update Inquiry" : "Create Inquiry"}
           </button>
           {editingId && (
             <button
@@ -508,12 +591,12 @@ const Inquiry = () => {
       </form>
 
       <div className="list-header">
-        <h3>{showDeleted ? 'Recycle Bin' : 'Active Inquiries'}</h3>
+        <h3>{showDeleted ? "Recycle Bin" : "Active Inquiries"}</h3>
         <button
           className="btn btn-secondary"
-          onClick={() => setShowDeleted(v => !v)}
+          onClick={() => setShowDeleted((v) => !v)}
         >
-          {showDeleted ? 'Show Active' : 'Show Recycle Bin'}
+          {showDeleted ? "Show Active" : "Show Recycle Bin"}
         </button>
       </div>
 
@@ -536,7 +619,7 @@ const Inquiry = () => {
             </tr>
           </thead>
           <tbody>
-            {currentList.map(inq => (
+            {currentList.map((inq) => (
               <tr key={inq.id}>
                 <td>{inq.inquiryType}</td>
                 <td>{inq.salesOrg}</td>

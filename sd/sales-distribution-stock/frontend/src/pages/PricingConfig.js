@@ -1,5 +1,5 @@
 // frontend/src/pages/PricingConfig.js
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from "react";
 import {
   getPricingConfigs,
   getDeletedPricingConfigs,
@@ -7,11 +7,11 @@ import {
   updatePricingConfig,
   softDeletePricingConfig,
   restorePricingConfig,
-} from '../services/pricingConfigService';
+} from "../services/pricingConfigService";
 
 const initialForm = {
-  pricingProcedure: '',
-  description: '',
+  pricingProcedure: "",
+  description: "",
 };
 
 const PricingConfig = () => {
@@ -33,7 +33,7 @@ const PricingConfig = () => {
       setConfigs(activeRes.data);
       setDeletedConfigs(deletedRes.data);
     } catch (err) {
-      console.error('Error loading pricing configs', err);
+      console.error("Error loading pricing configs", err);
     } finally {
       setLoading(false);
     }
@@ -43,24 +43,60 @@ const PricingConfig = () => {
     loadData();
   }, []);
 
-  const handleChange = e => {
-    const { name, value } = e.target;
-    // auto-uppercase for code
-    if (name === 'pricingProcedure') {
-      setFormData(prev => ({ ...prev, [name]: value.toUpperCase() }));
-    } else {
-      setFormData(prev => ({ ...prev, [name]: value }));
-    }
+  const alphaNumericFields = ["pricingProcedure", "description"];
+
+  const validateAlphaNumeric = (value) => {
+    return /^[a-zA-Z0-9\s\-\/().]*$/.test(value);
   };
 
-  const handleSubmit = async e => {
-    e.preventDefault();
-    if (!formData.pricingProcedure) {
-      alert('Enter pricing procedure');
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+
+    // no special characters
+    if (alphaNumericFields.includes(name) && !validateAlphaNumeric(value)) {
       return;
     }
 
-    const payload = { ...formData };
+    // auto uppercase for pricing procedure
+    const updatedValue =
+      name === "pricingProcedure" ? value.toUpperCase() : value;
+
+    setFormData((prev) => ({
+      ...prev,
+      [name]: updatedValue,
+    }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    const requiredFields = {
+      pricingProcedure: "Pricing Procedure",
+      description: "Description",
+    };
+
+    for (const [field, label] of Object.entries(requiredFields)) {
+      if (!formData[field]?.trim()) {
+        alert(`${label} is required`);
+        return;
+      }
+    }
+
+    // length validations based on DB
+    if (formData.pricingProcedure.length > 10) {
+      alert("Pricing Procedure must be 10 characters or less");
+      return;
+    }
+
+    if (formData.description.length > 100) {
+      alert("Description must be 100 characters or less");
+      return;
+    }
+
+    const payload = {
+      pricingProcedure: formData.pricingProcedure.trim().toUpperCase(),
+      description: formData.description.trim(),
+    };
 
     try {
       if (editingId) {
@@ -68,19 +104,20 @@ const PricingConfig = () => {
       } else {
         await createPricingConfig(payload);
       }
+
       setFormData(initialForm);
       setEditingId(null);
       loadData();
     } catch (err) {
-      console.error('Error saving pricing config', err);
+      console.error("Error saving pricing config", err);
     }
   };
 
-  const handleEdit = p => {
+  const handleEdit = (p) => {
     setEditingId(p.id);
     setFormData({
-      pricingProcedure: p.pricingProcedure || '',
-      description: p.description || '',
+      pricingProcedure: p.pricingProcedure || "",
+      description: p.description || "",
     });
   };
 
@@ -89,22 +126,22 @@ const PricingConfig = () => {
     setFormData(initialForm);
   };
 
-  const handleSoftDelete = async id => {
-    if (!window.confirm('Move this pricing config to recycle bin?')) return;
+  const handleSoftDelete = async (id) => {
+    if (!window.confirm("Move this pricing config to recycle bin?")) return;
     try {
       await softDeletePricingConfig(id);
       loadData();
     } catch (err) {
-      console.error('Error deleting pricing config', err);
+      console.error("Error deleting pricing config", err);
     }
   };
 
-  const handleRestore = async id => {
+  const handleRestore = async (id) => {
     try {
       await restorePricingConfig(id);
       loadData();
     } catch (err) {
-      console.error('Error restoring pricing config', err);
+      console.error("Error restoring pricing config", err);
     }
   };
 
@@ -243,8 +280,7 @@ const PricingConfig = () => {
             onChange={handleChange}
             required
             disabled={!!editingId}
-            maxLength={6}
-            style={{ textTransform: 'uppercase', width: '200px' }}
+            maxLength={10}
           />
         </div>
         <div className="form-row">
@@ -253,13 +289,17 @@ const PricingConfig = () => {
             name="description"
             value={formData.description}
             onChange={handleChange}
-            style={{ width: '350px' }}
+            required
+            maxLength={100}
+            style={{ width: "350px" }}
           />
         </div>
 
         <div className="form-actions">
           <button type="submit">
-            {editingId ? 'Update Pricing Procedure' : 'Create Pricing Procedure'}
+            {editingId
+              ? "Update Pricing Procedure"
+              : "Create Pricing Procedure"}
           </button>
           {editingId && (
             <button type="button" onClick={handleCancelEdit}>
@@ -270,9 +310,9 @@ const PricingConfig = () => {
       </form>
 
       <div className="list-header">
-        <h3>{showDeleted ? 'Recycle Bin' : 'Active Pricing Procedures'}</h3>
-        <button onClick={() => setShowDeleted(v => !v)}>
-          {showDeleted ? 'Show Active' : 'Show Recycle Bin'}
+        <h3>{showDeleted ? "Recycle Bin" : "Active Pricing Procedures"}</h3>
+        <button onClick={() => setShowDeleted((v) => !v)}>
+          {showDeleted ? "Show Active" : "Show Recycle Bin"}
         </button>
       </div>
 
@@ -290,7 +330,7 @@ const PricingConfig = () => {
             </tr>
           </thead>
           <tbody>
-            {currentList.map(p => (
+            {currentList.map((p) => (
               <tr key={p.id}>
                 <td>{p.pricingProcedure}</td>
                 <td>{p.description}</td>
@@ -304,9 +344,7 @@ const PricingConfig = () => {
                     </>
                   )}
                   {showDeleted && (
-                    <button onClick={() => handleRestore(p.id)}>
-                      Restore
-                    </button>
+                    <button onClick={() => handleRestore(p.id)}>Restore</button>
                   )}
                 </td>
               </tr>
