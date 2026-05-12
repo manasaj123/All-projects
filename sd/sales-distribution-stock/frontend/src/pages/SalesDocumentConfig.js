@@ -59,15 +59,40 @@ const SalesDocumentConfig = () => {
     loadData();
   }, []);
 
+  const alphaNumericFields = [
+    "documentType",
+    "creditGroup",
+    "transactionGroup",
+    "deliveryType",
+    "screenSequence",
+  ];
+
+  const validateAlphaNumeric = (value) => {
+    return /^[a-zA-Z0-9\s\-\/().]*$/.test(value);
+  };
+
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-    const val =
-      type === "checkbox"
-        ? checked
-        : name === "probability"
-          ? Number(value)
-          : value;
-    setFormData((prev) => ({ ...prev, [name]: val }));
+
+    if (type === "checkbox") {
+      setFormData((prev) => ({
+        ...prev,
+        [name]: checked,
+      }));
+      return;
+    }
+
+    // Allow only letters, numbers and spaces
+    if (alphaNumericFields.includes(name) && !validateAlphaNumeric(value)) {
+      return;
+    }
+
+    const val = name === "probability" ? Number(value) : value;
+
+    setFormData((prev) => ({
+      ...prev,
+      [name]: val,
+    }));
   };
 
   const handleSubmit = async (e) => {

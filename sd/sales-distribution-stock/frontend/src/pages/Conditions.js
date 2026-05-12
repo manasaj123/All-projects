@@ -1,5 +1,5 @@
 // frontend/src/pages/Conditions.js
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from "react";
 import {
   getConditions,
   getDeletedConditions,
@@ -9,18 +9,18 @@ import {
   restoreCondition,
   getCustomers,
   getMaterials,
-} from '../services/conditionService';
+} from "../services/conditionService";
 
 const initialForm = {
-  conditionType: '',
-  customerId: '',
-  materialId: '',
-  salesOrg: '',
-  distributionChannel: '',
-  price: '',
-  currency: 'INR',
-  validFrom: '',
-  validTo: '',
+  conditionType: "",
+  customerId: "",
+  materialId: "",
+  salesOrg: "",
+  distributionChannel: "",
+  price: "",
+  currency: "INR",
+  validFrom: "",
+  validTo: "",
 };
 
 const Conditions = () => {
@@ -49,7 +49,7 @@ const Conditions = () => {
       setCustomers(custRes.data);
       setMaterials(matRes.data);
     } catch (err) {
-      console.error('Error loading conditions', err);
+      console.error("Error loading conditions", err);
     } finally {
       setLoading(false);
     }
@@ -59,21 +59,105 @@ const Conditions = () => {
     loadData();
   }, []);
 
-  const handleChange = e => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+  const alphaNumericFields = ["conditionType", "salesOrg"];
+
+  const validateAlphaNumeric = (value) => {
+    return /^[a-zA-Z0-9\s\-\/().]*$/.test(value);
   };
 
-  const handleSubmit = async e => {
+  const validateCurrency = (value) => {
+    return /^[A-Z]{0,3}$/.test(value);
+  };
+
+  const validateDistributionChannel = (value) => {
+    return /^[a-zA-Z0-9]{0,10}$/.test(value);
+  };
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+
+    // normal text validation
+    if (alphaNumericFields.includes(name) && !validateAlphaNumeric(value)) {
+      return;
+    }
+
+    // currency validation
+    if (name === "currency" && !validateCurrency(value.toUpperCase())) {
+      return;
+    }
+
+    // distribution channel validation
+    if (name === "distributionChannel" && !validateDistributionChannel(value)) {
+      return;
+    }
+
+    // auto uppercase
+    const updatedValue = ["currency", "conditionType", "salesOrg"].includes(
+      name,
+    )
+      ? value.toUpperCase()
+      : value;
+
+    setFormData((prev) => ({
+      ...prev,
+      [name]: updatedValue,
+    }));
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.conditionType) {
-      alert('Enter condition type (e.g. PR00)');
+
+    const requiredFields = {
+      conditionType: "Condition Type",
+      customerId: "Customer",
+      salesOrg: "Sales Organization",
+      distributionChannel: "Distribution Channel",
+      price: "Price",
+      currency: "Currency",
+      validFrom: "Valid From",
+      validTo: "Valid To",
+    };
+
+    for (const [field, label] of Object.entries(requiredFields)) {
+      if (!formData[field]?.toString().trim()) {
+        alert(`${label} is required`);
+        return;
+      }
+    }
+
+    if (
+      formData.validFrom &&
+      formData.validTo &&
+      new Date(formData.validTo) < new Date(formData.validFrom)
+    ) {
+      alert("Valid To date cannot be earlier than Valid From date");
       return;
     }
-    if (!formData.price) {
-      alert('Enter price');
+
+    if (!/^[A-Z]{3}$/.test(formData.currency)) {
+      alert("Currency must be a 3-letter code like INR or USD");
       return;
     }
+
+    if (!/^[0-9]{2}$/.test(formData.distributionChannel)) {
+      alert("Distribution Channel must be 2 digits");
+      return;
+    }
+
+    if (isNaN(formData.price) || Number(formData.price) <= 0) {
+      alert("Price must be a valid positive number");
+      return;
+    }
+
+    // old validations
+    // if (!formData.conditionType) {
+    //   alert("Enter condition type (e.g. PR00)");
+    //   return;
+    // }
+    // if (!formData.price) {
+    //   alert("Enter price");
+    //   return;
+    // }
     const payload = {
       ...formData,
       customerId: formData.customerId ? Number(formData.customerId) : null,
@@ -90,22 +174,22 @@ const Conditions = () => {
       setEditingId(null);
       loadData();
     } catch (err) {
-      console.error('Error saving condition', err);
+      console.error("Error saving condition", err);
     }
   };
 
-  const handleEdit = c => {
+  const handleEdit = (c) => {
     setEditingId(c.id);
     setFormData({
-      conditionType: c.conditionType || '',
-      customerId: c.customerId || '',
-      materialId: c.materialId || '',
-      salesOrg: c.salesOrg || '',
-      distributionChannel: c.distributionChannel || '',
-      price: c.price || '',
-      currency: c.currency || 'INR',
-      validFrom: c.validFrom || '',
-      validTo: c.validTo || '',
+      conditionType: c.conditionType || "",
+      customerId: c.customerId || "",
+      materialId: c.materialId || "",
+      salesOrg: c.salesOrg || "",
+      distributionChannel: c.distributionChannel || "",
+      price: c.price || "",
+      currency: c.currency || "INR",
+      validFrom: c.validFrom || "",
+      validTo: c.validTo || "",
     });
   };
 
@@ -114,36 +198,36 @@ const Conditions = () => {
     setFormData(initialForm);
   };
 
-  const handleSoftDelete = async id => {
-    if (!window.confirm('Move this condition record to recycle bin?')) return;
+  const handleSoftDelete = async (id) => {
+    if (!window.confirm("Move this condition record to recycle bin?")) return;
     try {
       await softDeleteCondition(id);
       loadData();
     } catch (err) {
-      console.error('Error deleting condition', err);
+      console.error("Error deleting condition", err);
     }
   };
 
-  const handleRestore = async id => {
+  const handleRestore = async (id) => {
     try {
       await restoreCondition(id);
       loadData();
     } catch (err) {
-      console.error('Error restoring condition', err);
+      console.error("Error restoring condition", err);
     }
   };
 
   const currentList = showDeleted ? deletedConditions : conditions;
 
-  const displayCustomer = id => {
-    if (!id) return '';
-    const c = customers.find(x => x.id === id);
+  const displayCustomer = (id) => {
+    if (!id) return "";
+    const c = customers.find((x) => x.id === id);
     return c ? `${c.customerCode} - ${c.name}` : id;
   };
 
-  const displayMaterial = id => {
-    if (!id) return '';
-    const m = materials.find(x => x.id === id);
+  const displayMaterial = (id) => {
+    if (!id) return "";
+    const m = materials.find((x) => x.id === id);
     return m ? `${m.materialCode} - ${m.description}` : id;
   };
 
@@ -296,6 +380,7 @@ const Conditions = () => {
               value={formData.conditionType}
               onChange={handleChange}
               placeholder="PR00, K004, etc."
+              maxLength={4}
               required
             />
           </div>
@@ -306,9 +391,10 @@ const Conditions = () => {
               name="customerId"
               value={formData.customerId}
               onChange={handleChange}
+              required
             >
               <option value="">None</option>
-              {customers.map(c => (
+              {customers.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.customerCode} - {c.name}
                 </option>
@@ -324,7 +410,7 @@ const Conditions = () => {
               onChange={handleChange}
             >
               <option value="">None</option>
-              {materials.map(m => (
+              {materials.map((m) => (
                 <option key={m.id} value={m.id}>
                   {m.materialCode} - {m.description}
                 </option>
@@ -338,6 +424,8 @@ const Conditions = () => {
               name="salesOrg"
               value={formData.salesOrg}
               onChange={handleChange}
+              maxLength={10}
+              required
             />
           </div>
 
@@ -347,6 +435,8 @@ const Conditions = () => {
               name="distributionChannel"
               value={formData.distributionChannel}
               onChange={handleChange}
+              maxLength={10}
+              required
             />
           </div>
 
@@ -369,6 +459,8 @@ const Conditions = () => {
               name="currency"
               value={formData.currency}
               onChange={handleChange}
+              maxLength={3}
+              required
             />
           </div>
 
@@ -379,6 +471,7 @@ const Conditions = () => {
               name="validFrom"
               value={formData.validFrom}
               onChange={handleChange}
+              required
             />
           </div>
 
@@ -389,13 +482,14 @@ const Conditions = () => {
               name="validTo"
               value={formData.validTo}
               onChange={handleChange}
+              required
             />
           </div>
         </div>
 
         <div className="form-actions">
           <button type="submit">
-            {editingId ? 'Update Condition' : 'Create Condition'}
+            {editingId ? "Update Condition" : "Create Condition"}
           </button>
           {editingId && (
             <button type="button" onClick={handleCancelEdit}>
@@ -406,9 +500,9 @@ const Conditions = () => {
       </form>
 
       <div className="list-header">
-        <h3>{showDeleted ? 'Recycle Bin' : 'Active Conditions'}</h3>
-        <button onClick={() => setShowDeleted(v => !v)}>
-          {showDeleted ? 'Show Active' : 'Show Recycle Bin'}
+        <h3>{showDeleted ? "Recycle Bin" : "Active Conditions"}</h3>
+        <button onClick={() => setShowDeleted((v) => !v)}>
+          {showDeleted ? "Show Active" : "Show Recycle Bin"}
         </button>
       </div>
 
@@ -433,7 +527,7 @@ const Conditions = () => {
             </tr>
           </thead>
           <tbody>
-            {currentList.map(c => (
+            {currentList.map((c) => (
               <tr key={c.id}>
                 <td>{c.conditionType}</td>
                 <td>{displayCustomer(c.customerId)}</td>
@@ -454,9 +548,7 @@ const Conditions = () => {
                     </>
                   )}
                   {showDeleted && (
-                    <button onClick={() => handleRestore(c.id)}>
-                      Restore
-                    </button>
+                    <button onClick={() => handleRestore(c.id)}>Restore</button>
                   )}
                 </td>
               </tr>

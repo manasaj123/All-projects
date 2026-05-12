@@ -1,5 +1,5 @@
 // frontend/src/pages/ItemCategoriesConfig.js
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from "react";
 import {
   getItemCategories,
   getDeletedItemCategories,
@@ -7,15 +7,15 @@ import {
   updateItemCategory,
   softDeleteItemCategory,
   restoreItemCategory,
-} from '../services/itemCategoryService';
+} from "../services/itemCategoryService";
 
 const initialForm = {
-  salesDocumentType: '',
-  itemCategoryGroup: '',
-  itemUsage: '',
-  itemCategoryHighLevelItem: '',
-  defaultItemCategory: '',
-  manualItemCategory: '',
+  salesDocumentType: "",
+  itemCategoryGroup: "",
+  itemUsage: "",
+  itemCategoryHighLevelItem: "",
+  defaultItemCategory: "",
+  manualItemCategory: "",
 };
 
 const ItemCategoriesConfig = () => {
@@ -37,7 +37,7 @@ const ItemCategoriesConfig = () => {
       setItems(activeRes.data);
       setDeletedItems(deletedRes.data);
     } catch (err) {
-      console.error('Error loading item categories configs', err);
+      console.error("Error loading item categories configs", err);
     } finally {
       setLoading(false);
     }
@@ -47,24 +47,50 @@ const ItemCategoriesConfig = () => {
     loadData();
   }, []);
 
-  const handleChange = e => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+  const alphaNumericFields = [
+    "salesDocumentType",
+    // "itemCategoryGroup",
+    "itemUsage",
+    "itemCategoryHighLevelItem",
+    "defaultItemCategory",
+    "manualItemCategory",
+  ];
+
+  // no special characters except - / ( ) .
+  const validateAlphaNumeric = (value) => {
+    return /^[a-zA-Z0-9\s\-\/().]*$/.test(value);
   };
 
-  const handleSubmit = async e => {
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+
+    // no special characters
+    if (alphaNumericFields.includes(name) && !validateAlphaNumeric(value)) {
+      return;
+    }
+
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.salesDocumentType) {
-      alert('Enter sales document type');
-      return;
-    }
-    if (!formData.itemCategoryGroup) {
-      alert('Enter item category group');
-      return;
-    }
-    if (!formData.defaultItemCategory) {
-      alert('Enter default item category');
-      return;
+    const requiredFields = {
+      salesDocumentType: "Sales Document Type",
+      itemCategoryGroup: "Item Category Group",
+      itemUsage: "Item Usage",
+      itemCategoryHighLevelItem: "High-Level Item Category",
+      defaultItemCategory: "Default Item Category",
+      manualItemCategory: "Manual Item Category",
+    };
+
+    for (const [field, label] of Object.entries(requiredFields)) {
+      if (!formData[field]?.trim()) {
+        alert(`${label} is required`);
+        return;
+      }
     }
 
     const payload = { ...formData };
@@ -79,19 +105,19 @@ const ItemCategoriesConfig = () => {
       setEditingId(null);
       loadData();
     } catch (err) {
-      console.error('Error saving item categories config', err);
+      console.error("Error saving item categories config", err);
     }
   };
 
-  const handleEdit = row => {
+  const handleEdit = (row) => {
     setEditingId(row.id);
     setFormData({
-      salesDocumentType: row.salesDocumentType || '',
-      itemCategoryGroup: row.itemCategoryGroup || '',
-      itemUsage: row.itemUsage || '',
-      itemCategoryHighLevelItem: row.itemCategoryHighLevelItem || '',
-      defaultItemCategory: row.defaultItemCategory || '',
-      manualItemCategory: row.manualItemCategory || '',
+      salesDocumentType: row.salesDocumentType || "",
+      itemCategoryGroup: row.itemCategoryGroup || "",
+      itemUsage: row.itemUsage || "",
+      itemCategoryHighLevelItem: row.itemCategoryHighLevelItem || "",
+      defaultItemCategory: row.defaultItemCategory || "",
+      manualItemCategory: row.manualItemCategory || "",
     });
   };
 
@@ -100,22 +126,22 @@ const ItemCategoriesConfig = () => {
     setFormData(initialForm);
   };
 
-  const handleSoftDelete = async id => {
-    if (!window.confirm('Move this configuration to recycle bin?')) return;
+  const handleSoftDelete = async (id) => {
+    if (!window.confirm("Move this configuration to recycle bin?")) return;
     try {
       await softDeleteItemCategory(id);
       loadData();
     } catch (err) {
-      console.error('Error deleting item categories config', err);
+      console.error("Error deleting item categories config", err);
     }
   };
 
-  const handleRestore = async id => {
+  const handleRestore = async (id) => {
     try {
       await restoreItemCategory(id);
       loadData();
     } catch (err) {
-      console.error('Error restoring item categories config', err);
+      console.error("Error restoring item categories config", err);
     }
   };
 
@@ -160,7 +186,8 @@ const ItemCategoriesConfig = () => {
           margin-bottom:4px;
         }
 
-        .form-field input{
+        .form-field input,
+        .form-field select{
           height:34px;
           padding:4px 8px;
           border:1px solid #cbd5e1;
@@ -260,18 +287,23 @@ const ItemCategoriesConfig = () => {
               value={formData.salesDocumentType}
               onChange={handleChange}
               placeholder="sales-doc-type (e.g. OR)"
+              maxLength={10}
               required
             />
           </div>
           <div className="form-field">
             <label>Item Category Group</label>
-            <input
+            <select
               name="itemCategoryGroup"
               value={formData.itemCategoryGroup}
               onChange={handleChange}
-              placeholder="item cat group"
               required
-            />
+            >
+              <option value="">Select Group</option>
+              <option value="HIGH">HIGH</option>
+              <option value="MID">MID</option>
+              <option value="LOW">LOW</option>
+            </select>
           </div>
           <div className="form-field">
             <label>Item Usage</label>
@@ -280,6 +312,8 @@ const ItemCategoriesConfig = () => {
               value={formData.itemUsage}
               onChange={handleChange}
               placeholder="item usage"
+              maxLength={10}
+              required
             />
           </div>
         </div>
@@ -292,6 +326,8 @@ const ItemCategoriesConfig = () => {
               value={formData.itemCategoryHighLevelItem}
               onChange={handleChange}
               placeholder="itemcat-hgl-vitm"
+              maxLength={10}
+              required
             />
           </div>
           <div className="form-field">
@@ -301,6 +337,7 @@ const ItemCategoriesConfig = () => {
               value={formData.defaultItemCategory}
               onChange={handleChange}
               placeholder="default itemcategory"
+              maxLength={4}
               required
             />
           </div>
@@ -311,13 +348,15 @@ const ItemCategoriesConfig = () => {
               value={formData.manualItemCategory}
               onChange={handleChange}
               placeholder="manualitemcat"
+              maxLength={4}
+              required
             />
           </div>
         </div>
 
         <div className="form-actions">
           <button type="submit">
-            {editingId ? 'Update Config' : 'Create Config'}
+            {editingId ? "Update Config" : "Create Config"}
           </button>
           {editingId && (
             <button type="button" onClick={handleCancelEdit}>
@@ -328,9 +367,9 @@ const ItemCategoriesConfig = () => {
       </form>
 
       <div className="list-header">
-        <h3>{showDeleted ? 'Recycle Bin' : 'Active Configurations'}</h3>
-        <button onClick={() => setShowDeleted(v => !v)}>
-          {showDeleted ? 'Show Active' : 'Show Recycle Bin'}
+        <h3>{showDeleted ? "Recycle Bin" : "Active Configurations"}</h3>
+        <button onClick={() => setShowDeleted((v) => !v)}>
+          {showDeleted ? "Show Active" : "Show Recycle Bin"}
         </button>
       </div>
 
@@ -352,7 +391,7 @@ const ItemCategoriesConfig = () => {
             </tr>
           </thead>
           <tbody>
-            {currentList.map(row => (
+            {currentList.map((row) => (
               <tr key={row.id}>
                 <td>{row.salesDocumentType}</td>
                 <td>{row.itemCategoryGroup}</td>
