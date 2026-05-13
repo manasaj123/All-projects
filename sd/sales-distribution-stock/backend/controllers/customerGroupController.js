@@ -1,6 +1,53 @@
 // backend/controllers/customerGroupController.js
-const asyncHandler = require('../middleware/asyncHandler');
-const db = require('../models');
+const asyncHandler = require("../middleware/asyncHandler");
+const db = require("../models");
+
+// ---------------- VALIDATION ----------------
+const validateCustomerGroup = (data) => {
+  const errors = {};
+
+  const accountGroupRegex = /^[A-Z0-9]{4}$/;
+  const nameRegex = /^[A-Za-z\s]+$/;
+  const statusValues = ["Required", "Optional", "Hidden"];
+
+  // Required fields
+  const requiredFields = ["accountGroup", "name"];
+
+  requiredFields.forEach((field) => {
+    if (!data[field] || !data[field].toString().trim()) {
+      errors[field] = `${field} is required`;
+    }
+  });
+
+  // Account Group
+  if (data.accountGroup) {
+    if (!accountGroupRegex.test(data.accountGroup)) {
+      errors.accountGroup =
+        "Account Group must be exactly 4 uppercase letters/numbers";
+    }
+  }
+
+  // Name
+  if (data.name) {
+    if (!nameRegex.test(data.name)) {
+      errors.name = "Name must contain only letters and spaces";
+    }
+    if (data.name.length > 150) {
+      errors.name = "Name cannot exceed 150 characters";
+    }
+  }
+
+  // Field Status validation
+  ["fieldStatusGeneral", "fieldStatusCompanyCode", "fieldStatusSales"].forEach(
+    (field) => {
+      if (data[field] && !statusValues.includes(data[field])) {
+        errors[field] = `${field} must be Required, Optional, or Hidden`;
+      }
+    },
+  );
+
+  return errors;
+};
 
 // GET /api/customer-groups
 exports.getCustomerGroups = asyncHandler(async (req, res) => {
@@ -18,7 +65,7 @@ exports.getDeletedCustomerGroups = asyncHandler(async (req, res) => {
 exports.getCustomerGroupById = asyncHandler(async (req, res) => {
   const group = await db.CustomerGroup.findByPk(req.params.id);
   if (!group) {
-    res.status(404).json({ message: 'Customer group not found' });
+    res.status(404).json({ message: "Customer group not found" });
     return;
   }
   res.json(group);
@@ -26,37 +73,65 @@ exports.getCustomerGroupById = asyncHandler(async (req, res) => {
 
 // POST /api/customer-groups
 exports.createCustomerGroup = asyncHandler(async (req, res) => {
-  const group = await db.CustomerGroup.create(req.body);
-  res.status(201).json(group);
+  try {
+    // normalization
+    req.body.accountGroup = (req.body.accountGroup || "").trim().toUpperCase();
+
+    req.body.name = (req.body.name || "").trim();
+
+    const errors = validateCustomerGroup(req.body);
+    if (Object.keys(errors).length > 0) {
+      return res.status(400).json({ errors });
+    }
+
+    const group = await db.CustomerGroup.create(req.body);
+    res.status(201).json(group);
+  } catch (err) {
+    throw err;
+  }
 });
 
 // PUT /api/customer-groups/:id
 exports.updateCustomerGroup = asyncHandler(async (req, res) => {
   const group = await db.CustomerGroup.findByPk(req.params.id);
+
   if (!group) {
-    res.status(404).json({ message: 'Customer group not found' });
-    return;
+    return res.status(404).json({ message: "Customer group not found" });
   }
-  await group.update(req.body);
-  res.json(group);
+
+  try {
+    req.body.accountGroup = (req.body.accountGroup || "").trim().toUpperCase();
+
+    req.body.name = (req.body.name || "").trim();
+
+    const errors = validateCustomerGroup(req.body);
+    if (Object.keys(errors).length > 0) {
+      return res.status(400).json({ errors });
+    }
+
+    await group.update(req.body);
+    res.json(group);
+  } catch (err) {
+    throw err;
+  }
 });
 
 // DELETE /api/customer-groups/:id
 exports.softDeleteCustomerGroup = asyncHandler(async (req, res) => {
   const group = await db.CustomerGroup.findByPk(req.params.id);
   if (!group) {
-    res.status(404).json({ message: 'Customer group not found' });
+    res.status(404).json({ message: "Customer group not found" });
     return;
   }
   await group.update({ isDeleted: true });
-  res.json({ message: 'Customer group moved to recycle bin' });
+  res.json({ message: "Customer group moved to recycle bin" });
 });
 
 // PUT /api/customer-groups/:id/restore
 exports.restoreCustomerGroup = asyncHandler(async (req, res) => {
   const group = await db.CustomerGroup.findByPk(req.params.id);
   if (!group) {
-    res.status(404).json({ message: 'Customer group not found' });
+    res.status(404).json({ message: "Customer group not found" });
     return;
   }
   await group.update({ isDeleted: false });

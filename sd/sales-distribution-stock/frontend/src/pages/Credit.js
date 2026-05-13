@@ -1,5 +1,5 @@
 // frontend/src/pages/Credit.js
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from "react";
 import {
   getCredits,
   getDeletedCredits,
@@ -8,14 +8,14 @@ import {
   softDeleteCredit,
   restoreCredit,
   getCustomers,
-} from '../services/creditService';
+} from "../services/creditService";
 
 const initialForm = {
-  customerId: '',
-  creditLimit: '',
-  currency: 'INR',
-  riskCategory: '',
-  creditGroup: '',
+  customerId: "",
+  creditLimit: "",
+  currency: "INR",
+  riskCategory: "",
+  creditGroup: "",
 };
 
 const Credit = () => {
@@ -41,7 +41,7 @@ const Credit = () => {
       setDeletedCredits(delCredRes.data);
       setCustomers(custRes.data);
     } catch (err) {
-      console.error('Error loading credit data', err);
+      console.error("Error loading credit data", err);
     } finally {
       setLoading(false);
     }
@@ -51,19 +51,42 @@ const Credit = () => {
     loadData();
   }, []);
 
-  const handleChange = e => {
+  const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = async e => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.customerId) {
-      alert('Select customer');
+      alert("Select customer");
       return;
     }
     if (!formData.creditLimit) {
-      alert('Enter credit limit');
+      alert("Enter credit limit");
+      return;
+    }
+
+    if (Number(formData.creditLimit) <= 0) {
+      alert("Credit limit must be greater than 0");
+      return;
+    }
+
+    if (!/^[a-zA-Z0-9]+$/.test(formData.currency)) {
+      alert("Currency: no special characters allowed");
+      return;
+    }
+
+    if (
+      formData.riskCategory &&
+      !/^[a-zA-Z0-9]+$/.test(formData.riskCategory)
+    ) {
+      alert("Risk category: no special characters allowed");
+      return;
+    }
+
+    if (formData.creditGroup && !/^[a-zA-Z0-9]+$/.test(formData.creditGroup)) {
+      alert("Credit group: no special characters allowed");
       return;
     }
 
@@ -83,18 +106,20 @@ const Credit = () => {
       setEditingId(null);
       loadData();
     } catch (err) {
-      console.error('Error saving credit', err);
+      console.error("Error saving credit", err);
+
+      alert(err.response?.data?.message || "Error saving credit");
     }
   };
 
-  const handleEdit = c => {
+  const handleEdit = (c) => {
     setEditingId(c.id);
     setFormData({
-      customerId: c.customerId || '',
-      creditLimit: c.creditLimit || '',
-      currency: c.currency || 'INR',
-      riskCategory: c.riskCategory || '',
-      creditGroup: c.creditGroup || '',
+      customerId: c.customerId || "",
+      creditLimit: c.creditLimit || "",
+      currency: c.currency || "INR",
+      riskCategory: c.riskCategory || "",
+      creditGroup: c.creditGroup || "",
     });
   };
 
@@ -103,35 +128,33 @@ const Credit = () => {
     setFormData(initialForm);
   };
 
-  const handleSoftDelete = async id => {
-    if (!window.confirm('Move this credit record to recycle bin?')) return;
+  const handleSoftDelete = async (id) => {
+    if (!window.confirm("Move this credit record to recycle bin?")) return;
     try {
       await softDeleteCredit(id);
       loadData();
     } catch (err) {
-      console.error('Error deleting credit', err);
+      console.error("Error deleting credit", err);
     }
   };
 
-  const handleRestore = async id => {
+  const handleRestore = async (id) => {
     try {
       await restoreCredit(id);
       loadData();
     } catch (err) {
-      console.error('Error restoring credit', err);
+      console.error("Error restoring credit", err);
     }
   };
 
   const currentList = showDeleted ? deletedCredits : credits;
 
-  const displayCustomer = id => {
-    const c = customers.find(x => x.id === id);
+  const displayCustomer = (id) => {
+    const c = customers.find((x) => x.id === id);
     return c ? `${c.customerCode} - ${c.name}` : id;
   };
 
   return (
-
-    
     <div className="page-container">
       <style>{`
 
@@ -315,7 +338,7 @@ background:#dc2626;
             required
           >
             <option value="">Select Customer</option>
-            {customers.map(c => (
+            {customers.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.customerCode} - {c.name}
               </option>
@@ -365,7 +388,7 @@ background:#dc2626;
 
         <div className="form-actions">
           <button type="submit">
-            {editingId ? 'Update Credit' : 'Create Credit'}
+            {editingId ? "Update Credit" : "Create Credit"}
           </button>
           {editingId && (
             <button type="button" onClick={handleCancelEdit}>
@@ -376,9 +399,9 @@ background:#dc2626;
       </form>
 
       <div className="list-header">
-        <h3>{showDeleted ? 'Recycle Bin' : 'Active Credit Records'}</h3>
-        <button onClick={() => setShowDeleted(v => !v)}>
-          {showDeleted ? 'Show Active' : 'Show Recycle Bin'}
+        <h3>{showDeleted ? "Recycle Bin" : "Active Credit Records"}</h3>
+        <button onClick={() => setShowDeleted((v) => !v)}>
+          {showDeleted ? "Show Active" : "Show Recycle Bin"}
         </button>
       </div>
 
@@ -399,7 +422,7 @@ background:#dc2626;
             </tr>
           </thead>
           <tbody>
-            {currentList.map(c => (
+            {currentList.map((c) => (
               <tr key={c.id}>
                 <td>{displayCustomer(c.customerId)}</td>
                 <td>{c.creditLimit}</td>
@@ -409,14 +432,19 @@ background:#dc2626;
                 <td>
                   {!showDeleted && (
                     <>
-                      <button onClick={() => handleEdit(c)}>Edit</button>
-                      <button onClick={() => handleSoftDelete(c.id)}>
+                      <button type="button" onClick={() => handleEdit(c)}>
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleSoftDelete(c.id)}
+                      >
                         Delete
                       </button>
                     </>
                   )}
                   {showDeleted && (
-                    <button onClick={() => handleRestore(c.id)}>
+                    <button type="button" onClick={() => handleRestore(c.id)}>
                       Restore
                     </button>
                   )}

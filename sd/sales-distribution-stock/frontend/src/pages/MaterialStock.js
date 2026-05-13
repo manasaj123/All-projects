@@ -569,14 +569,21 @@ const MaterialStock = () => {
                 <td>
                   {!showDeleted && (
                     <div className="table-actions">
-                      <button onClick={() => handleEdit(m)}>Edit</button>
-                      <button onClick={() => handleSoftDelete(m.id)}>
+                      <button type="button" onClick={() => handleEdit(m)}>
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleSoftDelete(m.id)}
+                      >
                         Delete
                       </button>
                     </div>
                   )}
                   {showDeleted && (
-                    <button onClick={() => handleRestore(m.id)}>Restore</button>
+                    <button type="button" onClick={() => handleRestore(m.id)}>
+                      Restore
+                    </button>
                   )}
                 </td>
               </tr>
