@@ -57,6 +57,8 @@ const MaterialSalesView = () => {
     loadData();
   }, []);
 
+  const [serverError, setServerError] = useState("");
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -67,102 +69,28 @@ const MaterialSalesView = () => {
 
     const newErrors = {};
 
-    // only letters and numbers allowed
-    const alphaNumRegex = /^[A-Za-z0-9]+$/;
-
-    // only numbers allowed
-    const numberRegex = /^[0-9]+$/;
-
-    // Sales Org
-    if (!alphaNumRegex.test(formData.salesOrg)) {
-      newErrors.salesOrg = "Sales Org should contain only letters and numbers";
+    // ONLY REQUIRED FIELDS
+    if (!formData.materialId) {
+      newErrors.materialId = "Material is required";
     }
 
-    // Distribution Channel
-    const validDistributionChannels = ["01", "02"];
-
-    if (!validDistributionChannels.includes(formData.distributionChannel)) {
-      newErrors.distributionChannel = "Distribution Channel must be 01 or 02";
+    if (!formData.salesOrg) {
+      newErrors.salesOrg = "Sales Org is required";
     }
 
-    // Division
-    if (!alphaNumRegex.test(formData.division)) {
-      newErrors.division = "Division should contain only letters and numbers";
+    if (!formData.distributionChannel) {
+      newErrors.distributionChannel = "Distribution Channel is required";
     }
 
-    // Delivering Plant
-    if (!alphaNumRegex.test(formData.deliveringPlant)) {
-      newErrors.deliveringPlant =
-        "Delivering Plant should contain only letters and numbers";
+    if (!formData.deliveringPlant) {
+      newErrors.deliveringPlant = "Delivering Plant is required";
     }
 
-    // Item Category Group
-    const validItemCategories = ["001", "002"];
-
-    if (!validItemCategories.includes(formData.itemCategoryGroup)) {
-      newErrors.itemCategoryGroup = "Item Category Group must be 001 or 002";
-    }
-
-    // Loading Group
-    if (formData.loadingGroup && !alphaNumRegex.test(formData.loadingGroup)) {
-      newErrors.loadingGroup =
-        "Loading Group should contain only letters and numbers";
-    }
-
-    // Account Assignment Group
-    if (
-      formData.accountAssignmentGroup &&
-      !alphaNumRegex.test(formData.accountAssignmentGroup)
-    ) {
-      newErrors.accountAssignmentGroup =
-        "Account Assignment Group should contain only letters and numbers";
-    }
-
-    // Price Group
-    if (formData.priceGroup && !alphaNumRegex.test(formData.priceGroup)) {
-      newErrors.priceGroup =
-        "Price Group should contain only letters and numbers";
-    }
-
-    // Price List
-    if (formData.priceList && !alphaNumRegex.test(formData.priceList)) {
-      newErrors.priceList =
-        "Price List should contain only letters and numbers";
-    }
-
-    // Availability Check
-    if (
-      formData.availabilityCheck &&
-      !alphaNumRegex.test(formData.availabilityCheck)
-    ) {
-      newErrors.availabilityCheck =
-        "Availability Check should contain only letters and numbers";
-    }
-
-    // Transportation Group
-    if (
-      formData.transportationGroup &&
-      !alphaNumRegex.test(formData.transportationGroup)
-    ) {
-      newErrors.transportationGroup =
-        "Transportation Group should contain only letters and numbers";
-    }
-
-    // show errors
     setErrors(newErrors);
 
-    // stop submit if errors exist
-    if (Object.keys(newErrors).length > 0) {
-      return;
-    }
+    if (Object.keys(newErrors).length > 0) return;
 
     try {
-      if (!formData.materialId) {
-        alert("Select a material");
-        return;
-      }
-
-      // Prevent duplicate material
       const alreadyExists = salesViews.some(
         (v) =>
           v.materialId === Number(formData.materialId) && v.id !== editingId,
@@ -184,7 +112,10 @@ const MaterialSalesView = () => {
       setErrors({});
       loadData();
     } catch (err) {
-      console.error("Error saving sales view", err);
+      const message = err?.response?.data?.message || "Something went wrong";
+
+      alert(message); // or show in UI
+      console.error("Error saving sales view", message);
     }
   };
 
@@ -409,8 +340,8 @@ const MaterialSalesView = () => {
                   name="materialId"
                   value={formData.materialId}
                   onChange={handleChange}
-                  required
                   disabled={!!editingId}
+                  required
                 >
                   <option value="">Select Material</option>
                   {materials.map((m) => (
@@ -454,7 +385,6 @@ const MaterialSalesView = () => {
                   name="division"
                   value={formData.division}
                   onChange={handleChange}
-                  required
                 />
                 {errors.division && (
                   <small style={{ color: "red" }}>{errors.division}</small>
@@ -480,7 +410,6 @@ const MaterialSalesView = () => {
                   name="itemCategoryGroup"
                   value={formData.itemCategoryGroup}
                   onChange={handleChange}
-                  required
                 />
                 {errors.itemCategoryGroup && (
                   <small style={{ color: "red" }}>

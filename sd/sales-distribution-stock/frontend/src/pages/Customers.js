@@ -19,9 +19,9 @@ const initialForm = {
   riskCategory: "",
 };
 
-const nameRegex = /^[A-Za-z\s]+$/;
-const cityRegex = /^[A-Za-z\s]+$/;
-const countryRegex = /^[A-Za-z\s]+$/;
+// const nameRegex = /^[A-Za-z\s]+$/;
+// const cityRegex = /^[A-Za-z\s]+$/;
+// const countryRegex = /^[A-Za-z\s]+$/;
 
 const Customers = () => {
   const [customers, setCustomers] = useState([]);
@@ -62,71 +62,24 @@ const Customers = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    let newErrors = {};
-
-    // Name validation
-    if (!formData.name.trim()) {
-      newErrors.name = "Name is required";
-    } else if (!nameRegex.test(formData.name.trim())) {
-      newErrors.name = "Name must contain only letters and spaces";
-    } else if (formData.name.length > 150) {
-      newErrors.name = "Name cannot exceed 150 characters";
-    }
-
-    // City validation
-    if (!formData.city.trim()) {
-      newErrors.city = "City is required";
-    } else if (!cityRegex.test(formData.city.trim())) {
-      newErrors.city = "City must contain only letters";
-    }
-
-    // Country validation
-    if (!formData.country.trim()) {
-      newErrors.country = "Country is required";
-    } else if (!countryRegex.test(formData.country.trim())) {
-      newErrors.country = "Country must contain only letters";
-    } else if (formData.country.trim().length > 3) {
-      newErrors.country = "Country must be max 3 characters (e.g., IND, IN)";
-    }
-
-    if (!formData.customerCode.trim()) {
-      newErrors.customerCode = "Customer Code is required";
-    }
-
-    if (!formData.riskCategory.trim()) {
-      newErrors.riskCategory = "Risk Category is required";
-    }
-
-    // stop submit if errors exist
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
-      return;
-    }
-
-    setErrors({});
-
-    const payload = {
-      customerCode: formData.customerCode,
-      name: formData.name,
-      accountGroup: formData.accountGroup,
-      city: formData.city,
-      country: formData.country,
-      creditGroup: formData.creditGroup,
-      riskCategory: formData.riskCategory,
-    };
-
     try {
       if (editingId) {
-        await updateCustomer(editingId, payload);
+        await updateCustomer(editingId, formData);
       } else {
-        await createCustomer(payload);
+        await createCustomer(formData);
       }
 
       setFormData(initialForm);
       setEditingId(null);
+      setErrors({});
       loadData();
     } catch (err) {
-      console.error("Error saving customer", err);
+      // backend validation errors come here
+      if (err.response?.data?.errors) {
+        setErrors(err.response.data.errors);
+      } else {
+        console.error("Error saving customer", err);
+      }
     }
   };
 
@@ -280,7 +233,7 @@ const Customers = () => {
               name="customerCode"
               value={formData.customerCode}
               onChange={handleChange}
-              required
+              // required
               disabled={!!editingId}
             />
 
@@ -295,8 +248,8 @@ const Customers = () => {
               name="name"
               value={formData.name}
               onChange={handleChange}
-              required
-              maxLength={150}
+              // required
+              // maxLength={150}
             />
             {formData.name.length > 150 && (
               <small style={{ color: "red" }}>

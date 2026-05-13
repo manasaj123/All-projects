@@ -1,5 +1,5 @@
 // frontend/src/pages/Billing.js
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from "react";
 import {
   getBillings,
   getDeletedBillings,
@@ -8,15 +8,15 @@ import {
   softDeleteBilling,
   restoreBilling,
   getDeliveries,
-} from '../services/billingService';
+} from "../services/billingService";
 
 const initialForm = {
-  billingType: '',
-  billingDate: '',
-  referenceDeliveryId: '',
-  documentNumber: '',
-  totalAmount: '',
-  currency: 'INR',
+  billingType: "",
+  billingDate: "",
+  referenceDeliveryId: "",
+  documentNumber: "",
+  totalAmount: "",
+  currency: "INR",
 };
 
 const Billing = () => {
@@ -41,7 +41,7 @@ const Billing = () => {
       setBillings(activeRes.data);
       setDeletedBillings(deletedRes.data);
     } catch (err) {
-      console.error('Error loading billing data', err);
+      console.error("Error loading billing data", err);
     } finally {
       setLoading(false);
     }
@@ -51,32 +51,61 @@ const Billing = () => {
     loadData();
   }, []);
 
-  const handleChange = e => {
+  const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = async e => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+
     if (!formData.billingType) {
-      alert('Enter billing type');
+      alert("Enter billing type");
       return;
     }
+
     if (!formData.referenceDeliveryId) {
-      alert('Select reference delivery');
+      alert("Select reference delivery");
       return;
     }
+
     if (!formData.documentNumber) {
-      alert('Enter billing document number');
+      alert("Enter billing document number");
       return;
     }
+
     if (!formData.totalAmount) {
-      alert('Enter total amount');
+      alert("Enter total amount");
+      return;
+    }
+
+    // ADD HERE
+    if (!formData.currency) {
+      alert("Currency required");
+      return;
+    }
+
+    // special character validation
+    if (!/^[a-zA-Z0-9]+$/.test(formData.billingType)) {
+      alert("Billing type: no special characters allowed");
+      return;
+    }
+
+    if (!/^[a-zA-Z0-9]+$/.test(formData.documentNumber)) {
+      alert("Document number: no special characters allowed");
+      return;
+    }
+
+    // amount validation
+    if (Number(formData.totalAmount) <= 0) {
+      alert("Amount must be greater than 0");
       return;
     }
 
     const payload = {
       ...formData,
+      billingType: formData.billingType.toUpperCase(),
+      documentNumber: formData.documentNumber.toUpperCase(),
       totalAmount: Number(formData.totalAmount),
     };
 
@@ -86,23 +115,23 @@ const Billing = () => {
       } else {
         await createBilling(payload);
       }
+
       setFormData(initialForm);
       setEditingId(null);
       loadData();
     } catch (err) {
-      console.error('Error saving billing', err);
+      console.error("Error saving billing", err);
     }
   };
-
-  const handleEdit = b => {
+  const handleEdit = (b) => {
     setEditingId(b.id);
     setFormData({
-      billingType: b.billingType || '',
-      billingDate: b.billingDate || '',
-      referenceDeliveryId: b.referenceDeliveryId || '',
-      documentNumber: b.documentNumber || '',
-      totalAmount: b.totalAmount || '',
-      currency: b.currency || 'INR',
+      billingType: b.billingType || "",
+      billingDate: b.billingDate || "",
+      referenceDeliveryId: b.referenceDeliveryId || "",
+      documentNumber: b.documentNumber || "",
+      totalAmount: b.totalAmount || "",
+      currency: b.currency || "INR",
     });
   };
 
@@ -111,29 +140,29 @@ const Billing = () => {
     setFormData(initialForm);
   };
 
-  const handleSoftDelete = async id => {
-    if (!window.confirm('Move this billing document to recycle bin?')) return;
+  const handleSoftDelete = async (id) => {
+    if (!window.confirm("Move this billing document to recycle bin?")) return;
     try {
       await softDeleteBilling(id);
       loadData();
     } catch (err) {
-      console.error('Error deleting billing', err);
+      console.error("Error deleting billing", err);
     }
   };
 
-  const handleRestore = async id => {
+  const handleRestore = async (id) => {
     try {
       await restoreBilling(id);
       loadData();
     } catch (err) {
-      console.error('Error restoring billing', err);
+      console.error("Error restoring billing", err);
     }
   };
 
   const currentList = showDeleted ? deletedBillings : billings;
 
-  const displayDeliveryRef = id => {
-    const d = deliveries.find(x => x.id === id);
+  const displayDeliveryRef = (id) => {
+    const d = deliveries.find((x) => x.id === id);
     return d ? `DEL-${d.id}` : id;
   };
 
@@ -308,7 +337,7 @@ const Billing = () => {
             required
           >
             <option value="">Select Delivery</option>
-            {deliveries.map(d => (
+            {deliveries.map((d) => (
               <option key={d.id} value={d.id}>
                 DEL-{d.id}
               </option>
@@ -349,7 +378,7 @@ const Billing = () => {
 
         <div className="form-actions">
           <button type="submit">
-            {editingId ? 'Update Billing' : 'Create Billing'}
+            {editingId ? "Update Billing" : "Create Billing"}
           </button>
           {editingId && (
             <button type="button" onClick={handleCancelEdit}>
@@ -360,9 +389,9 @@ const Billing = () => {
       </form>
 
       <div className="list-header">
-        <h3>{showDeleted ? 'Recycle Bin' : 'Active Billing Documents'}</h3>
-        <button onClick={() => setShowDeleted(v => !v)}>
-          {showDeleted ? 'Show Active' : 'Show Recycle Bin'}
+        <h3>{showDeleted ? "Recycle Bin" : "Active Billing Documents"}</h3>
+        <button onClick={() => setShowDeleted((v) => !v)}>
+          {showDeleted ? "Show Active" : "Show Recycle Bin"}
         </button>
       </div>
 
@@ -384,7 +413,7 @@ const Billing = () => {
             </tr>
           </thead>
           <tbody>
-            {currentList.map(b => (
+            {currentList.map((b) => (
               <tr key={b.id}>
                 <td>{b.billingType}</td>
                 <td>{b.billingDate}</td>
@@ -395,14 +424,19 @@ const Billing = () => {
                 <td>
                   {!showDeleted && (
                     <>
-                      <button onClick={() => handleEdit(b)}>Edit</button>
-                      <button onClick={() => handleSoftDelete(b.id)}>
+                      <button type="button" onClick={() => handleEdit(b)}>
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleSoftDelete(b.id)}
+                      >
                         Delete
                       </button>
                     </>
                   )}
                   {showDeleted && (
-                    <button onClick={() => handleRestore(b.id)}>
+                    <button type="button" onClick={() => handleRestore(b.id)}>
                       Restore
                     </button>
                   )}

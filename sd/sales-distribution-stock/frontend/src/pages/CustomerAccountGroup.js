@@ -69,6 +69,8 @@ const CustomerAccountGroup = () => {
   //   }
   // };
 
+  const [errors, setErrors] = useState({});
+
   const handleChange = (e) => {
     const { name, value } = e.target;
 
@@ -174,7 +176,11 @@ const CustomerAccountGroup = () => {
       setEditingId(null);
       loadData();
     } catch (err) {
-      console.error("Error saving customer group", err);
+      if (err.response?.data?.errors) {
+        setErrors(err.response.data.errors);
+      } else {
+        console.error("Error saving customer group", err);
+      }
     }
   };
 
@@ -403,7 +409,6 @@ const CustomerAccountGroup = () => {
           <div className="form-row">
             <label>General Data</label>
             <input
-              type="text"
               name="fieldStatusGeneral"
               value={formData.fieldStatusGeneral}
               onChange={handleChange}
