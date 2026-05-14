@@ -4,25 +4,49 @@ import vendorApi from "../api/vendorApi";
 import materialApi from "../api/materialApi";
 import prApi from "../api/prApi";
 
-// Helper to normalize date to yyyy-MM-dd for <input type="date"> and DB
+// Helper to normalize date to yyyy-MM-dd for <input type="date"> - FIXED TIMEZONE
 const formatDateYMD = (value) => {
   if (!value) return "";
   if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
   try {
     const d = new Date(value);
     if (Number.isNaN(d.getTime())) return "";
-    return d.toISOString().split("T")[0];
+    // Fix timezone issue - use local date
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   } catch {
     return "";
   }
 };
 
-// Get today's date in YYYY-MM-DD format
+// Format amount without decimal places or with 2 decimals
+const formatAmount = (amount) => {
+  if (!amount && amount !== 0) return "0";
+  const num = Number(amount);
+  if (isNaN(num)) return "0";
+  // Remove extra decimals, show only up to 2 decimal places if needed
+  return num.toFixed(2).replace(/\.00$/, '');
+};
+
+// Get today's date in YYYY-MM-DD format (local timezone)
 const getTodayDate = () => {
   const today = new Date();
   const year = today.getFullYear();
   const month = String(today.getMonth() + 1).padStart(2, '0');
   const day = String(today.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+// Convert date to local YYYY-MM-DD without timezone offset
+const toLocalDateString = (date) => {
+  if (!date) return "";
+  const d = new Date(date);
+  if (isNaN(d.getTime())) return "";
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
 };
 
@@ -91,7 +115,8 @@ const buttonStyle = {
 
 const cancelButtonStyle = {
   ...buttonStyle,
-  backgroundColor: "#6b7280"
+  backgroundColor: "#6b7280",
+  marginLeft: "8px"
 };
 
 const tableStyle = {
@@ -369,7 +394,7 @@ export default function POPage() {
       const payload = {
         header: {
           po_no: header.po_no,
-          po_date: formatDateYMD(header.po_date),
+          po_date: header.po_date, // Send as is without timezone conversion
           vendor_id: Number(header.vendor_id),
           payment_terms: header.payment_terms,
           currency: header.currency,
@@ -384,7 +409,7 @@ export default function POPage() {
             qty: Number(i.qty),
             price: Number(i.price),
             tax_percent: Number(i.tax_percent) || 0,
-            delivery_date: formatDateYMD(i.delivery_date) || null
+            delivery_date: i.delivery_date || null
           }))
       };
 
@@ -421,7 +446,7 @@ export default function POPage() {
           qty: it.qty,
           price: "",
           tax_percent: "",
-          delivery_date: formatDateYMD(it.required_date)
+          delivery_date: it.required_date ? toLocalDateString(it.required_date) : ""
         }))
       );
     } catch (e) {
@@ -440,7 +465,7 @@ export default function POPage() {
       const { header: fullHeader, items: fullItems } = res.data;
       setHeader({
         po_no: fullHeader.po_no || "",
-        po_date: fullHeader.po_date ? formatDateYMD(fullHeader.po_date) : "",
+        po_date: fullHeader.po_date ? toLocalDateString(fullHeader.po_date) : "",
         vendor_id: fullHeader.vendor_id || "",
         payment_terms: fullHeader.payment_terms || "",
         currency: fullHeader.currency || "INR",
@@ -453,7 +478,7 @@ export default function POPage() {
           qty: it.qty || "",
           price: it.price || "",
           tax_percent: it.tax_percent || "",
-          delivery_date: it.delivery_date ? formatDateYMD(it.delivery_date) : ""
+          delivery_date: it.delivery_date ? toLocalDateString(it.delivery_date) : ""
         }))
       );
     } catch (e) {
@@ -502,9 +527,9 @@ export default function POPage() {
                 style={getInputStyle("po_date")}
                 type="date"
                 name="po_date"
-                value={formatDateYMD(header.po_date)}
+                value={header.po_date}
                 onChange={handleHeaderChange}
-                min={getTodayDate()}
+                max={getTodayDate()}
                 required
               />
               {errors.po_date && <div style={errorTextStyle}>{errors.po_date}</div>}
@@ -616,7 +641,7 @@ export default function POPage() {
                   </div>
                   <div style={{ marginBottom: "4px" }}>
                     PR No: {selectedPrDetails.header.req_no} | Date:{" "}
-                    {formatDateYMD(selectedPrDetails.header.req_date)} | Requester:{" "}
+                    {toLocalDateString(selectedPrDetails.header.req_date)} | Requester:{" "}
                     {selectedPrDetails.header.requester}
                   </div>
                   <table style={tableStyle}>
@@ -633,7 +658,7 @@ export default function POPage() {
                         <tr key={idx}>
                           <td style={tdStyle}>{it.material_id}</td>
                           <td style={tdStyle}>{it.qty}</td>
-                          <td style={tdStyle}>{formatDateYMD(it.required_date)}</td>
+                          <td style={tdStyle}>{toLocalDateString(it.required_date)}</td>
                           <td style={tdStyle}>{it.remarks}</td>
                         </tr>
                       ))}
@@ -679,7 +704,7 @@ export default function POPage() {
                   onChange={(e) =>
                     handleItemChange(idx, "qty", e.target.value)
                   }
-                  placeholder=" 0"
+                  placeholder="Quantity"
                 />
                 {errors[`item_${idx}_qty`] && <div style={errorTextStyle}>{errors[`item_${idx}_qty`]}</div>}
               </label>
@@ -704,7 +729,7 @@ export default function POPage() {
                   style={errors[`item_${idx}_tax`] ? inputErrorStyle : inputStyle}
                   type="number"
                   step="1"
-                  min="1"
+                  min="0"
                   max="100"
                   value={it.tax_percent}
                   onChange={(e) =>
@@ -719,7 +744,7 @@ export default function POPage() {
                 <input
                   style={errors[`item_${idx}_delivery_date`] ? inputErrorStyle : inputStyle}
                   type="date"
-                  value={formatDateYMD(it.delivery_date)}
+                  value={it.delivery_date}
                   onChange={(e) =>
                     handleItemChange(idx, "delivery_date", e.target.value)
                   }
@@ -791,10 +816,10 @@ export default function POPage() {
               {pos.map((po) => (
                 <tr key={po.id}>
                   <td style={tdStyle}>{po.po_no}</td>
-                  <td style={tdStyle}>{formatDateYMD(po.po_date)}</td>
+                  <td style={tdStyle}>{toLocalDateString(po.po_date)}</td>
                   <td style={tdStyle}>{po.vendor_name}</td>
                   <td style={tdStyle}>{po.status}</td>
-                  <td style={tdStyle}>{po.gross_amount}</td>
+                  <td style={tdStyle}>{formatAmount(po.gross_amount)}</td>
                   <td style={tdStyle}>{po.po_type}</td>
                   <td style={tdStyle}>{po.source_type}</td>
                   <td style={tdStyle}>
